@@ -1,5 +1,6 @@
 FROM python:3.11-bookworm
 
+RUN mkdir app
 WORKDIR /app
 
 COPY init_setup.py init_setup.py
