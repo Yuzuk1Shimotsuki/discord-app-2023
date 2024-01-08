@@ -1,6 +1,6 @@
 FROM python:3.11.7-bookworm
 
-WORKDIR /app
+WORKDIR app
 
 COPY init_setup.py init_setup.py
 COPY requirements.txt requirements.txt
