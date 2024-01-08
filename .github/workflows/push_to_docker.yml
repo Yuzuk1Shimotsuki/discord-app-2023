@@ -28,4 +28,5 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: chocolamilk92/discord_bot_2023_internal:latest
+          tags: chocolamilk92/discord_bot_2023_internal:${{ github.sha }}
+          
