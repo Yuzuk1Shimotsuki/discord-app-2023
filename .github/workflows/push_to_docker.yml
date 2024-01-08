@@ -27,4 +27,4 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: user/app:latest
+          tags: chocolamilk92/discord_bot_2023_internal:latest
