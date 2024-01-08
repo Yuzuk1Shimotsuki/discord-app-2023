@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  docker:
+  build_image:
     runs-on: ubuntu-latest
     steps:
       -
