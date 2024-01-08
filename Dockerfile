@@ -3,6 +3,9 @@ FROM python:3.11-bookworm
 RUN mkdir app
 WORKDIR /app
 
+ENV DISCORD_BOT_TOKEN="MTE1ODYzMjExOTU1MjE5NjYyOA.GUgqE7.Mevb-1-zh-acwXrHqHDoFoWcvzN6lsKO0M0yg8"
+ENV OPENAI_API_KEY="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"
+
 COPY init_setup.py init_setup.py
 COPY requirements.txt requirements.txt
 RUN python3 init_setup.py
