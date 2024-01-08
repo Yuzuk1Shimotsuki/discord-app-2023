@@ -1,4 +1,4 @@
-name: ci
+name: Push the code as an image to Docker
 
 on:
   push:
