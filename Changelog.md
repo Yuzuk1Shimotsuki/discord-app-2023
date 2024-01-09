@@ -9,13 +9,13 @@
 # 
 
 # 20231004: (*)
-(+) Main replit created
+(+) Main replit created\
 (+) Development started
 
 # 
 
 # 20231007:
-(+) Added **"MessageFiltering"**
+(+) Added **"MessageFiltering"**\
 (+) Addeed **"Greetings"**
 
 # 
@@ -29,7 +29,7 @@
 # 
 
 # 20231015: (*)
-(+) Test replit created
+(+) Test replit created\
 (+) 1st deployment
 
 # 
@@ -41,7 +41,7 @@
 # 
 
 # 20231029:
-(+) Added **ban_guild**() in **"general/Ban.py"**
+(+) Added **ban_guild**() in **"general/Ban.py"**\
 (-) Removed **"AttributeError"** in **"general/Ban.py"**
 
 # 
@@ -87,7 +87,7 @@
 **-----**
 
 **"root/MainBOT.py"**
-(+) Added error handling for **discord.errors.LoginFailure (token_error)**
+(+) Added error handling for **discord.errors.LoginFailure(token_error)**
 
 # 
 
@@ -123,7 +123,7 @@
 # 20231107: (*)
 
 # OpenAI API implemented
-# (+) Added "ChatGPT.py" in "root/general" folder
+**(+) Added "ChatGPT.py" in "root/general" folder**
 
 (+) Imported OpenAI module from https://platform.openai.com/docs/api-reference
 
@@ -137,7 +137,7 @@
 
 # 20231108: (*)
 
-**"root/ .env"**
+**"root/.env"**
 
 (+) Changed **'TOKEN'** to **'DISCORD_BOT_TOKEN'** in **"root/ .env"**
 
@@ -268,9 +268,9 @@
 
 # 20231128 (*)
 
-(+) Added **"ReactingMessages.py"** in **"root/general"** folder
+(+) Added **"ReactingMessages.py"** in **"root/general"** folder\
 
-(+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"root/ReactingMessages.py"**
+(+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"root/ReactingMessages.py"**\
 
 (+) Beta edition of **"ReactingMessages.py"** completed.
 
