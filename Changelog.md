@@ -131,7 +131,7 @@
 
 (+) Added **'OPENAI_API_KEY'** field into **"root/ .env"** file
 
-(+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**/
+(+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**
 
 # 
 
@@ -143,20 +143,20 @@
 
 **"root/general/ChatGPT.py"**
 
-(+) Changed the varible as follows:\
+(+) Changed the varible as follows:
 
-(++++) "self.model_prompt_engine" --> "self.default_model_prompt_engine"\
+(++++) "self.model_prompt_engine" --> "self.default_model_prompt_engine"
 
-(-/+) Replaced GPT model to **"gpt-3.5-turbo-1106"** from **"gpt-3.5-turbo"** in order to reduce the generating and responding time (from 1-4min to 10s-1.5min or less)\
+(-/+) Replaced GPT model to **"gpt-3.5-turbo-1106"** from **"gpt-3.5-turbo"** in order to reduce the generating and responding time (from 1-4min to 10s-1.5min or less)
 
-(+) Defined (and fine-tuned) the following varibles and its default values:\
+(+) Defined (and fine-tuned) the following varibles and its default values:
 
 (++++) **self.default_temperature** = 0.8\
 (++++) **self.default_max_tokens** = 3840\
 (++++) **self.default_top_p** = 1.00\
 (++++) **self.default_frequency_penalty** = 0.00\
 (++++) **self.default_presence_penalty** = 0.00\
-(++++) **self.default_instruction** = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired."\
+(++++) **self.default_instruction** = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired."
 
 (+) Add **{"role": "assistant", "content": self.default_instruction}** to **message[0]** for a higher quality response\
 
@@ -170,7 +170,7 @@
 
 **"root/ .env"**
 
-(+) Relocated **"offset = 0"** from line 62 to line 56\
+(+) Relocated **"offset = 0"** from line 62 to line 56
 
 (-) Removed **if i == 0: else** statement and **await interaction.followup.send(final_response[min_limit:max_limit])** in line 69, 71, 72\
 
@@ -178,11 +178,11 @@
 
 # "root/general/ChatGPT.py"
 
-(+) Changed **"assistant"** to **"system"** in line 32 of **"root/general/ChatGPT.py"**\
+(+) Changed **"assistant"** to **"system"** in line 32 of **"root/general/ChatGPT.py"**
 
-(+) Added try and exception handling for **openai.error.ServiceUnavailableError**\
+(+) Added try and exception handling for **openai.error.ServiceUnavailableError**
 
-(++++) Return **"The GPT model is currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved."** when the error occurs\
+(++++) Return **"The GPT model is currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved."** when the error occurs
 
 (+) Fixed **final_response** is spiltted by incomplete words when the total characters of **gpt_response** > 2000
 
@@ -192,33 +192,33 @@
 
 **"root/general/ChatGPT.py"**
 
-(+) Defined the following varibles and its default values:\
+(+) Defined the following varibles and its default values:
 
 (++++)**self.chat_messages** = []\
-(++++)**self.chat_history** = []\
+(++++)**self.chat_history** = []
 
-(+) Added SlashCommandGroup for "chatgpt"\
+(+) Added SlashCommandGroup for "chatgpt"
 
-(+) Changed the command **chatgpt()** to **chatgpt_prompt**\
+(+) Changed the command **chatgpt()** to **chatgpt_prompt**
 
-(+) Changed the variable **"question"** to **"prompt"**\
+(+) Changed the variable **"question"** to **"prompt"**
 
 (-) Removed the variable **"messages"**
 
-(+) Changed line 47 as follows:\
+(+) Changed line 47 as follows:
 (++++) messages = [
       {"role": "system", "content": self.default_instruction},
       {"role": "user", "content": prompt}
-      ]\
--->\
+      ]
+-->
 (++++) self.chat_messages.append({"role": "system", "content": self.default_instruction})\
-(++++) self.chat_messages.append({"role": "user", "content": prompt})\
+(++++) self.chat_messages.append({"role": "user", "content": prompt})
 
-(+) Results will now appends to **self.chat_messages**\
+(+) Results will now appends to **self.chat_messages**
 
-(+) Each results will now appends to **self.chat_history**. Which can store up to 15 recent conversations and resets automatically afterwards.\
+(+) Each results will now appends to **self.chat_history**. Which can store up to 15 recent conversations and resets automatically afterwards.
 
-(+) Added **reset_gpt()** function\
+(+) Added **reset_gpt()** function
 
 (+) Added command **reset()** by calling the **reset_gpt()** function
 
@@ -228,14 +228,14 @@
 
 **"root/general/ChatGPT.py"**
 
-(+) Updated module "openai" from version 0.27.0 --> 1.0.0\
+(+) Updated module "openai" from version 0.27.0 --> 1.0.0
 
-(+) Updated response object and the variable **"gpt_response"** as follows due to the official API update:\
+(+) Updated response object and the variable **"gpt_response"** as follows due to the official API update:
 
-(++++) response object: **"openai.ChatCompletion.create()"** --> **"openai.chat.completions.create"**\
-(++++) gpt_response: **"response.choices[0].message['content']"** --> **response.choices[0].message.content**\
+(++++) response object: **"openai.ChatCompletion.create()"** --> **"openai.chat.completions.create"**
+(++++) gpt_response: **"response.choices[0].message['content']"** --> **response.choices[0].message.content**
 
-(+) Fixed error cannot be handled by exceptions in "root/general/ChatGPT.py"\
+(+) Fixed error cannot be handled by exceptions in "root/general/ChatGPT.py"
 
 # 
 
