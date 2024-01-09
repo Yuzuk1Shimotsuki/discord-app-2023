@@ -126,7 +126,7 @@
 
 (+) Imported OpenAI module from https://platform.openai.com/docs/api-reference
 
-(+) Linked OpenAI API key to the discord bot from my OpenAI account
+(+) Linked OpenAI API key to the discord bot from OpenAI account
 
 (+) Added **'OPENAI_API_KEY'** field into **"root/ .env"** file
 
