@@ -52,9 +52,9 @@
 
 **"general/DisplayUserInfo.py" in line 40 and 41**
 
-(+) Changed the command **user()** as the follows:\
+(+) Changed the command **user()** as the follows:
 
-(++++) f"**<t:{int(round(datetime.timestamp(member.created_at), 0))}:R>**" --> f"**{discord.utils.format_dt(member.created_at, style='R')}**"\
+(++++) f"**<t:{int(round(datetime.timestamp(member.created_at), 0))}:R>**" --> f"**{discord.utils.format_dt(member.created_at, style='R')}**"
 
 (++++) f"**<t:{int(round(datetime.timestamp(member.created_at), 0))}:R>**" --> f"**{discord.utils.format_dt(member.created_at, style='R')}**"
 
@@ -62,7 +62,7 @@
 
 **"administration/GetBannedList.py" in line 29 and 32**
 
-(+) Changed the command **banned_list()** as follows\
+(+) Changed the command **banned_list()** as follows
 
 (++) <t:{int(round(datetime.timestamp(entry.user.created_at), 0))}:R>" --> {discord.utils.format_dt(entry.user.created_at, style='R')}"
 
@@ -74,9 +74,9 @@
 
 **"general/VoiceChannel.py" in line 46 and 172**
 
-(+) Fixed some grammatical errors in command **join()** and **move_all()** respectively\
+(+) Fixed some grammatical errors in command **join()** and **move_all()** respectively
 
-(++++) # The bot has been connected to a voice channel but not as same as that author one --> # The bot has been connected to a voice channel but not as same as the author one\
+(++++) # The bot has been connected to a voice channel but not as same as that author one --> # The bot has been connected to a voice channel but not as same as the author one
 
 (++++) "It seems that you don't have permission to move users!" ---> "It seems that you don't have permission to move all users!"
 
@@ -102,19 +102,19 @@
 
 **"root/administration/LockChannel.py"**
 
-(+) Fixed slow responding issue while handling lockdowns for multiple text channels\
+(+) Fixed slow responding issue while handling lockdowns for multiple text channels
 
-(+) Changed the description for every single **slash_command**\
+(+) Changed the description for every single **slash_command**
 
-(+) Renamed the varible in command **antiraid_activate()** and **antiraid_deactivate()** as follows:\
+(+) Renamed the varible in command **antiraid_activate()** and **antiraid_deactivate()** as follows:
 
-(++++) 'success_locked_channels_count' --> 'successful_locked_channels_count'\
+(++++) 'success_locked_channels_count' --> 'successful_locked_channels_count'
 
-(++++) 'success_unlocked_channels_count' --> 'successful_unlocked_channels_count'\
+(++++) 'success_unlocked_channels_count' --> 'successful_unlocked_channels_count'
 
-(-) Removed varibles locked_channels and unlocked_channels in command lock_channels() and unlock_channels() respectively.\
+(-) Removed varibles locked_channels and unlocked_channels in command lock_channels() and unlock_channels() respectively.
 
-(-/+) Replaced if-statement > 0 with try and except block for command **lock_channels()** and **unlock_channels()**\
+(-/+) Replaced if-statement > 0 with try and except block for command **lock_channels()** and **unlock_channels()**
 
 (+) Changed except block from **'except'** to **'except Exception as e'**
 
@@ -123,15 +123,15 @@
 # 20231107: (*)
 
 # OpenAI API implemented
-**(+) Added "ChatGPT.py" in "root/general" folder**\
+**(+) Added "ChatGPT.py" in "root/general" folder**
 
-(+) Imported OpenAI module from https://platform.openai.com/docs/api-reference\
+(+) Imported OpenAI module from https://platform.openai.com/docs/api-reference
 
-(+) Linked OpenAI API key to the discord bot from my OpenAI account\
+(+) Linked OpenAI API key to the discord bot from my OpenAI account
 
-(+) Added **'OPENAI_API_KEY'** field into **"root/.env"** file\
+(+) Added **'OPENAI_API_KEY'** field into **"root/ .env"** file
 
-(+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**
+(+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**/
 
 # 
 
@@ -156,7 +156,7 @@
 (++++) **self.default_top_p** = 1.00\
 (++++) **self.default_frequency_penalty** = 0.00\
 (++++) **self.default_presence_penalty** = 0.00\
-(++++) **self.default_instruction** = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired." \
+(++++) **self.default_instruction** = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired."\
 
 (+) Add **{"role": "assistant", "content": self.default_instruction}** to **message[0]** for a higher quality response\
 
@@ -249,28 +249,28 @@
 
 **"root/general/ChangeStatus.py"**
 
-(-) Removed "import os" from line 3 of "root/general/ChangeStatus.py"\
+(-) Removed "import os" from line 3 of "root/general/ChangeStatus.py"
 
-(+) Defined the following varibles and its default values:\
+(+) Defined the following varibles and its default values:
 
 (++++) **options** = ["Idle", "Invisible", "Do not disturb", "Online"]\
-(++++) **types** = ["Playing", "Streaming", "Listening to", "Watching", "(Ignore)"]\
+(++++) **types** = ["Playing", "Streaming", "Listening to", "Watching", "(Ignore)"]
 
-(+) Activities type **"discord.Game"**, **"discord.Streaming"**, **"discord.ActivityType.listening"**, **"discord.ActivityType.watching"** is now supported.\
+(+) Activities type **"discord.Game"**, **"discord.Streaming"**, **"discord.ActivityType.listening"**, **"discord.ActivityType.watching"** is now supported.
 
-(+) Activity type is now a mandatory option. User have to choose '(Ignore)' if they want to leave it blank.\
+(+) Activity type is now a mandatory option. User have to choose '(Ignore)' if they want to leave it blank.
 
-(+) Defined a new function **get_type()** for getting the activity type, message (optional) and URL (optional, for **"discord.Streaming"**) to display.\
+(+) Defined a new function **get_type()** for getting the activity type, message (optional) and URL (optional, for **"discord.Streaming"**) to display.
 
-(+) Enhanced for better error handling. (e.g. Set the status to online by default if none of any valid option from the list was selected for status, or set the activity to None by default if none of any valid option from the list was selected for activity.)\
+(+) Enhanced for better error handling. (e.g. Set the status to online by default if none of any valid option from the list was selected for status, or set the activity to None by default if none of any valid option from the list was selected for activity.)
 
 # 
 
 # 20231128 (*)
 
-(+) Added **"ReactingMessages.py"** in **"root/general"** folder\
+(+) Added **"ReactingMessages.py"** in **"root/general"** folder
 
-(+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"root/ReactingMessages.py"**\
+(+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"root/ReactingMessages.py"**
 
 (+) Beta edition of **"ReactingMessages.py"** completed.
 
@@ -280,17 +280,17 @@
 
 **"root/general/ReactingMessages.py"**
 
-(+) Defined functions **"add_reaction()"** and **"remove_reaction()"** in **"root/ReactingMessages.py"**\
+(+) Defined functions **"add_reaction()"** and **"remove_reaction()"** in **"root/ReactingMessages.py"**
 
-(-/+) Change the name of **SlashCommandGroup** to "reaction" from "react"\
+(-/+) Change the name of **SlashCommandGroup** to "reaction" from "react"
 
-(+) Fixed the bot crashes when an invaild emoji was manipulated by adding proper error handling.\
+(+) Fixed the bot crashes when an invaild emoji was manipulated by adding proper error handling.
 
-(-/+) Change the output type of **reaction_list()** to embedded-mesage from multiple lines of string.\
+(-/+) Change the output type of **reaction_list()** to embedded-mesage from multiple lines of string.  
 
-(+) The total number of reactions will be displayed at the bottom of the message and message "No reactions were found." (something like that) will be returned if none of any reactions were found in the target message.\
+(+) The total number of reactions will be displayed at the bottom of the message and message "No reactions were found." (something like that) will be returned if none of any reactions were found in the target message.
 
-(+) Renamed variable **"message_id"** and its corresponding references to **"message"**\
+(+) Renamed variable **"message_id"** and its corresponding references to **"message"**
 
 (+) Stable edition of "ReactingMessages.py" completed.
 
@@ -306,27 +306,27 @@
 
 # Renamed "root/general/SendMessage.py" to "root/general/SendFromInput.py"
 
-(-/+) Removed **"Message Sent!"** in "root/general/SendMessage.py".\
+(-/+) Removed **"Message Sent!"** in "root/general/SendMessage.py".
 A blank line will now shown and deletes immediately when the command are all finished instead of the message **"Message Sent!"**.
 
-(+)  Defined a new variable called **"attachment"** with type **"discord.Attachment"** in command **"send()"**\
+(+)  Defined a new variable called **"attachment"** with type **"discord.Attachment"** in command **"send()"**
 
-(+) Sending one single attachment in each meassage is now implemented. Local file-sharing for every os with built-in interface is also supported.\
+(+) Sending one single attachment in each meassage is now implemented. Local file-sharing for every os with built-in interface is also supported.
 
 (+) Renewed every single description for a more user-friendly experience.
 
 
 **"root/general/Greetings.py"**
 
-(+) Changed the comment as follows:\
+(+) Changed the comment as follows:
 
 **"# DM the user with welcome message when a new member joined the server"** --> **"# DM the user with welcome message when a new member joined the server and the member is not a bot."**
 
-(+) Added an if-else condition check to determine the member is a bot or not at line 70 of **"root/general/Greetings.py"**.\
+(+) Added an if-else condition check to determine the member is a bot or not at line 70 of **"root/general/Greetings.py"**.
 
-(+) Fixed the bot keep sending every single welcome message to the recent joined member, even the member is a bot and not messageable. (which will return HTTPException 400 Bad Request Error on early days and interrupts the entire program)\
+(+) Fixed the bot keep sending every single welcome message to the recent joined member, even the member is a bot and not messageable. (which will return HTTPException 400 Bad Request Error on early days and interrupts the entire program)
 
-(+) Fixed the bot could not send welcome message to the server's system channel when the member is a bot due to the above interruption\
+(+) Fixed the bot could not send welcome message to the server's system channel when the member is a bot due to the above interruption
 
 # 
 
@@ -334,13 +334,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # Migrated all the file from "root/general" and "root/administration" to a new folder named "root/cogs"
 
-(-) Removed **"root/general"** and **"root/administration"** from the file directory\
+(-) Removed **"root/general"** and **"root/administration"** from the file directory
 
-(-/+) Re-formatted all python files\
+(-/+) Re-formatted all python files
 
-(-/+) Renamed **"MainBOT.py"** to **"startup.py"**\
+(-/+) Renamed **"MainBOT.py"** to **"startup.py"**
 
-(+) Minior changes in content applied for **"main.py"** and **"startup.py"**\
+(+) Minior changes in content applied for **"main.py"** and **"startup.py"**
 
 (+) Bug-fixing for some errors
 
