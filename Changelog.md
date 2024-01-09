@@ -1,56 +1,55 @@
 
 # -------------------- Changelog --------------------
 
+# 20231003: (*)
+(+) Bot created\
+(+) Initial commit
 
+# 
 
-20231003: (*)
-(+) Bot created
-
-
-
-20231004: (*)
-(+) Main replit created
+# 20231004: (*)
+(+) Main replit created\
 (+) Development started
 
+# 
 
-
-20231007:
-(+) Added **"MessageFiltering"**
+# 20231007:
+(+) Added **"MessageFiltering"**\
 (+) Addeed **"Greetings"**
 
+# 
 
+# 20231012: (*)
 
-20231012: (*)
-
-# discord.py --> pycord
+**discord.py --> pycord**
 
 (-/+) Replace the module from discord.py to pycord
 
+# 
 
-
-20231015: (*)
-(+) Test replit created
+# 20231015: (*)
+(+) Test replit created\
 (+) 1st deployment
 
-
+# 
 
 .
 .
 .
 
+# 
 
-
-20231029:
-(+) Added **ban_guild**() in **"general/Ban.py"**
+# 20231029:
+(+) Added **ban_guild**() in **"general/Ban.py"**\
 (-) Removed **"AttributeError"** in **"general/Ban.py"**
 
+# 
 
+# 20231101: (*)
 
-20231101: (*)
+**------**
 
-# *------*
-
-# "general/DisplayUserInfo.py" in line 40 and 41
+**"general/DisplayUserInfo.py" in line 40 and 41**
 
 (+) Changed the command **user()** as the follows:
 
@@ -58,21 +57,21 @@
 
 (++++) f"**<t:{int(round(datetime.timestamp(member.created_at), 0))}:R>**" --> f"**{discord.utils.format_dt(member.created_at, style='R')}**"
 
-# *-----*
+#
 
-# "administration/GetBannedList.py" in line 29 and 32
+**"administration/GetBannedList.py" in line 29 and 32**
 
 (+) Changed the command **banned_list()** as follows
 
 (++) <t:{int(round(datetime.timestamp(entry.user.created_at), 0))}:R>" --> {discord.utils.format_dt(entry.user.created_at, style='R')}"
 
+# 
 
+# 20231102:
 
-20231102:
+**-----**
 
-# *-----*
-
-# "general/VoiceChannel.py" in line 46 and 172
+**"general/VoiceChannel.py" in line 46 and 172**
 
 (+) Fixed some grammatical errors in command **join()** and **move_all()** respectively
 
@@ -80,27 +79,27 @@
 
 (++++) "It seems that you don't have permission to move users!" ---> "It seems that you don't have permission to move all users!"
 
+# 
 
+# 20231103:
 
-20231103:
+**-----**
 
-# *-----*
+**"root/MainBOT.py"**
+(+) Added error handling for **discord.errors.LoginFailure(token_error)**
 
-# "root/MainBOT.py"
-(+) Added error handling for **discord.errors.LoginFailure (token_error)**
+# 
 
-
-
-20231105:
+# 20231105:
 (+) Added **"LockChannel.py"** in **"root/administration"** folder
 
+# 
 
+# 20231106: (*)
 
-20231106: (*)
+**-----**
 
-# *-----*
-
-# "root/administration/LockChannel.py"
+**"root/administration/LockChannel.py"**
 
 (+) Fixed slow responding issue while handling lockdowns for multiple text channels
 
@@ -118,30 +117,30 @@
 
 (+) Changed except block from **'except'** to **'except Exception as e'**
 
+# 
 
-
-20231107: (*)
+# 20231107: (*)
 
 # OpenAI API implemented
-# (+) Added "ChatGPT.py" in "root/general" folder
+**(+) Added "ChatGPT.py" in "root/general" folder**
 
 (+) Imported OpenAI module from https://platform.openai.com/docs/api-reference
 
-(+) Linked OpenAI API key to the discord bot from my OpenAI account
+(+) Linked OpenAI API key to the discord bot from OpenAI account
 
 (+) Added **'OPENAI_API_KEY'** field into **"root/ .env"** file
 
-(+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**/
+(+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**
 
+# 
 
+# 20231108: (*)
 
-20231108: (*)
-
-# "root/ .env"
+**"root/.env"**
 
 (+) Changed **'TOKEN'** to **'DISCORD_BOT_TOKEN'** in **"root/ .env"**
 
-# "root/general/ChatGPT.py"
+**"root/general/ChatGPT.py"**
 
 (+) Changed the varible as follows:
 
@@ -151,11 +150,11 @@
 
 (+) Defined (and fine-tuned) the following varibles and its default values:
 
-(++++) **self.default_temperature** = 0.8
-(++++) **self.default_max_tokens** = 3840
-(++++) **self.default_top_p** = 1.00
-(++++) **self.default_frequency_penalty** = 0.00
-(++++) **self.default_presence_penalty** = 0.00
+(++++) **self.default_temperature** = 0.8\
+(++++) **self.default_max_tokens** = 3840\
+(++++) **self.default_top_p** = 1.00\
+(++++) **self.default_frequency_penalty** = 0.00\
+(++++) **self.default_presence_penalty** = 0.00\
 (++++) **self.default_instruction** = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired."
 
 (+) Add **{"role": "assistant", "content": self.default_instruction}** to **message[0]** for a higher quality response
@@ -164,15 +163,15 @@
 
 (+) Changed **question** description from **"Your question"** to **"The question you would like to ask"** in command **chatgpt()**
 
+# 
 
+# 20231110: (*)
 
-20231110: (*)
-
-# "root/ .env"
+**"root/ .env"**
 
 (+) Relocated **"offset = 0"** from line 62 to line 56
 
-(-) Removed **if i == 0: else** statement and **await interaction.followup.send(final_response[min_limit:max_limit])** in line 69, 71, 72
+(-) Removed **if i == 0: else** statement and **await interaction.followup.send(final_response[min_limit:max_limit])** in line 69, 71, 72\
 
 (+) Renewed **'OPENAI_API_KEY'** in **"root/ .env"**
 
@@ -186,15 +185,15 @@
 
 (+) Fixed **final_response** is spiltted by incomplete words when the total characters of **gpt_response** > 2000
 
+# 
 
+# 20231111: (*)
 
-20231111: (*)
-
-# "root/general/ChatGPT.py"
+**"root/general/ChatGPT.py"**
 
 (+) Defined the following varibles and its default values:
 
-(++++)**self.chat_messages** = []
+(++++)**self.chat_messages** = []\
 (++++)**self.chat_history** = []
 
 (+) Added SlashCommandGroup for "chatgpt"
@@ -209,9 +208,9 @@
 (++++) messages = [
       {"role": "system", "content": self.default_instruction},
       {"role": "user", "content": prompt}
-      ]
--->
-(++++) self.chat_messages.append({"role": "system", "content": self.default_instruction})
+      ]\
+-->\
+(++++) self.chat_messages.append({"role": "system", "content": self.default_instruction})\
 (++++) self.chat_messages.append({"role": "user", "content": prompt})
 
 (+) Results will now appends to **self.chat_messages**
@@ -222,38 +221,38 @@
 
 (+) Added command **reset()** by calling the **reset_gpt()** function
 
+# 
 
+# 20231112: (*)
 
-20231112: (*)
-
-# "root/general/ChatGPT.py"
+**"root/general/ChatGPT.py"**
 
 (+) Updated module "openai" from version 0.27.0 --> 1.0.0
 
 (+) Updated response object and the variable **"gpt_response"** as follows due to the official API update:
 
-(++++) response object: **"openai.ChatCompletion.create()"** --> **"openai.chat.completions.create"**,
+(++++) response object: **"openai.ChatCompletion.create()"** --> **"openai.chat.completions.create"**
 (++++) gpt_response: **"response.choices[0].message['content']"** --> **response.choices[0].message.content**
 
 (+) Fixed error cannot be handled by exceptions in "root/general/ChatGPT.py"
 
-
+# 
 
 .
 .
 .
 
+# 
 
+# 20231125 (*)
 
-20231125 (*)
-
-# "root/general/ChangeStatus.py"
+**"root/general/ChangeStatus.py"**
 
 (-) Removed "import os" from line 3 of "root/general/ChangeStatus.py"
 
 (+) Defined the following varibles and its default values:
 
-(++++) **options** = ["Idle", "Invisible", "Do not disturb", "Online"]
+(++++) **options** = ["Idle", "Invisible", "Do not disturb", "Online"]\
 (++++) **types** = ["Playing", "Streaming", "Listening to", "Watching", "(Ignore)"]
 
 (+) Activities type **"discord.Game"**, **"discord.Streaming"**, **"discord.ActivityType.listening"**, **"discord.ActivityType.watching"** is now supported.
@@ -264,21 +263,21 @@
 
 (+) Enhanced for better error handling. (e.g. Set the status to online by default if none of any valid option from the list was selected for status, or set the activity to None by default if none of any valid option from the list was selected for activity.)
 
+# 
 
+# 20231128 (*)
 
-20231128 (*)
-
-# (+) Added "ReactingMessages.py" in "root/general" folder
+(+) Added **"ReactingMessages.py"** in **"root/general"** folder
 
 (+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"root/ReactingMessages.py"**
 
-(+) Beta edition of "ReactingMessages.py" completed.
+(+) Beta edition of **"ReactingMessages.py"** completed.
 
+# 
 
+# 20231130 (*)
 
-20231130 (*)
-
-# "root/general/ReactingMessages.py"
+**"root/general/ReactingMessages.py"**
 
 (+) Defined functions **"add_reaction()"** and **"remove_reaction()"** in **"root/ReactingMessages.py"**
 
@@ -294,15 +293,15 @@
 
 (+) Stable edition of "ReactingMessages.py" completed.
 
-
+# 
 
 .
 .
 .
 
+# 
 
-
-20231218 (*)
+# 20231218 (*)
 
 # Renamed "root/general/SendMessage.py" to "root/general/SendFromInput.py"
 
@@ -316,7 +315,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Renewed every single description for a more user-friendly experience.
 
 
-# "root/general/Greetings.py"
+**"root/general/Greetings.py"**
 
 (+) Changed the comment as follows:
 
@@ -328,9 +327,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Fixed the bot could not send welcome message to the server's system channel when the member is a bot due to the above interruption
 
+# 
 
-
-20231219 (*)
+# 20231219 (*)
 
 # Migrated all the file from "root/general" and "root/administration" to a new folder named "root/cogs"
 
@@ -344,4 +343,17 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Bug-fixing for some errors
 
+# 
 
+.
+.
+.
+
+# 
+
+# 20240105 - 20240109
+
+**(-/+) Migrated all the file from Repl.it to GitHub**\
+**(+) Dockerized the entire application**
+
+(+) Created **"root/Dockerfile"**
