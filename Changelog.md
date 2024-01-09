@@ -158,9 +158,9 @@
 (++++) **self.default_presence_penalty** = 0.00\
 (++++) **self.default_instruction** = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired."
 
-(+) Add **{"role": "assistant", "content": self.default_instruction}** to **message[0]** for a higher quality response\
+(+) Add **{"role": "assistant", "content": self.default_instruction}** to **message[0]** for a higher quality response
 
-(+) Changed comment from **"GPT model"** to **"Default values for GPT model"** in line 13 of **"root/general/ChatGPT.py"**\
+(+) Changed comment from **"GPT model"** to **"Default values for GPT model"** in line 13 of **"root/general/ChatGPT.py"**
 
 (+) Changed **question** description from **"Your question"** to **"The question you would like to ask"** in command **chatgpt()**
 
@@ -209,7 +209,7 @@
 (++++) messages = [
       {"role": "system", "content": self.default_instruction},
       {"role": "user", "content": prompt}
-      ]
+      ]\
 -->
 (++++) self.chat_messages.append({"role": "system", "content": self.default_instruction})\
 (++++) self.chat_messages.append({"role": "user", "content": prompt})
