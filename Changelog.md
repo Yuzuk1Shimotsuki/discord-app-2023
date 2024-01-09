@@ -6,51 +6,51 @@
 # 20231003: (*)
 (+) Bot created
 
-
+# 
 
 # 20231004: (*)
 (+) Main replit created
 (+) Development started
 
-
+# 
 
 # 20231007:
 (+) Added **"MessageFiltering"**
 (+) Addeed **"Greetings"**
 
-
+# 
 
 # 20231012: (*)
 
-# discord.py --> pycord
+**discord.py --> pycord**
 
 (-/+) Replace the module from discord.py to pycord
 
-
+# 
 
 # 20231015: (*)
 (+) Test replit created
 (+) 1st deployment
 
-
+# 
 
 .
 .
 .
 
-
+# 
 
 # 20231029:
 (+) Added **ban_guild**() in **"general/Ban.py"**
 (-) Removed **"AttributeError"** in **"general/Ban.py"**
 
-
+# 
 
 # 20231101: (*)
 
-# *------*
+**------**
 
-# "general/DisplayUserInfo.py" in line 40 and 41
+**"general/DisplayUserInfo.py" in line 40 and 41**
 
 (+) Changed the command **user()** as the follows:
 
@@ -58,21 +58,21 @@
 
 (++++) f"**<t:{int(round(datetime.timestamp(member.created_at), 0))}:R>**" --> f"**{discord.utils.format_dt(member.created_at, style='R')}**"
 
-# *-----*
+#
 
-# "administration/GetBannedList.py" in line 29 and 32
+**"administration/GetBannedList.py" in line 29 and 32**
 
 (+) Changed the command **banned_list()** as follows
 
 (++) <t:{int(round(datetime.timestamp(entry.user.created_at), 0))}:R>" --> {discord.utils.format_dt(entry.user.created_at, style='R')}"
 
-
+# 
 
 # 20231102:
 
-# *-----*
+**-----**
 
-# "general/VoiceChannel.py" in line 46 and 172
+**"general/VoiceChannel.py" in line 46 and 172**
 
 (+) Fixed some grammatical errors in command **join()** and **move_all()** respectively
 
@@ -80,27 +80,27 @@
 
 (++++) "It seems that you don't have permission to move users!" ---> "It seems that you don't have permission to move all users!"
 
-
+# 
 
 # 20231103:
 
-# *-----*
+**-----**
 
-# "root/MainBOT.py"
+**"root/MainBOT.py"**
 (+) Added error handling for **discord.errors.LoginFailure (token_error)**
 
-
+# 
 
 # 20231105:
 (+) Added **"LockChannel.py"** in **"root/administration"** folder
 
-
+# 
 
 # 20231106: (*)
 
-# *-----*
+**-----**
 
-# "root/administration/LockChannel.py"
+**"root/administration/LockChannel.py"**
 
 (+) Fixed slow responding issue while handling lockdowns for multiple text channels
 
@@ -118,7 +118,7 @@
 
 (+) Changed except block from **'except'** to **'except Exception as e'**
 
-
+# 
 
 # 20231107: (*)
 
@@ -133,15 +133,15 @@
 
 (+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**/
 
-
+# 
 
 # 20231108: (*)
 
-# "root/ .env"
+**"root/ .env"**
 
 (+) Changed **'TOKEN'** to **'DISCORD_BOT_TOKEN'** in **"root/ .env"**
 
-# "root/general/ChatGPT.py"
+**"root/general/ChatGPT.py"**
 
 (+) Changed the varible as follows:
 
@@ -164,11 +164,11 @@
 
 (+) Changed **question** description from **"Your question"** to **"The question you would like to ask"** in command **chatgpt()**
 
-
+# 
 
 # 20231110: (*)
 
-# "root/ .env"
+**"root/ .env"**
 
 (+) Relocated **"offset = 0"** from line 62 to line 56
 
@@ -186,11 +186,11 @@
 
 (+) Fixed **final_response** is spiltted by incomplete words when the total characters of **gpt_response** > 2000
 
-
+# 
 
 # 20231111: (*)
 
-# "root/general/ChatGPT.py"
+**"root/general/ChatGPT.py"**
 
 (+) Defined the following varibles and its default values:
 
@@ -222,11 +222,11 @@
 
 (+) Added command **reset()** by calling the **reset_gpt()** function
 
-
+# 
 
 # 20231112: (*)
 
-# "root/general/ChatGPT.py"
+**"root/general/ChatGPT.py"**
 
 (+) Updated module "openai" from version 0.27.0 --> 1.0.0
 
@@ -237,17 +237,17 @@
 
 (+) Fixed error cannot be handled by exceptions in "root/general/ChatGPT.py"
 
-
+# 
 
 .
 .
 .
 
-
+# 
 
 # 20231125 (*)
 
-# "root/general/ChangeStatus.py"
+**"root/general/ChangeStatus.py"**
 
 (-) Removed "import os" from line 3 of "root/general/ChangeStatus.py"
 
@@ -264,21 +264,21 @@
 
 (+) Enhanced for better error handling. (e.g. Set the status to online by default if none of any valid option from the list was selected for status, or set the activity to None by default if none of any valid option from the list was selected for activity.)
 
-
+# 
 
 # 20231128 (*)
 
-# (+) Added "ReactingMessages.py" in "root/general" folder
+(+) Added **"ReactingMessages.py"** in **"root/general"** folder
 
 (+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"root/ReactingMessages.py"**
 
-(+) Beta edition of "ReactingMessages.py" completed.
+(+) Beta edition of **"ReactingMessages.py"** completed.
 
-
+# 
 
 # 20231130 (*)
 
-# "root/general/ReactingMessages.py"
+**"root/general/ReactingMessages.py"**
 
 (+) Defined functions **"add_reaction()"** and **"remove_reaction()"** in **"root/ReactingMessages.py"**
 
@@ -294,13 +294,13 @@
 
 (+) Stable edition of "ReactingMessages.py" completed.
 
-
+# 
 
 .
 .
 .
 
-
+# 
 
 # 20231218 (*)
 
@@ -316,7 +316,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Renewed every single description for a more user-friendly experience.
 
 
-# "root/general/Greetings.py"
+**"root/general/Greetings.py"**
 
 (+) Changed the comment as follows:
 
@@ -328,7 +328,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Fixed the bot could not send welcome message to the server's system channel when the member is a bot due to the above interruption
 
-
+# 
 
 # 20231219 (*)
 
@@ -344,13 +344,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Bug-fixing for some errors
 
-
+# 
 
 .
 .
 .
 
-
+# 
 
 # 20240105 - 20240109
 
