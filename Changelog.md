@@ -354,8 +354,8 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240105 - 20240109
 
-# Migrated all the file from Repl.it to GitHub
-# Dockerized the entire application
+**Migrated all the file from Repl.it to GitHub**
+**Dockerized the entire application**
 
 (+) Created **"root/Dockerfile"**
 
