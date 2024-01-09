@@ -3,24 +3,24 @@
 
 
 
-20231003: (*)
+# 20231003: (*)
 (+) Bot created
 
 
 
-20231004: (*)
+# 20231004: (*)
 (+) Main replit created
 (+) Development started
 
 
 
-20231007:
+# 20231007:
 (+) Added **"MessageFiltering"**
 (+) Addeed **"Greetings"**
 
 
 
-20231012: (*)
+# 20231012: (*)
 
 # discord.py --> pycord
 
@@ -28,7 +28,7 @@
 
 
 
-20231015: (*)
+# 20231015: (*)
 (+) Test replit created
 (+) 1st deployment
 
@@ -40,13 +40,13 @@
 
 
 
-20231029:
+# 20231029:
 (+) Added **ban_guild**() in **"general/Ban.py"**
 (-) Removed **"AttributeError"** in **"general/Ban.py"**
 
 
 
-20231101: (*)
+# 20231101: (*)
 
 # *------*
 
@@ -68,7 +68,7 @@
 
 
 
-20231102:
+# 20231102:
 
 # *-----*
 
@@ -82,7 +82,7 @@
 
 
 
-20231103:
+# 20231103:
 
 # *-----*
 
@@ -91,12 +91,12 @@
 
 
 
-20231105:
+# 20231105:
 (+) Added **"LockChannel.py"** in **"root/administration"** folder
 
 
 
-20231106: (*)
+# 20231106: (*)
 
 # *-----*
 
@@ -120,7 +120,7 @@
 
 
 
-20231107: (*)
+# 20231107: (*)
 
 # OpenAI API implemented
 # (+) Added "ChatGPT.py" in "root/general" folder
@@ -135,7 +135,7 @@
 
 
 
-20231108: (*)
+# 20231108: (*)
 
 # "root/ .env"
 
@@ -166,7 +166,7 @@
 
 
 
-20231110: (*)
+# 20231110: (*)
 
 # "root/ .env"
 
@@ -188,7 +188,7 @@
 
 
 
-20231111: (*)
+# 20231111: (*)
 
 # "root/general/ChatGPT.py"
 
@@ -224,7 +224,7 @@
 
 
 
-20231112: (*)
+# 20231112: (*)
 
 # "root/general/ChatGPT.py"
 
@@ -245,7 +245,7 @@
 
 
 
-20231125 (*)
+# 20231125 (*)
 
 # "root/general/ChangeStatus.py"
 
@@ -266,7 +266,7 @@
 
 
 
-20231128 (*)
+# 20231128 (*)
 
 # (+) Added "ReactingMessages.py" in "root/general" folder
 
@@ -276,7 +276,7 @@
 
 
 
-20231130 (*)
+# 20231130 (*)
 
 # "root/general/ReactingMessages.py"
 
@@ -302,7 +302,7 @@
 
 
 
-20231218 (*)
+# 20231218 (*)
 
 # Renamed "root/general/SendMessage.py" to "root/general/SendFromInput.py"
 
@@ -330,7 +330,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 
 
-20231219 (*)
+# 20231219 (*)
 
 # Migrated all the file from "root/general" and "root/administration" to a new folder named "root/cogs"
 
@@ -344,4 +344,18 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Bug-fixing for some errors
 
+
+
+.
+.
+.
+
+
+
+# 20240105 - 20240109
+
+# Migrated all the file from Repl.it to GitHub
+# Dockerized the entire application
+
+(+) Created **"root/Dockerfile"**
 
