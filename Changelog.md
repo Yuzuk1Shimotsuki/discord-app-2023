@@ -210,7 +210,7 @@
       {"role": "system", "content": self.default_instruction},
       {"role": "user", "content": prompt}
       ]\
--->
+-->\
 (++++) self.chat_messages.append({"role": "system", "content": self.default_instruction})\
 (++++) self.chat_messages.append({"role": "user", "content": prompt})
 
