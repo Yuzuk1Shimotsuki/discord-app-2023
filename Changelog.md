@@ -1,10 +1,9 @@
 
 # -------------------- Changelog --------------------
 
-
-
 # 20231003: (*)
-(+) Bot created
+(+) Bot created\
+(+) Initial commit
 
 # 
 
@@ -358,4 +357,3 @@ A blank line will now shown and deletes immediately when the command are all fin
 **(+) Dockerized the entire application**
 
 (+) Created **"root/Dockerfile"**
-
