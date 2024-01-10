@@ -28,7 +28,7 @@ class VoiceChannel(commands.Cog):
                 # Connect the bot to voice channel
                 voice = await author_vc.connect()
                 await interaction.response.send_message(f"I joined the voice channel <#{author_vc.id}>")
-                source = FFmpegPCMAudio("../test.mp3")
+                source = FFmpegPCMAudio("test.mp3")
                 player = voice.play(source)
             elif voice.channel.id != author_vc.id:
                 # The bot has been connected to a voice channel but not as same as the author or required one
