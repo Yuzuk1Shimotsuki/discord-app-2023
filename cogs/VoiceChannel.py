@@ -21,12 +21,12 @@ class VoiceChannel(commands.Cog):
                 author_vc = channel
             else:
                 author_vc = interaction.author.voice.channel
-            voice = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+            voice_state = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
             # This allows for more functionality with voice channels
-            if voice == None:
+            if voice_state == None:
                 # None being the default value if the bot isnt in a channel (which is why the is_connected() is returning errors)
                 # Connect the bot to voice channel
-                await author_vc.connect()
+                voice = await author_vc.connect()
                 await interaction.response.send_message(f"I joined the voice channel <#{author_vc.id}>")
                 source = FFmpegPCMAudio("../test.mp3")
                 player = voice.play(source)
