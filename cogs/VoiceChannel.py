@@ -23,7 +23,7 @@ class VoiceChannel(commands.Cog):
                 author_vc = interaction.author.voice.channel
             voice_state = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
             # This allows for more functionality with voice channels
-            if voice_state == None:
+            if voice_state is None:
                 # None being the default value if the bot isnt in a channel (which is why the is_connected() is returning errors)
                 # Connect the bot to voice channel
                 voice = await author_vc.connect()
@@ -204,10 +204,10 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     @commands.has_guild_permissions(moderate_members=True)
     async def move_bot(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to move me to.", required=True), reason: Option(str, description="Reason for move", required=False)):
         if reason is None:
-            await interaction.author.move_to(channel)
+            await self.bot.voice_clients.move_to(channel)
             await interaction.response.send_message(f"I moved to <#{channel.id}>.")
         else:
-            await interaction.author.move_to(channel, reason=reason)
+            await self.bot.voice_clients.move_to(channel, reason=reason)
             await interaction.response.send_message(f"I moved to <#{channel.id}> for {reason}")
 
     @move_bot.error
