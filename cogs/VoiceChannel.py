@@ -199,7 +199,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             raise error
         
     # Moves the bot to another specified voice channel
-    @move.command(name="bot", description="Moves you to another specified voice channel")
+    @move.command(name="bot", description="Moves the bot to another specified voice channel")
     @commands.has_guild_permissions(move_members=True)
     @commands.has_guild_permissions(moderate_members=True)
     async def move_bot(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to move you to.", required=True), reason: Option(str, description="Reason for move", required=False)):
