@@ -206,10 +206,10 @@ couuld u join it first before inviting meee？ :pleading_face:''')
         guild = self.bot.get_guild(interaction.guild.id)
         bot_member = guild.get_member(self.bot.application_id)
         if reason is None:
-            await interaction.bot_member.move_to(channel)
+            await bot_member.move_to(channel)
             await interaction.response.send_message(f"I moved to <#{channel.id}>.")
         else:
-            await interaction.bot_member.move_to(channel, reason=reason)
+            await bot_member.move_to(channel, reason=reason)
             await interaction.response.send_message(f"I moved to <#{channel.id}> for {reason}")
 
     @move_bot.error
