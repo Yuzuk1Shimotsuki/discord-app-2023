@@ -357,3 +357,18 @@ A blank line will now shown and deletes immediately when the command are all fin
 **(+) Dockerized the entire application**
 
 (+) Created **"root/Dockerfile"**
+
+# 20240110 - 20240111
+
+(!) Bot temporarily unavailible due to an urgent migration to another hosting platform for security purpose
+
+#
+
+# 20240112
+
+(!) Migration was finished as expected, the bot is now hosting on [Microsoft Azure](https://azure.microsoft.com) and availible for all users again
+
+(-/+) Minior amendment in content
+
+(+) Added command **move_bot()** in VoiceChannel.py
+
