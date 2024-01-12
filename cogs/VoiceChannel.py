@@ -203,11 +203,13 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     @commands.has_guild_permissions(move_members=True)
     @commands.has_guild_permissions(moderate_members=True)
     async def move_bot(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to move me to.", required=True), reason: Option(str, description="Reason for move", required=False)):
+        guild = self.client.get_guild(interaction.guild.id)
+        bot_member = guild.get_member(self.bot.application_id)
         if reason is None:
-            await self.bot.voice_clients.move_to(channel)
+            await interaction.bot_member.move_to(channel)
             await interaction.response.send_message(f"I moved to <#{channel.id}>.")
         else:
-            await self.bot.voice_clients.move_to(channel, reason=reason)
+            await interaction.bot_member.move_to(channel, reason=reason)
             await interaction.response.send_message(f"I moved to <#{channel.id}> for {reason}")
 
     @move_bot.error
