@@ -138,8 +138,8 @@ class VoiceChannel(commands.Cog):
         try:
             voice_channel = interaction.author.voice.channel
         except:
-            play_embed = embed.add_field(name="", value="Connect to a voice channel first.", inline=False)
-            await interaction.response.send_message(embed=play_embed)
+            await interaction.response.send_message(f'''i don't want to be alone in the voice channel . . .  :pensive:
+couuld u join it first before inviting meee？ :pleading_face:''')
             return
         if self.is_paused[guild_id]:
             self.vc[guild_id].resume()
@@ -160,7 +160,7 @@ class VoiceChannel(commands.Cog):
                     await self.play_music(interaction)
                     
 
-    @commands.command(name="pause", help="Pauses the current song being played")
+    @commands.command(name="pause", help="Pauses the current track being played")
     async def pause(self, interaction: Interaction):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -173,7 +173,7 @@ class VoiceChannel(commands.Cog):
             pause_embed = embed.add_field(name="", value="The track has been already paused.", inline=False)
         await interaction.response.send_message(embed=pause_embed)
 
-    @commands.slash_command(name = "resume", description="Resumes playing with the discord bot")
+    @commands.slash_command(name = "resume", description="Resume an paused track in voice channel")
     async def resume(self, interaction: Interaction):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -185,7 +185,7 @@ class VoiceChannel(commands.Cog):
             await interaction.response.send_message(embed=resume_embed)
             
 
-    @commands.slash_command(name="skip", description="Skips the current song being played")
+    @commands.slash_command(name="skip", description="Skips the current track being played")
     async def skip(self, interaction: Interaction, amount: Option(int, min = 1, description="Number of track to skip. Leave this blank if you want to skip the current track only.", required=False)):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -206,7 +206,7 @@ class VoiceChannel(commands.Cog):
             await interaction.response.send_message(embed=skip_embed)
 
 
-    @commands.slash_command(name="previous", description="Plays the previous song in the queue")
+    @commands.slash_command(name="previous", description="Plays the previous track in the queue")
     async def previous(self, interaction: Interaction):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -250,11 +250,13 @@ class VoiceChannel(commands.Cog):
     @commands.slash_command(name="clear", description="Stops the track currently playing and clears the queue")
     async def clear(self, interaction: Interaction):
         guild_id = interaction.guild.id
+        embed = discord.Embed(title="Queue:", color=interaction.author.colour)
         self.music_queue[guild_id] = []
         if self.vc[guild_id] != None and self.is_playing[guild_id]:
             self.vc[guild_id].stop()
         self.current_music_queue_index[guild_id] == 0
-        await interaction.response.send_message("```Music queue cleared```")
+        clear_embed = embed.add_field(name="", value="Music queue cleared", inline=False)
+        await interaction.response.send_message(embed=clear_embed)
 
     @commands.command(name="stop", aliases=["disconnect", "l", "d"], help="Kick the bot from VC")
     async def dc(self, interaction: Interaction):
