@@ -120,13 +120,17 @@ class VoiceChannel(commands.Cog):
         if source == 'YouTube':
             result_list = []
             if not query.startswith("https://"):
-                max_limit = 25
-                search = VideosSearch(query, limit=max_limit)
-                for i in range(max_limit):
-                    try:
-                        result_list.append(search.result()["result"][i]["title"])
-                    except IndexError:
-                        break
+                try:
+                    max_limit = 25
+                    search = VideosSearch(query, limit=max_limit)
+                    for i in range(max_limit):
+                        try:
+                            result_list.append(search.result()["result"][i]["title"])
+                        except IndexError:
+                            break
+                except TypeError:
+                    # The author did not entered anything yet
+                    return ["a"]
                 return result_list
             return []
         else: # is not YT
