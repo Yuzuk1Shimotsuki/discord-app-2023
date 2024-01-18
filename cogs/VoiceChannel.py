@@ -76,7 +76,7 @@ class VoiceChannel(commands.Cog):
             loop = asyncio.get_event_loop()
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(m_url, download=False))
             song = data['url']
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(song, **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(discord.FFmpegPCMAudio(song, executable= "ffmpeg.exe", **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
 
         else:
             self.is_playing[guild_id] = False
@@ -102,7 +102,7 @@ class VoiceChannel(commands.Cog):
             loop = asyncio.get_event_loop()
             data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(m_url, download=False))
             song = data['url']
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(song, **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(discord.FFmpegPCMAudio(song, executable= "ffmpeg.exe", **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
 
         else:
             self.is_playing[guild_id] = False
@@ -115,6 +115,8 @@ class VoiceChannel(commands.Cog):
     async def get_search_result(self: discord.AutocompleteContext):
         source = self.options['source']
         query = self.options["query"]
+        if query is None:
+            query = ""
         if source == 'YouTube':
             result_list = []
             if not query.startswith("https://"):
@@ -138,8 +140,8 @@ class VoiceChannel(commands.Cog):
         try:
             voice_channel = interaction.author.voice.channel
         except:
-            await interaction.response.send_message(f'''i don't want to be alone in the voice channel . . .  :pensive:
-couuld u join it first before inviting meee？ :pleading_face:''')
+            play_embed = embed.add_field(name="", value="Connect to a voice channel first.", inline=False)
+            await interaction.response.send_message(embed=play_embed)
             return
         if self.is_paused[guild_id]:
             self.vc[guild_id].resume()
@@ -160,7 +162,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
                     await self.play_music(interaction)
                     
 
-    @commands.command(name="pause", help="Pauses the current track being played")
+    @commands.command(name="pause", help="Pauses the current song being played")
     async def pause(self, interaction: Interaction):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -173,7 +175,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             pause_embed = embed.add_field(name="", value="The track has been already paused.", inline=False)
         await interaction.response.send_message(embed=pause_embed)
 
-    @commands.slash_command(name = "resume", description="Resume an paused track in voice channel")
+    @commands.slash_command(name = "resume", description="Resumes playing with the discord bot")
     async def resume(self, interaction: Interaction):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -185,7 +187,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             await interaction.response.send_message(embed=resume_embed)
             
 
-    @commands.slash_command(name="skip", description="Skips the current track being played")
+    @commands.slash_command(name="skip", description="Skips the current song being played")
     async def skip(self, interaction: Interaction, amount: Option(int, min = 1, description="Number of track to skip. Leave this blank if you want to skip the current track only.", required=False)):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -206,7 +208,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             await interaction.response.send_message(embed=skip_embed)
 
 
-    @commands.slash_command(name="previous", description="Plays the previous track in the queue")
+    @commands.slash_command(name="previous", description="Plays the previous song in the queue")
     async def previous(self, interaction: Interaction):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
@@ -250,13 +252,11 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     @commands.slash_command(name="clear", description="Stops the track currently playing and clears the queue")
     async def clear(self, interaction: Interaction):
         guild_id = interaction.guild.id
-        embed = discord.Embed(title="Queue:", color=interaction.author.colour)
         self.music_queue[guild_id] = []
         if self.vc[guild_id] != None and self.is_playing[guild_id]:
             self.vc[guild_id].stop()
         self.current_music_queue_index[guild_id] == 0
-        clear_embed = embed.add_field(name="", value="Music queue cleared", inline=False)
-        await interaction.response.send_message(embed=clear_embed)
+        await interaction.response.send_message("```Music queue cleared```")
 
     @commands.command(name="stop", aliases=["disconnect", "l", "d"], help="Kick the bot from VC")
     async def dc(self, interaction: Interaction):
