@@ -44,7 +44,7 @@ class VoiceChannel(commands.Cog):
 
     # ----------<Voice Channels>-----------
 
-
+    # Startup
     @commands.Cog.listener()
     async def on_ready(self):
         for guild in self.bot.guilds:
@@ -56,7 +56,7 @@ class VoiceChannel(commands.Cog):
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
 
 
-     #searching the item on youtube
+    # Searching the item on YouTube
     def search_yt(self, item):
         if item.startswith("https://"):
             title = self.ytdl.extract_info(item, download=False)["title"]
@@ -65,7 +65,7 @@ class VoiceChannel(commands.Cog):
         return {'source':search.result()["result"][0]["link"], 'title':search.result()["result"][0]["title"]}
 
     
-    # infinite loop checking 
+    # Infinite loop checking 
     async def auto_play_next(self, interaction: Interaction):
         guild_id = interaction.guild.id
         if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
@@ -89,11 +89,11 @@ class VoiceChannel(commands.Cog):
             self.is_playing[guild_id] = True
             self.is_paused[guild_id] = False
             m_url = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['source']
-            #try to connect to voice channel if you are not already connected
+            # Try to connect to voice channel if the author are not already connected
             if self.vc[guild_id] == None or not self.vc[guild_id].is_connected():
                 self.vc[guild_id] = await self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1].connect()
 
-                #in case we fail to connect
+                # In case we fail to connect
                 if self.vc[guild_id] == None:
                     await interaction.send("```Could not connect to the voice channel```")
                     return
@@ -108,11 +108,8 @@ class VoiceChannel(commands.Cog):
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
 
-
-
-
     # Auto search from YouTube
-    async def get_search_result(self: discord.AutocompleteContext):
+    async def get_youtube_search_result(self: discord.AutocompleteContext):
         source = self.options['source']
         query = self.options["query"]
         if query is None:
@@ -130,15 +127,15 @@ class VoiceChannel(commands.Cog):
                             break
                 except TypeError:
                     # The author did not entered anything yet
-                    return ["a"]
+                    return []
                 return result_list
             return []
         else: # is not YT
             return []
 
 
-    @commands.slash_command(description="Plays a selected song from YouTube")
-    async def play(self, interaction:Interaction, source: discord.Option(str, choices=['YouTube', 'Others']), query: discord.Option(str, autocomplete=discord.utils.basic_autocomplete(get_search_result))):
+    @commands.slash_command(description="Play selected tracks from YouTube")
+    async def play(self, interaction:Interaction, source: discord.Option(str, choices=['YouTube']), query: discord.Option(str, autocomplete=discord.utils.basic_autocomplete(get_youtube_search_result), description="Link or keywords of the track you want to play.")):
         guild_id = interaction.guild.id
         embed = discord.Embed(title="", color=interaction.author.colour)
         try:
@@ -152,7 +149,7 @@ class VoiceChannel(commands.Cog):
         else:
             song = self.search_yt(query)
             if type(song) == type(True):
-                play_embed = embed.add_field(name="", value="Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.", inline=False)
+                play_embed = embed.add_field(name="", value="Could not download the song: Incorrect format. Try another keywords. This could be due to the link you entered is a playlist or livestream format.", inline=False)
                 await interaction.response.send_message(embed=play_embed)
             else:
                 if self.is_playing[guild_id]:
@@ -287,10 +284,6 @@ class VoiceChannel(commands.Cog):
             self.current_music_queue_index[guild_id] -= 1
         await interaction.response.send_message(embed=remove_embed)
 
-
-
-
-
     # Joining voice channel
     @commands.slash_command(description="Invokes me to a voice channel")
     async def join(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to join. Leave this blank if you want the bot to join where you are.", required=False)):
@@ -332,9 +325,13 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     # Leaving voice channel
     @commands.slash_command(description="Leaving a voice channel")
     async def leave(self, interaction: Interaction):
+        guild_id = interaction.guild.id
         voice = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         if voice is not None:
             # Disconnect the bot from voice channel if it has been connected
+            self.is_playing[guild_id] = False
+            self.is_paused[guild_id] = False
+            self.music_queue[guild_id] = []
             await voice.disconnect()
             await interaction.response.send_message("I left the voice channel.")
         else:
@@ -346,9 +343,12 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     # Pause an audio currently playing in voice channel
     @commands.slash_command(description="Pause an audio currently playing in voice channel")
     async def pause(self, interaction: Interaction):
+        guild_id = interaction.guild.id
         voice = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         try:
             if voice.is_playing():
+                self.is_paused[guild_id] = True
+                self.is_playing[guild_id] = False
                 voice.pause()
             else:
                 await interaction.response.send_message("At the moment, there is no audio playing in the voice channel!")
@@ -359,11 +359,13 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     # Resume an paused audio in voice channel
     @commands.slash_command(description="Resume an paused audio in voice channel")
     async def resume(self, interaction: Interaction):
-
+        guild_id = interaction.guild.id
         voice = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         try:
             if voice.is_paused():
                 voice.resume()
+                self.is_playing[guild_id] = True
+                self.is_paused[guild_id] = False
             else:
                 await interaction.response.send_message("At the moment, no audio was paused!")
         except AttributeError:
@@ -371,10 +373,14 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             await interaction.response.send_message("At the moment, no audio was paused or i'm not in a voice channel!")
 
     # Stops playing audio and leave voice
-    @commands.slash_command(description="Stops playing audio and leave voice")
+    @commands.slash_command(description="Stops playing audio")
     async def stop(self, interaction: Interaction):
+        guild_id = interaction.guild.id
         voice = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         try:
+            self.is_playing[guild_id] = False
+            self.is_paused[guild_id] = False
+            self.music_queue[guild_id] = []
             voice.stop()
         except AttributeError:
             # The bot is currently not in a voice channel
