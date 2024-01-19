@@ -55,7 +55,7 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
 
-
+    '''
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         # Check bots behaviour
@@ -71,7 +71,35 @@ class VoiceChannel(commands.Cog):
                 self.is_playing[guild_id] = True
                 self.is_paused[guild_id] = False
                 self.vc[guild_id].resume()
+    '''
 
+    
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if member != self.bot.user:
+            return
+
+        vc = member.guild.voice_client
+        # Ensure:
+        # - this is a channel move as opposed to anything else
+        # - this is our instance's voice client and we can action upon it
+        if (
+            before.channel and  # if this is None this could be a join
+            after.channel and  # if this is None this could be a leave
+            before.channel != after.channel and  # if these match then this could be e.g. server deafen
+            isinstance(vc, discord.VoiceClient) and  # None & not external Protocol check
+            vc.channel == after.channel  # our current voice client is in this channel
+        ):
+            # If the voice was intentionally paused don't resume it for no reason
+            if vc.is_paused():
+                return
+            # If the voice isn't playing anything there is no sense in trying to resume
+            if not vc.is_playing():
+                return
+            
+            await asyncio.sleep(0.5)  # wait a moment for it to set in
+            vc.pause()
+            vc.resume()
 
     # Searching the item on YouTube
     def search_yt(self, item):
