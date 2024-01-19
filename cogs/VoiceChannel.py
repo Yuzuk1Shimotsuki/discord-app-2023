@@ -95,7 +95,6 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
             self.rec_vc[guild_id] = None
-            self.is_recording[guild_id] = False
 
     # Searching the item on YouTube
     def search_yt(self, item):
