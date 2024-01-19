@@ -40,7 +40,6 @@ class VoiceChannel(commands.Cog):
         self.ytdl = YoutubeDL(self.YDL_OPTIONS)
         # Recording VC
         self.rec_vc = {}
-        self.is_recording = {}
 
 
     move = SlashCommandGroup("move", "Move User")
@@ -58,7 +57,6 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
             self.rec_vc[guild_id] = None
-            self.is_recording[guild_id] = False
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
@@ -588,28 +586,23 @@ Just curious to know, where should I move into right now, <@{interaction.author.
                 raise file_error
 
     # Start the recording of a voice channel which the author is already connected, or a specified voice channel.    
-    @commands.slash_command(description="Start the recording of a voice channel")
-    async def start(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to record. Leave this blank if you want the bot to record where you are.", required=False)):
+    @commands.slash_command(description="Start the recording of voice channels")
+    async def start(self, interaction: Interaction):
         await interaction.response.defer()
         if interaction.author.voice is not None:
             guild_id = interaction.guild.id
-            if self.is_recording[guild_id]:
-                return await interaction.followup.send("The recording was already started!")
-            channel = channel or interaction.author.voice.channel
-
             self.rec_vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+            print(self.rec_vc[guild_id])
             if self.rec_vc[guild_id] is None:
-                self.rec_vc[guild_id] = await channel.connect()
-            else:
-                guild = self.bot.get_guild(interaction.guild.id)
-                bot_member = guild.get_member(self.bot.application_id)
-                self.rec_vc[guild_id] = await bot_member.move_to(channel)
-            self.is_recording[guild_id] = True
-            self.rec_vc[guild_id].start_recording(
-            discord.sinks.OGGSink(),  # The sink type to use.
-            self.finished_callback,  # What to do once done.
-            interaction)
-            await interaction.followup.send("The recording has been started!")
+                self.rec_vc[guild_id] = await interaction.author.voice.channel.connect()
+            try:    
+                self.rec_vc[guild_id].start_recording(
+                discord.sinks.OGGSink(),  # The sink type to use.
+                self.finished_callback,  # What to do once done.
+                interaction)
+                await interaction.followup.send("Recording voice channels...")
+            except discord.sinks.errors.RecordingException:
+                await interaction.followup.send("There's a recording already going on right now")
         else:
             await interaction.followup.send("Connect to a voice channel first.")
 
@@ -618,10 +611,9 @@ Just curious to know, where should I move into right now, <@{interaction.author.
     async def finish(self, interaction: Interaction):
         await interaction.response.defer()
         guild_id = interaction.guild.id
-        if guild_id in self.rec_vc and self.is_recording[guild_id]:
+        if guild_id in self.rec_vc:
             await interaction.followup.send(f"Saving audio...", delete_after=1)
             self.rec_vc[guild_id].stop_recording()
-            self.is_recording[guild_id] = False
             del self.rec_vc[guild_id]
         else:
             await interaction.followup.send("Not recording audio in this guild.")
