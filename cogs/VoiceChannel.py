@@ -65,7 +65,6 @@ class VoiceChannel(commands.Cog):
         if member != self.bot.user:
             return
         vc = member.guild.voice_client
-        guild_id = before.channel.guild.id
         # Ensure:
         # - this is a channel move as opposed to anything else
         # - this is our instance's voice client and we can action upon it
@@ -88,12 +87,10 @@ class VoiceChannel(commands.Cog):
 
         # Reset all settings if the bot leave or being kicked by someone else
         if (
-            before.channel and  # if this is None this could be a join
             after.channel is None and  # if this is None this could be a leave
-            before.channel != after.channel and  # if these match then this could be e.g. server deafen
-            isinstance(vc, discord.VoiceClient) and  # None & not external Protocol check
-            vc == None  # our current voice client is in this channel
+            before.channel != after.channel  # if these match then this could be e.g. server deafen
         ):
+            guild_id = before.channel.guild.id
             # Reset all settings on guild
             self.music_queue[guild_id] = []
             self.current_music_queue_index[guild_id] = 0
@@ -621,7 +618,7 @@ Just curious to know, where should I move into right now, <@{interaction.author.
     async def finish(self, interaction: Interaction):
         await interaction.response.defer()
         guild_id = interaction.guild.id
-        if guild_id in self.rec.vc and self.is_recording[guild_id]:
+        if guild_id in self.rec_vc and self.is_recording[guild_id]:
             await interaction.followup.send(f"Saving audio...", delete_after=1)
             self.rec_vc[guild_id].stop_recording()
             self.is_recording[guild_id] = False
