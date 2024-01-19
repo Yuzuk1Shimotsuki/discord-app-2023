@@ -39,7 +39,7 @@ class VoiceChannel(commands.Cog):
         self.vc = {}
         self.ytdl = YoutubeDL(self.YDL_OPTIONS)
         # Recording VC
-        self.rec.vc = {}
+        self.rec_vc = {}
         self.is_recording = {}
 
 
@@ -573,6 +573,7 @@ Just curious to know, where should I move into right now, <@{interaction.author.
         else:
             raise error
 
+    # Start recording callback function
     async def finished_callback(self, sink, interaction: Interaction):
         recorded_users = [f"<@{user_id}>" for user_id, audio in sink.audio_data.items()]
         try:
@@ -586,7 +587,8 @@ Just curious to know, where should I move into right now, <@{interaction.author.
                 await interaction.followup.send(f"An error occured while saving the recorded audio: 413 Payload Too Large (error code: 40005): Request entity too large")
             else:
                 raise file_error
-            
+
+    # Start the recording of a voice channel which the author is already connected, or a specified voice channel.    
     @commands.slash_command(description="Start the recording of a voice channel")
     async def start(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to record. Leave this blank if you want the bot to record where you are.", required=False)):
         await interaction.response.defer()
@@ -596,15 +598,15 @@ Just curious to know, where should I move into right now, <@{interaction.author.
                 return await interaction.followup.send("The recording was already started!")
             channel = channel or interaction.author.voice.channel
 
-            self.rec.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-            if self.rec.vc[guild_id] is None:
-                self.rec.vc[guild_id] = await channel.connect()
+            self.rec_vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+            if self.rec_vc[guild_id] is None:
+                self.rec_vc[guild_id] = await channel.connect()
             else:
                 guild = self.bot.get_guild(interaction.guild.id)
                 bot_member = guild.get_member(self.bot.application_id)
-                self.rec.vc[guild_id] = await bot_member.move_to(channel)
+                self.rec_vc[guild_id] = await bot_member.move_to(channel)
             self.is_recording[guild_id] = True
-            self.rec.vc[guild_id].start_recording(
+            self.rec_vc[guild_id].start_recording(
             discord.sinks.OGGSink(),  # The sink type to use.
             self.finished_callback,  # What to do once done.
             interaction)
@@ -612,15 +614,16 @@ Just curious to know, where should I move into right now, <@{interaction.author.
         else:
             await interaction.followup.send("Connect to a voice channel first.")
 
+    # Stop the recording of a voice channel
     @commands.slash_command(description="Stop the recording of a voice channel")
     async def finish(self, interaction: Interaction):
         await interaction.response.defer()
         guild_id = interaction.guild.id
         if guild_id in self.rec.vc and self.is_recording[guild_id]:
             await interaction.followup.send(f"Saving audio...", delete_after=1)
-            self.rec.vc[guild_id].stop_recording()
+            self.rec_vc[guild_id].stop_recording()
             self.is_recording[guild_id] = False
-            self.rec.vc[guild_id] = None
+            del self.rec_vc[guild_id]
         else:
             await interaction.followup.send("Not recording audio in this guild.")
 
