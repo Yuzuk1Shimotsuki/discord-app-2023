@@ -57,7 +57,7 @@ class VoiceChannel(commands.Cog):
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
-            self.rec.vc[guild_id] = None
+            self.rec_vc[guild_id] = None
             self.is_recording[guild_id] = False
 
     @commands.Cog.listener()
@@ -99,7 +99,7 @@ class VoiceChannel(commands.Cog):
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
-            self.rec.vc[guild_id] = None
+            self.rec_vc[guild_id] = None
             self.is_recording[guild_id] = False
 
     # Searching the item on YouTube
@@ -576,6 +576,8 @@ Just curious to know, where should I move into right now, <@{interaction.author.
     # Start recording callback function
     async def finished_callback(self, sink, interaction: Interaction):
         recorded_users = [f"<@{user_id}>" for user_id, audio in sink.audio_data.items()]
+        if recorded_users == []:
+            return await interaction.followup.send(f"Nobody were talking in the voice channel, so no audio recorded.")
         try:
             files = [
                 discord.File(audio.file, f"{user_id}.{sink.encoding}")
