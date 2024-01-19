@@ -3,7 +3,6 @@ import asyncio
 from discord import SlashCommandGroup, Interaction, Option, FFmpegPCMAudio
 from discord.ext import commands
 from discord.ext.commands import MissingPermissions
-from ast import alias
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 
@@ -591,7 +590,6 @@ Just curious to know, where should I move into right now, <@{interaction.author.
         if interaction.author.voice is not None:
             guild_id = interaction.guild.id
             self.rec_vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-            print(self.rec_vc[guild_id])
             if self.rec_vc[guild_id] is None:
                 self.rec_vc[guild_id] = await interaction.author.voice.channel.connect()
             try:    
