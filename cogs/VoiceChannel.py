@@ -60,13 +60,12 @@ class VoiceChannel(commands.Cog):
             self.rec.vc[guild_id] = None
             self.is_recording[guild_id] = False
 
-
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if member != self.bot.user:
             return
-
         vc = member.guild.voice_client
+        guild_id = before.channel.guild.id
         # Ensure:
         # - this is a channel move as opposed to anything else
         # - this is our instance's voice client and we can action upon it
@@ -82,11 +81,26 @@ class VoiceChannel(commands.Cog):
                 return
             # If the voice isn't playing anything there is no sense in trying to resume
             if not vc.is_playing():
-                return
-            
+                return     
             await asyncio.sleep(0.5)  # wait a moment for it to set in
             vc.pause()
             vc.resume()
+
+        # Reset all settings if the bot leave or being kicked by someone else
+        if (
+            before.channel and  # if this is None this could be a join
+            after.channel is None and  # if this is None this could be a leave
+            before.channel != after.channel and  # if these match then this could be e.g. server deafen
+            isinstance(vc, discord.VoiceClient) and  # None & not external Protocol check
+            vc == None  # our current voice client is in this channel
+        ):
+            # Reset all settings on guild
+            self.music_queue[guild_id] = []
+            self.current_music_queue_index[guild_id] = 0
+            self.vc[guild_id] = None
+            self.is_paused[guild_id] = self.is_playing[guild_id] = False
+            self.rec.vc[guild_id] = None
+            self.is_recording[guild_id] = False
 
     # Searching the item on YouTube
     def search_yt(self, item):
@@ -96,7 +110,6 @@ class VoiceChannel(commands.Cog):
         search = VideosSearch(item, limit=10)
         return {'source':search.result()["result"][0]["link"], 'title':search.result()["result"][0]["title"]}
 
-    
     # Infinite loop checking 
     async def auto_play_next(self, interaction: Interaction):
         guild_id = interaction.guild.id
@@ -114,7 +127,7 @@ class VoiceChannel(commands.Cog):
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
 
-
+    # Plays Music
     async def play_music(self, interaction: Interaction):
         guild_id = interaction.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
@@ -160,7 +173,7 @@ class VoiceChannel(commands.Cog):
             # The source is not from YouTube
             return []
 
-
+    # Play selected tracks from YouTube
     @commands.slash_command(description="Play selected tracks from YouTube")
     async def play(self, interaction:Interaction, source: discord.Option(str, choices=['YouTube']), query: discord.Option(str, autocomplete=discord.utils.basic_autocomplete(get_youtube_search_result), description="Link or keywords of the track you want to play.")):
         guild_id = interaction.guild.id
@@ -189,8 +202,8 @@ class VoiceChannel(commands.Cog):
                     self.current_music_queue_index[guild_id] = 0
                     await self.play_music(interaction)
                     
-
-    @commands.command(name="pause", help="Pauses the current song being played")
+    # Pauses the current song being played in voice channel
+    @commands.slash_command(name="pause", help="Pauses the current song being played in voice channel")
     async def pause(self, interaction: Interaction):
         guild_id = interaction.guild.id
         pause_embed = discord.Embed(title="", color=interaction.author.colour)
@@ -203,7 +216,8 @@ class VoiceChannel(commands.Cog):
             pause_embed.add_field(name="", value="The track has been already paused.", inline=False)
         await interaction.response.send_message(embed=pause_embed)
 
-    @commands.slash_command(name = "resume", description="Resumes playing with the discord bot")
+    # Resume a paused track in voice channel
+    @commands.slash_command(name = "resume", description="Resume a paused track in voice channel")
     async def resume(self, interaction: Interaction):
         guild_id = interaction.guild.id
         resume_embed = discord.Embed(title="", color=interaction.author.colour)
@@ -214,8 +228,8 @@ class VoiceChannel(commands.Cog):
             resume_embed.add_field(name="", value="Resuming the track...", inline=False)
             await interaction.response.send_message(embed=resume_embed)
             
-
-    @commands.slash_command(name="skip", description="Skips the current song being played")
+    # Skips the current track being played in voice channel
+    @commands.slash_command(name="skip", description="Skips the current track being played in voice channel")
     async def skip(self, interaction: Interaction, amount: Option(int, min = 1, description="Number of track to skip. Leave this blank if you want to skip the current track only.", required=False)):
         guild_id = interaction.guild.id
         skip_embed = discord.Embed(title="", color=interaction.author.colour)
@@ -235,8 +249,8 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id].stop()
             await interaction.response.send_message(embed=skip_embed)
 
-
-    @commands.slash_command(name="previous", description="Plays the previous song in the queue")
+    # Plays the previous track in the queue
+    @commands.slash_command(name="previous", description="Plays the previous track in the queue")
     async def previous(self, interaction: Interaction):
         guild_id = interaction.guild.id
         prev_embed = discord.Embed(title="", color=interaction.author.colour)
@@ -251,6 +265,7 @@ class VoiceChannel(commands.Cog):
                 prev_embed.add_field(name="", value="Playing previous track...", inline=False)
         await interaction.response.send_message(embed=prev_embed)
 
+    # Displays the current tracks in queue
     @commands.slash_command(name="queue", description="Displays the current tracks in queue")
     async def queue(self, interaction: Interaction):
         guild_id = interaction.guild.id
@@ -277,6 +292,7 @@ class VoiceChannel(commands.Cog):
             queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
         await interaction.response.send_message(embed=queue_embed)
 
+    # Stops the track currently playing and clears the queue
     @commands.slash_command(name="clear", description="Stops the track currently playing and clears the queue")
     async def clear(self, interaction: Interaction):
         guild_id = interaction.guild.id
@@ -287,15 +303,8 @@ class VoiceChannel(commands.Cog):
         self.current_music_queue_index[guild_id] == 0
         clear_embed.add_field(name="", value="Music queue has been cleared")
         await interaction.response.send_message(embed=clear_embed)
-
-    @commands.command(name="stop", aliases=["disconnect", "l", "d"], help="Kick the bot from VC")
-    async def dc(self, interaction: Interaction):
-        guild_id = interaction.guild.id
-        self.is_playing[guild_id] = False
-        self.is_paused[guild_id] = False
-        self.music_queue[guild_id] = []
-        await self.vc[guild_id].disconnect()
     
+    # Removes the last or a specified track added to the queue
     @commands.slash_command(name="remove", description="Removes the last or a specified track added to the queue")
     async def remove(self, interaction: Interaction, position: Option(int, min = 1, description="Postion of track to remove. Leave this blank if you want to remove the last track.", required=False)):
         guild_id = interaction.guild.id
@@ -578,7 +587,6 @@ Just curious to know, where should I move into right now, <@{interaction.author.
             else:
                 raise file_error
             
-
     @commands.slash_command(description="Start the recording of a voice channel")
     async def start(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to record. Leave this blank if you want the bot to record where you are.", required=False)):
         await interaction.response.defer()
@@ -604,7 +612,6 @@ Just curious to know, where should I move into right now, <@{interaction.author.
         else:
             await interaction.followup.send("Connect to a voice channel first.")
 
-
     @commands.slash_command(description="Stop the recording of a voice channel")
     async def finish(self, interaction: Interaction):
         await interaction.response.defer()
@@ -613,7 +620,7 @@ Just curious to know, where should I move into right now, <@{interaction.author.
             await interaction.followup.send(f"Saving audio...", delete_after=1)
             self.rec.vc[guild_id].stop_recording()
             self.is_recording[guild_id] = False
-            del self.rec.vc[guild_id]
+            self.rec.vc[guild_id] = None
         else:
             await interaction.followup.send("Not recording audio in this guild.")
 
