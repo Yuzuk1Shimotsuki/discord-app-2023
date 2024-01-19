@@ -55,25 +55,7 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
 
-    '''
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        # Check bots behaviour
-        # Connect
-        if before.channel and after.channel and member.bot and member.id == self.bot.application_id:
-            guild_id = after.channel.guild.id
-            self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=after.channel.guild)
-            if self.vc[guild_id].is_playing() and self.is_playing[guild_id] and not self.is_paused[guild_id] and self.music_queue[guild_id] != []:
-                self.is_paused[guild_id] = True
-                self.is_playing[guild_id] = False
-                self.vc[guild_id].pause()
-            if self.vc[guild_id].is_paused() and self.is_paused[guild_id] and not self.is_playing[guild_id] and self.music_queue[guild_id] != []:
-                self.is_playing[guild_id] = True
-                self.is_paused[guild_id] = False
-                self.vc[guild_id].resume()
-    '''
 
-    
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if member != self.bot.user:
