@@ -29,17 +29,16 @@ class VoiceChannel(commands.Cog):
     'no_warnings': True,
     'default_search': 'auto',
     'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
-}
+    }
         self.FFMPEG_OPTIONS = {
     'options': '-vn',
     "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
-}
+    }
 
         self.vc = {}
         self.ytdl = YoutubeDL(self.YDL_OPTIONS)
         # Recording VC
-        self.rec_vc = {}
-
+        self.recording_vc = {}
 
     move = SlashCommandGroup("move", "Move User")
 
@@ -55,7 +54,7 @@ class VoiceChannel(commands.Cog):
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
-            self.rec_vc[guild_id] = None
+            self.recording_vc[guild_id] = None
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
@@ -93,7 +92,9 @@ class VoiceChannel(commands.Cog):
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
-            self.rec_vc[guild_id] = None
+            self.recording_vc[guild_id] = None
+
+    # Music Playing
 
     # Searching the item on YouTube
     def search_yt(self, item):
@@ -196,17 +197,22 @@ class VoiceChannel(commands.Cog):
                     await self.play_music(interaction)
                     
     # Pauses the current song being played in voice channel
-    @commands.slash_command(name="pause", help="Pauses the current song being played in voice channel")
+    @commands.slash_command(name="pause", description="Pauses the current song being played in voice channel")
     async def pause(self, interaction: Interaction):
         guild_id = interaction.guild.id
         pause_embed = discord.Embed(title="", color=interaction.author.colour)
-        if self.is_playing[guild_id]:
-            self.is_playing[guild_id] = False
-            self.is_paused[guild_id] = True
-            self.vc[guild_id].pause()
-            pause_embed.add_field(name="", value="The track has been paused.", inline=False)
-        elif self.is_paused[guild_id]:
-            pause_embed.add_field(name="", value="The track has been already paused.", inline=False)
+        if self.vc[guild_id] is not None:
+            if self.is_playing[guild_id] and not self.is_paused[guild_id]:
+                self.is_playing[guild_id] = False
+                self.is_paused[guild_id] = True
+                self.vc[guild_id].pause()
+                pause_embed.add_field(name="", value="The track has been paused.", inline=False)
+            elif self.is_paused[guild_id] and not self.is_playing[guild_id]:
+                pause_embed.add_field(name="", value="The track has been already paused!", inline=False)
+            else:
+                pause_embed.add_field(name="", value="No track was playing in voice channel.", inline=False)
+        else:
+            pause_embed.add_field(name="", value="No track was playing. I'm not even in a voice channel.", inline=False)
         await interaction.response.send_message(embed=pause_embed)
 
     # Resume a paused track in voice channel
@@ -214,13 +220,18 @@ class VoiceChannel(commands.Cog):
     async def resume(self, interaction: Interaction):
         guild_id = interaction.guild.id
         resume_embed = discord.Embed(title="", color=interaction.author.colour)
-        if self.is_paused[guild_id]:
-            self.is_paused[guild_id] = False
-            self.is_playing[guild_id] = True
-            self.vc[guild_id].resume()
-            resume_embed.add_field(name="", value="Resuming the track...", inline=False)
-            await interaction.response.send_message(embed=resume_embed)
-            
+        if self.vc[guild_id] is not None:
+            if self.is_paused[guild_id] and not self.is_playing[guild_id]:
+                self.is_paused[guild_id] = False
+                self.is_playing[guild_id] = True
+                self.vc[guild_id].resume()
+                resume_embed.add_field(name="", value="Resuming the track...", inline=False)
+            else:
+                resume_embed.add_field(name="", value="No track has been paused before in voice channel.", inline=False)
+        else:
+            resume_embed.add_field(name="", value="No track has been paused before. I'm not even in a voice channel.", inline=False)
+        await interaction.response.send_message(embed=resume_embed)
+    
     # Skips the current track being played in voice channel
     @commands.slash_command(name="skip", description="Skips the current track being played in voice channel")
     async def skip(self, interaction: Interaction, amount: Option(int, min = 1, description="Number of track to skip. Leave this blank if you want to skip the current track only.", required=False)):
@@ -315,39 +326,39 @@ class VoiceChannel(commands.Cog):
             self.current_music_queue_index[guild_id] -= 1
         await interaction.response.send_message(embed=remove_embed)
 
+    # General commands
+
     # Joining voice channel
     @commands.slash_command(description="Invokes me to a voice channel")
     async def join(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to join. Leave this blank if you want the bot to join where you are.", required=False)):
+        guild_id = interaction.guild.id
         if interaction.author.voice is not None:
-            if channel is not None:
-                author_vc = channel
-            else:
-                author_vc = interaction.author.voice.channel
-            voice_state = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+            voice_channel = channel or interaction.author.voice.channel
+            self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
             # This allows for more functionality with voice channels
-            if voice_state is None:
+            if self.vc[guild_id] is None:
                 # None being the default value if the bot isnt in a channel (which is why the is_connected() is returning errors)
                 # Connect the bot to voice channel
-                voice = await author_vc.connect()
-                await interaction.response.send_message(f"I joined the voice channel <#{author_vc.id}>")
+                self.vc[guild_id] = await voice_channel.connect()
+                await interaction.response.send_message(f"I joined the voice channel <#{voice_channel.id}>")
                 # #source = FFmpegPCMAudio("test.mp3")
                 # #player = voice.play(source)
-            elif voice.channel.id != author_vc.id:
+            elif self.vc[guild_id].channel.id != voice_channel.id:
                 # The bot has been connected to a voice channel but not as same as the author or required one
                 if channel is not None:
                     # The bot has been connected to a voice channel but not as same as the required one
                     await interaction.response.send_message(f'''I've already joined the voice channel :D , but not the channel you wanted me to join.
-**I'm currently in:** <#{voice.channel.id}>
-**The channel you wanted me to join:** <#{author_vc.id}>''')
+**I'm currently in:** <#{self.vc[guild_id].channel.id}>
+**The channel you wanted me to join:** <#{voice_channel.id}>''')
                 else:
                     # The bot has been connected to a voice channel but not as same as the author one
                     await interaction.response.send_message(f'''I've already joined the voice channel :D , but not where you are ~
-**I'm currently in:** <#{voice.channel.id}>
-**You're currently in:** <#{author_vc.id}>''')
+**I'm currently in:** <#{self.vc[guild_id].channel.id}>
+**You're currently in:** <#{voice_channel.id}>''')
             else:
                 # The bot has been connected to the same channel as the author
                 await interaction.response.send_message(
-                    f"can u found mee in the voice channel？ i have connected to  <#{author_vc.id}> already :>")
+                    f"can u found mee in the voice channel？ i have connected to  <#{voice_channel.id}> already :>")
         else:
             # The author has not joined the voice channel yet
             await interaction.response.send_message(f'''i don't want to be alone in the voice channel . . .  :pensive:
@@ -357,13 +368,10 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     @commands.slash_command(description="Leaving a voice channel")
     async def leave(self, interaction: Interaction):
         guild_id = interaction.guild.id
-        voice = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-        if voice is not None:
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        if self.vc[guild_id] is not None:
             # Disconnect the bot from voice channel if it has been connected
-            self.is_playing[guild_id] = False
-            self.is_paused[guild_id] = False
-            self.music_queue[guild_id] = []
-            await voice.disconnect()
+            await self.vc[guild_id].disconnect()
             await interaction.response.send_message("I left the voice channel.")
         else:
             # The bot is currently not in a voice channel
@@ -416,17 +424,17 @@ couuld u join it first before inviting meee？ :pleading_face:''')
         except AttributeError:
             # The bot is currently not in a voice channel
             await interaction.response.send_message("I'm not in a voice channel!")
-
-    '''            
+    '''
 
     # Ends a voice call
 
     # Function to end a voice call
     async def end_voice_call(self, interaction: Interaction):
+        guild_id = interaction.guild.id
         # Disconnect the bot from voice channel if it has been connected
-        voice = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-        if voice is not None:
-            await voice.disconnect()
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        if self.vc[guild_id] is not None:
+            await self.vc[guild_id].disconnect()
         # Disconnect the members from voice channel if they are connected
         for member in interaction.guild.members:
             if member.voice is not None:
@@ -565,6 +573,8 @@ Just curious to know, where should I move into right now, <@{interaction.author.
             await interaction.response.send_message("It seems that you don't have permission to move me!")
         else:
             raise error
+        
+    # Recording voice channels
 
     # Start recording callback function
     async def finished_callback(self, sink, interaction: Interaction):
@@ -589,11 +599,11 @@ Just curious to know, where should I move into right now, <@{interaction.author.
         await interaction.response.defer()
         if interaction.author.voice is not None:
             guild_id = interaction.guild.id
-            self.rec_vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-            if self.rec_vc[guild_id] is None:
-                self.rec_vc[guild_id] = await interaction.author.voice.channel.connect()
+            self.recording_vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+            if self.recording_vc[guild_id] is None:
+                self.recording_vc[guild_id] = await interaction.author.voice.channel.connect()
             try:    
-                self.rec_vc[guild_id].start_recording(
+                self.recording_vc[guild_id].start_recording(
                 discord.sinks.OGGSink(),  # The sink type to use.
                 self.finished_callback,  # What to do once done.
                 interaction)
@@ -608,10 +618,10 @@ Just curious to know, where should I move into right now, <@{interaction.author.
     async def finish(self, interaction: Interaction):
         await interaction.response.defer()
         guild_id = interaction.guild.id
-        if guild_id in self.rec_vc:
+        if guild_id in self.recording_vc:
             await interaction.followup.send(f"Saving audio...", delete_after=1)
-            self.rec_vc[guild_id].stop_recording()
-            del self.rec_vc[guild_id]
+            self.recording_vc[guild_id].stop_recording()
+            del self.recording_vc[guild_id]
         else:
             await interaction.followup.send("Not recording audio in this guild.")
 
