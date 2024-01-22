@@ -4,6 +4,7 @@ from discord.ext import commands
 from discord.utils import get
 from datetime import datetime
 
+
 poll_mode = ["Options", "Like/Dislike"]
 poll_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "👍", "👎"]
 
@@ -113,7 +114,6 @@ class Poll(commands.Cog):
             reaction = get(cache_message.reactions, emoji=emojis)
             try:
                 self.poll_count[guild_id][f"{emojis}"] = reaction.count - 1
-                print(self.poll_count[guild_id])
             except AttributeError:
                 pass
 
@@ -160,8 +160,10 @@ class Poll(commands.Cog):
 
     # Creates a poll
     @poll.command(name='create', description='Creates a poll')
-    async def poll_create(self, interaction: Interaction, mode: Option(str, choices=poll_mode, description="Poll mode", required=True), title: str, question: str, options: str):
+    async def poll_create(self, interaction: Interaction, mode: Option(str, choices=poll_mode, description="Poll mode", required=True), title: Option(str, description="Title of the poll", required=True), question: Option(str, description="Question of the poll", required=True), options: Option(str, description="Options of the poll (Enter options by seperated with a comma e.g. option1, option2, ..., option10)", required=False)):
         guild_id = interaction.guild.id
+        if self.poll_message[guild_id] is None:
+            await interaction.response.defer()
         while True:
             if self.poll_message[guild_id] is not None:
                 await self.poll_reset_confirm_msg(interaction, message="You have already created a poll before in this guild! Are you sure you want to reset it before creating a new one?")
@@ -171,14 +173,15 @@ class Poll(commands.Cog):
                     self.reset_confirm_option[guild_id] = None
             else:
                 if not mode in poll_mode or (mode != poll_mode[0] and options is None):
-                    return await interaction.response.send_message("Looks like the mode u entered is not a valid mode...")
+                    return await interaction.followup.send("Looks like the mode u entered is not a valid mode :thinking: ...")
                 elif mode == poll_mode[0] and options is None:
-                    return await interaction.response.send_message("Please enter something in the options.")
-                await interaction.response.defer()
+                    return await interaction.followup.send("Enter some options for me pwease :pleading_face:")
                 self.poll_members[guild_id] = []
                 poll_embed = discord.Embed(title=title, description=question, color=interaction.author.colour)
                 if mode == poll_mode[0]:
                     options_list = options.split(", ")
+                    if len(options_list) > 10:
+                        return await interaction.followup.send(f"Looks like the number of options u entered exceeded the maximum limit :thinking: ... ({len(options_list)} out of 10)")
                     self.poll_options[guild_id] = options_list
                     poll_embed.add_field(name="Choose an option:", value="", inline=False)
                     for i in range(len(self.poll_options[guild_id])):
@@ -201,91 +204,111 @@ class Poll(commands.Cog):
                 
     # Adds an option to an exsisting poll
     @poll.command(name='add', description='Adds an option to the poll')
-    async def poll_add(self, interaction: Interaction, option: str):
-        guild_id = interaction.guild.id
-        await interaction.response.send_message("Appending option...", ephemeral=True, delete_after=0)
-        self.poll_options[guild_id].append(option)
-        emoji_index = len(self.poll_reactions[guild_id]) + 1
-        self.poll_reactions[guild_id].append(poll_emojis[emoji_index])
-        poll_add_embed = discord.Embed(title=self.poll_message[guild_id].embeds[0].title, description=self.poll_message[guild_id].embeds[0].description, color=interaction.author.colour)
-        poll_add_embed.add_field(name="Choose an option:", value="", inline=False)
-        for i in range(len(self.poll_options[guild_id])):
-            poll_add_embed.add_field(name=f'{poll_emojis[i]}：{self.poll_options[guild_id][i]}', value='\u200b', inline=False)
-        poll_add_embed.set_footer(text=f'Poll edited by {interaction.author.display_name}', icon_url=interaction.author.avatar.url)
-        await self.poll_message[guild_id].edit(embed=poll_add_embed)
-        for i in range(len(self.poll_options[guild_id])):
-            await self.poll_message[guild_id].add_reaction(poll_emojis[i])
-        
+    async def poll_add(self, interaction: Interaction, option: Option(str, description="The option you want to append", required=True)):
+        if self.poll_message[guild_id] is not None:
+            guild_id = interaction.guild.id
+            if self.poll_type[guild_id] == poll_mode[0]:
+                await interaction.response.send_message("Appending option...", ephemeral=True, delete_after=0)
+                self.poll_options[guild_id].append(option)
+                emoji_index = len(self.poll_reactions[guild_id]) + 1
+                self.poll_reactions[guild_id].append(poll_emojis[emoji_index])
+                poll_add_embed = discord.Embed(title=self.poll_message[guild_id].embeds[0].title, description=self.poll_message[guild_id].embeds[0].description, color=interaction.author.colour)
+                poll_add_embed.add_field(name="Choose an option:", value="", inline=False)
+                for i in range(len(self.poll_options[guild_id])):
+                    poll_add_embed.add_field(name=f'{poll_emojis[i]}：{self.poll_options[guild_id][i]}', value='\u200b', inline=False)
+                poll_add_embed.set_footer(text=f'Poll edited by {interaction.author.display_name}', icon_url=interaction.author.avatar.url)
+                await self.poll_message[guild_id].edit(embed=poll_add_embed)
+                for i in range(len(self.poll_options[guild_id])):
+                    await self.poll_message[guild_id].add_reaction(poll_emojis[i])
+            else:
+                # Unsupported type
+                await interaction.response.send_message("Appending options are not supported on this type of poll.")
+        else:
+            # No poll was going on in this server
+            await interaction.response.send_message("No poll was going on in this server.")
+
     # Removes an option from an exsisting poll
     @poll.command(name='remove', description='Removes an option from the poll')
-    async def poll_remove(self, interaction: Interaction, poll_option_number: str):
+    async def poll_remove(self, interaction: Interaction, poll_option_number: Option(str, name="number", description="The option you want to remove (Enter option number e.g. 5)", required=True)):
         guild_id = interaction.guild.id
-        await interaction.response.send_message("Removing option...", ephemeral=True, delete_after=0)
-        self.poll_options[guild_id].pop(int(poll_option_number) - 1)
-        cache_message = get(self.bot.cached_messages, id=self.poll_message[guild_id].id)
-        reaction = get(cache_message.reactions, emoji=self.poll_reactions[guild_id][int(poll_option_number) - 1])
-        self.poll_reactions[guild_id].pop(int(poll_option_number) - 1)
-        remove_embed = discord.Embed(title=self.poll_message[guild_id].embeds[0].title, description=self.poll_message[guild_id].embeds[0].description, color=interaction.author.colour)
-        remove_embed.add_field(name="Choose an option:", value="", inline=False)
-        for i in range(len(self.poll_options[guild_id])):
-            remove_embed.add_field(name=f'{self.poll_reactions[guild_id][i]}：{self.poll_options[guild_id][i]}', value='\u200b', inline=False)
-        remove_embed.set_footer(text=f'Poll edited by {interaction.author.display_name}', icon_url=interaction.author.avatar.url)
-        await self.poll_message[guild_id].edit(embed=remove_embed)
-        # Gets the cached message and removes the reaction from it
-        async for user in reaction.users():
-            await reaction.remove(user)
-
+        if self.poll_message[guild_id] is not None:
+            if self.poll_type[guild_id] == poll_mode[0]:
+                await interaction.response.send_message("Removing option...", ephemeral=True, delete_after=0)
+                self.poll_options[guild_id].pop(int(poll_option_number) - 1)
+                cache_message = get(self.bot.cached_messages, id=self.poll_message[guild_id].id)
+                reaction = get(cache_message.reactions, emoji=self.poll_reactions[guild_id][int(poll_option_number) - 1])
+                self.poll_reactions[guild_id].pop(int(poll_option_number) - 1)
+                remove_embed = discord.Embed(title=self.poll_message[guild_id].embeds[0].title, description=self.poll_message[guild_id].embeds[0].description, color=interaction.author.colour)
+                remove_embed.add_field(name="Choose an option:", value="", inline=False)
+                for i in range(len(self.poll_options[guild_id])):
+                    remove_embed.add_field(name=f'{self.poll_reactions[guild_id][i]}：{self.poll_options[guild_id][i]}', value='\u200b', inline=False)
+                remove_embed.set_footer(text=f'Poll edited by {interaction.author.display_name}', icon_url=interaction.author.avatar.url)
+                await self.poll_message[guild_id].edit(embed=remove_embed)
+                # Gets the cached message and removes the reaction from it
+                async for user in reaction.users():
+                    await reaction.remove(user)
+            else:
+                # Unsupported type
+                await interaction.response.send_message("Removing options are not supported on this type of poll.")
+        else:
+            # No poll was going on in this server
+            await interaction.response.send_message("No poll was going on in this server.")
+        
     # End and shows the result of the poll
     @poll.command(name='results', description='Shows the results of the poll')
     async def poll_results(self, interaction: Interaction):
         guild_id = interaction.guild.id
-        await interaction.response.send_message("Ended the poll.", ephemeral=True, delete_after=0)
-        result_embed = discord.Embed(title=self.poll_message[guild_id].embeds[0].title, description=self.poll_message[guild_id].embeds[0].description, color=interaction.author.colour)
-        result_embed.timestamp = datetime.now()
-        result_embed.set_footer(text=f'Poll ended by {interaction.author.display_name}', icon_url=interaction.author.avatar.url)
-        result_embed.add_field(name='Results', value='\u200b', inline=False)
-        if self.poll_type[guild_id] == "Options":
-            try:
-                for emojis in self.poll_reactions[guild_id]:
-                    self.total_votes[guild_id] += self.poll_count[guild_id][emojis]
-            except KeyError:
-                pass
-            for i in range(len(self.poll_options[guild_id])):
+        if self.poll_message[guild_id] is not None:
+            await interaction.response.send_message("Ended the poll.", ephemeral=True, delete_after=0)
+            result_embed = discord.Embed(title=self.poll_message[guild_id].embeds[0].title, description=self.poll_message[guild_id].embeds[0].description, color=interaction.author.colour)
+            result_embed.timestamp = datetime.now()
+            result_embed.set_footer(text=f'Poll ended by {interaction.author.display_name}', icon_url=interaction.author.avatar.url)
+            result_embed.add_field(name='Results', value='\u200b', inline=False)
+            if self.poll_type[guild_id] == poll_mode[0]:
                 try:
-                    percentage = f"{round(((self.poll_count[guild_id][self.poll_reactions[guild_id][i]] / self.total_votes[guild_id]) * 100), 2)}%"
-                except ZeroDivisionError:
-                    percentage = f"{round(0, 2)}%"
-                if self.poll_count[guild_id][self.poll_reactions[guild_id][i]] == 0 or self.poll_count[guild_id][self.poll_reactions[guild_id][i]] > 1:
-                    result_embed.add_field(name=f'{self.poll_reactions[guild_id][i]}：{self.poll_options[guild_id][i]}', value=f'{self.poll_count[guild_id][self.poll_reactions[guild_id][i]]} votes ({percentage})', inline=False)
-                else:
-                    result_embed.add_field(name=f'{self.poll_reactions[guild_id][i]}：{self.poll_options[guild_id][i]}', value=f'{self.poll_count[guild_id][self.poll_reactions[guild_id][i]]} vote ({percentage})', inline=False)
-        elif self.poll_type[guild_id] == "Like/Dislike":
-            try:
-                for emojis in poll_emojis[-2:]:
-                    self.total_votes[guild_id] += self.poll_count[guild_id][emojis]
-            except KeyError:
-                pass
-            for i in range(len(self.poll_options[guild_id])):
+                    for emojis in self.poll_reactions[guild_id]:
+                        self.total_votes[guild_id] += self.poll_count[guild_id][emojis]
+                except KeyError:
+                    pass
+                for i in range(len(self.poll_options[guild_id])):
+                    try:
+                        percentage = f"{round(((self.poll_count[guild_id][self.poll_reactions[guild_id][i]] / self.total_votes[guild_id]) * 100), 2)}%"
+                    except ZeroDivisionError:
+                        percentage = f"{round(0, 2)}%"
+                    if self.poll_count[guild_id][self.poll_reactions[guild_id][i]] == 0 or self.poll_count[guild_id][self.poll_reactions[guild_id][i]] > 1:
+                        result_embed.add_field(name=f'{self.poll_reactions[guild_id][i]}：{self.poll_options[guild_id][i]}', value=f'{self.poll_count[guild_id][self.poll_reactions[guild_id][i]]} votes ({percentage})', inline=False)
+                    else:
+                        result_embed.add_field(name=f'{self.poll_reactions[guild_id][i]}：{self.poll_options[guild_id][i]}', value=f'{self.poll_count[guild_id][self.poll_reactions[guild_id][i]]} vote ({percentage})', inline=False)
+            elif self.poll_type[guild_id] == poll_mode[1]:
                 try:
-                    percentage = f"{round(((self.poll_count[guild_id][self.poll_reactions[guild_id][i]] / self.total_votes[guild_id]) * 100), 2)}%"
-                except ZeroDivisionError:
-                    percentage = f"{round(0, 2)}%"
-                if self.poll_count[guild_id][self.poll_options[guild_id][i]] == 0 or self.poll_count[guild_id][self.poll_options[guild_id][i]] > 1:
-                    result_embed.add_field(name=f'{self.poll_options[guild_id][i]}：', value=f'{self.poll_count[guild_id][self.poll_options[guild_id][i]]} votes ({percentage})', inline=False)
-                else:
-                    result_embed.add_field(name=f'{self.poll_options[guild_id][i]}：', value=f'{self.poll_count[guild_id][self.poll_options[guild_id][i]]} vote ({percentage})', inline=False)
-        for members in interaction.guild.members:
-            if members.bot is not True:
-                self.total_members[guild_id].append(members)
-        try:
-            self.reaction_rate[guild_id] = f"{round((len(self.poll_members[guild_id]) / len(self.total_members[guild_id])) * 100, 2)}%"
-        except ZeroDivisionError:
-            self.reaction_rate[guild_id] = f"{round(0, 2)}%"
-        result_embed.add_field(name='', value='\u200b', inline=False)
-        result_embed.add_field(name=f'Number of total votes: {self.total_votes[guild_id]}', value='', inline=False)
-        result_embed.add_field(name=f'Reaction rate: {self.reaction_rate[guild_id]}', value='\u200b', inline=False)
-        await self.poll_message[guild_id].edit(embed=result_embed)
-        await self.reset(interaction)
+                    for emojis in poll_emojis[-2:]:
+                        self.total_votes[guild_id] += self.poll_count[guild_id][emojis]
+                except KeyError:
+                    pass
+                for i in range(len(self.poll_options[guild_id])):
+                    try:
+                        percentage = f"{round(((self.poll_count[guild_id][self.poll_reactions[guild_id][i]] / self.total_votes[guild_id]) * 100), 2)}%"
+                    except ZeroDivisionError:
+                        percentage = f"{round(0, 2)}%"
+                    if self.poll_count[guild_id][self.poll_options[guild_id][i]] == 0 or self.poll_count[guild_id][self.poll_options[guild_id][i]] > 1:
+                        result_embed.add_field(name=f'{self.poll_options[guild_id][i]}：', value=f'{self.poll_count[guild_id][self.poll_options[guild_id][i]]} votes ({percentage})', inline=False)
+                    else:
+                        result_embed.add_field(name=f'{self.poll_options[guild_id][i]}：', value=f'{self.poll_count[guild_id][self.poll_options[guild_id][i]]} vote ({percentage})', inline=False)
+            for members in interaction.guild.members:
+                if members.bot is not True:
+                    self.total_members[guild_id].append(members)
+            try:
+                self.reaction_rate[guild_id] = f"{round((len(self.poll_members[guild_id]) / len(self.total_members[guild_id])) * 100, 2)}%"
+            except ZeroDivisionError:
+                self.reaction_rate[guild_id] = f"{round(0, 2)}%"
+            result_embed.add_field(name='', value='\u200b', inline=False)
+            result_embed.add_field(name=f'Number of total votes: {self.total_votes[guild_id]}', value='', inline=False)
+            result_embed.add_field(name=f'Reaction rate: {self.reaction_rate[guild_id]}', value='\u200b', inline=False)
+            await self.poll_message[guild_id].edit(embed=result_embed)
+            await self.reset(interaction)
+        else:
+            # No poll was going on in this server
+            await interaction.response.send_message("No poll was going on in this server.")
       
 # ----------</Poll>----------
 
