@@ -7,33 +7,18 @@ from datetime import datetime
 poll_mode = ["Options", "Like/Dislike"]
 poll_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "👍", "👎"]
 
-class ResetConfirm(discord.ui.View):
-    # Reset the poll when a confirm was done by user
-    async def reset(self, interaction: Interaction):
-        guild_id = interaction.guild.id
-        self.poll_message[guild_id] = None
-        self.poll_options[guild_id] = None
-        self.poll_reactions[guild_id] = []
-        self.poll_count[guild_id] = {}
-        self.poll_type[guild_id] = None
-        self.total_members[guild_id] = []
-        self.poll_members[guild_id] = []
-        self.total_votes[guild_id] = 0
-        self.reaction_rate[guild_id] = 0
-        self.reset_confirm_message[guild_id] = None
-        self.reset_confirm_option[guild_id] = None
 
+class ResetConfirm(discord.ui.View):
     # "Yes" button
     @discord.ui.button(label="Yes", row=0, custom_id="yes_button01", style=discord.ButtonStyle.danger)
     async def first_button_callback(self, button, interaction):
-        await self.reset()
         await interaction.response.edit_message(content="The poll has been reset.", view=None)
 
     # "No" button
     @discord.ui.button(label="No", row=0, custom_id="no_button02", style=discord.ButtonStyle.secondary)
     async def second_button_callback(self, button, interaction):
         await interaction.response.edit_message(content="The reset was aborted.", view=None)
-            
+
 
 class Poll(commands.Cog):
     def __init__(self, bot):
@@ -103,12 +88,14 @@ class Poll(commands.Cog):
         for item in view.children:
             if item.custom_id == res.data["custom_id"]:
                 button = item
-        # Executing the button
-        if button.custom_id == "no_button02":
+        # Execute the commamd for the selected button
+        if button.custom_id == "yes_button01":
+            await self.reset(interaction)
+        else: # "no_button02"
             channel = self.bot.get_channel(self.reset_confirm_message[guild_id].channel.id)
             msg_to_delete = await channel.fetch_message(self.reset_confirm_message[guild_id].id)
             await msg_to_delete.delete()
-        # Return for futher purpose
+        # Return selected button for futher purpose
         self.reset_confirm_option[guild_id] = button.custom_id
 
     # Reset the poll
