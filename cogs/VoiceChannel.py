@@ -199,8 +199,175 @@ couuld u join it first before inviting meee？ :pleading_face:''')
                 play_embed.add_field(name="", value="Could not download the song: Incorrect format. Try another keywords. This could be due to the link you entered is a playlist or livestream format.", inline=False)
                 await interaction.response.send_message(embed=play_embed)
             else:
-                author_vc = interaction.author.voice.channel
-            voice_state = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+                if self.is_playing[guild_id]:
+                    play_embed.add_field(name="", value=f"**#{len(self.music_queue[guild_id])+1} - '{song['title']}'** added to the queue", inline=False)
+                else:
+                    play_embed.add_field(name="", value=f"**'{song['title']}'** added to the queue", inline=False)
+                self.music_queue[guild_id].append([song, voice_channel])
+                await interaction.response.send_message(embed=play_embed)
+                if self.is_playing[guild_id] == False:
+                    self.current_music_queue_index[guild_id] = 0
+                    await self.play_music(interaction)
+                    
+    # Pauses the current track
+    @commands.slash_command(name="pause", description="Pauses the current track being played in voice channel")
+    async def pause(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        pause_embed = discord.Embed(title="", color=interaction.author.colour)
+        if self.vc[guild_id] is not None:
+            if self.is_playing[guild_id] and not self.is_paused[guild_id]:
+                self.is_playing[guild_id] = False
+                self.is_paused[guild_id] = True
+                self.vc[guild_id].pause()
+                pause_embed.add_field(name="", value="The track has been paused.", inline=False)
+            elif self.is_paused[guild_id] and not self.is_playing[guild_id]:
+                pause_embed.add_field(name="", value="The track has been already paused!", inline=False)
+            else:
+                pause_embed.add_field(name="", value="No track was playing in voice channel.", inline=False)
+        else:
+            pause_embed.add_field(name="", value="No track was playing. I'm not even in a voice channel.", inline=False)
+        await interaction.response.send_message(embed=pause_embed)
+
+    # Resume a paused track
+    @commands.slash_command(name = "resume", description="Resume a paused track in voice channel")
+    async def resume(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        resume_embed = discord.Embed(title="", color=interaction.author.colour)
+        if self.vc[guild_id] is not None:
+            if self.is_paused[guild_id] and not self.is_playing[guild_id]:
+                self.is_paused[guild_id] = False
+                self.is_playing[guild_id] = True
+                self.vc[guild_id].resume()
+                resume_embed.add_field(name="", value="Resuming the track...", inline=False)
+            else:
+                resume_embed.add_field(name="", value="No track has been paused before in voice channel.", inline=False)
+        else:
+            resume_embed.add_field(name="", value="No track has been paused before. I'm not even in a voice channel.", inline=False)
+        await interaction.response.send_message(embed=resume_embed)
+    
+    # Skipping tracks
+    @commands.slash_command(name="skip", description="Skips the current track being played in voice channel")
+    async def skip(self, interaction: Interaction, amount: Option(int, min_value=1, description="Number of tracks to be skipped. Leave this blank if you want to skip the current track only.", required=False)):
+        guild_id = interaction.guild.id
+        skip_embed = discord.Embed(title="", color=interaction.author.colour)
+        if self.vc[guild_id] is not None:
+            # Skip mutiple tracks
+            if amount is not None and amount < len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id]):
+                self.current_music_queue_index[guild_id] += amount - 1
+                skip_embed.add_field(name="", value=f"Skipped **{amount}** tracks in the queue", inline=False)
+            # Skip mutiple tracks and out of range
+            elif amount is not None and amount > len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id] + 1):
+                self.current_music_queue_index[guild_id] += len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id] + 1) - 1
+                skip_embed.add_field(name="", value="The amount of tracks you tried to skip exceeded the total number of available tracks can be skipped in the queue. Automatically skipping to the last track in the queue...", inline=False)
+            # Skip the current playing track
+            else:
+                skip_embed.add_field(name="", value="Skipped the current track", inline=False)
+            # Stop the current song and plays the next song in queue if exsist
+            self.vc[guild_id].stop()
+        else:
+            skip_embed.add_field(name="", value="I'm not in a voice channel.", inline=False)
+        await interaction.response.send_message(embed=skip_embed)
+
+    # Plays the previous track in the queue
+    @commands.slash_command(name="previous", description="Plays the previous track in the queue")
+    async def previous(self, interaction: Interaction, amount: Option(int, min_value=1, description="Number of tracks to be rollback. Leave this blank if you want to play the previous track only.", required=False)):
+        guild_id = interaction.guild.id
+        prev_embed = discord.Embed(title="", color=interaction.author.colour)
+        if self.vc[guild_id] is not None:
+            amount = amount or 1
+            if self.current_music_queue_index[guild_id] == 0:
+                prev_embed.add_field(name="", value="There is no previous track in the queue.", inline=False)
+            else:
+                # Try to rollback the required amount of tracks in the queue if exists
+                self.vc[guild_id].pause()
+                # Executes when out of range
+                if self.current_music_queue_index[guild_id] - amount < 0:
+                    self.current_music_queue_index[guild_id] = 0
+                    prev_embed.add_field(name="", value="The amount of tracks you tried to rollback exceeded the total number of available tracks can be rollback in the queue. Automatically rollback to the beginning track in the queue...", inline=False)
+                else:
+                    # Rollback the required amount of tracks
+                    self.current_music_queue_index[guild_id] -= amount
+                    if amount > 1:
+                        prev_embed.add_field(name="", value=f"Rolling back for **{amount}** tracks...", inline=False)
+                    else:
+                        prev_embed.add_field(name="", value="Playing previous track...", inline=False)
+                await self.play_music(interaction)
+        else:
+            prev_embed.add_field(name="", value="There is no previous track in the queue. I'm not even in a voice channel.", inline=False)
+        await interaction.response.send_message(embed=prev_embed)
+        
+    # Shows the queue
+    @commands.slash_command(name="queue", description="Shows the queue in this server")
+    async def queue(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        queue_embed = discord.Embed(title="Queue:", color=interaction.author.colour)
+        if self.music_queue[guild_id] != []:
+            retval = ""
+            # Get all tracks upcoming to play
+            for next_track_index in range(self.current_music_queue_index[guild_id] + 1, len(self.music_queue[guild_id])):
+                    retval += f"**#{1 + next_track_index}** - " + self.music_queue[guild_id][next_track_index][0]['title'] + "\n"
+            if retval != "":
+                # Return the track that currently playing and all upcoming tracks normally
+                queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['title']}", inline=False)
+                queue_embed.add_field(name="Upcoming tracks:", value=retval, inline=False)
+            elif self.current_music_queue_index[guild_id] == len(self.music_queue[guild_id]):
+                # Returns nothing if the queue has been ended
+                queue_embed.add_field(name="Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
+                queue_embed.add_field(name="Upcoming tracks:", value="There are no upcoming tracks will be played", inline=False)
+            else:
+                # Return the track that currently playing if that track was the last track in the queue
+                queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['title']}", inline=False)
+                queue_embed.add_field(name="Upcoming tracks:", value="There are no upcoming tracks will be played", inline=False)
+        else:
+            # Returns nothing if the queue was empty
+            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
+        await interaction.response.send_message(embed=queue_embed)
+
+    # Stops the track currently playing and clears the queue
+    @commands.slash_command(name="clear", description="Stops the track currently playing and clears the queue")
+    async def clear(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        clear_embed = discord.Embed(title="Queue:", color=interaction.author.colour)
+        if self.music_queue[guild_id] != []:
+            self.music_queue[guild_id] = []
+            if self.vc[guild_id] is not None and self.is_playing[guild_id]:
+                self.vc[guild_id].stop()
+            self.current_music_queue_index[guild_id] == 0
+            clear_embed.add_field(name="", value="Music queue has been cleared.")
+        else:
+            clear_embed.add_field(name="", value="There are no tracks in the queue")
+        await interaction.response.send_message(embed=clear_embed)
+
+    # Removes the last or a specified track added to the queue
+    @commands.slash_command(name="remove", description="Removes the last or a specified track added to the queue")
+    async def remove(self, interaction: Interaction, position: Option(int, min = 1, description="Postion of track to remove. Leave this blank if you want to remove the last track.", required=False)):
+        guild_id = interaction.guild.id
+        remove_embed = discord.Embed(title="Queue", color=interaction.author.colour)
+        if self.music_queue[guild_id] != []:
+            position = position or len(self.music_queue[guild_id])
+            if position > len(self.music_queue[guild_id]):
+                remove_embed.add_field(name="", value=f"Please enter a valid position of the track you want to remove from the queue.", inline=False)
+            else:
+                if position - 1 < 0:
+                    self.music_queue[guild_id].pop(0)
+                else:
+                    self.music_queue[guild_id].pop(position - 1)
+                remove_embed.add_field(name="", value=f"**#{position}** has been removed from queue.", inline=False)
+            if (self.current_music_queue_index[guild_id] + 1) > position:
+                self.current_music_queue_index[guild_id] -= 1
+        else:
+            remove_embed.add_field(name="", value="There are no tracks in the queue")
+        await interaction.response.send_message(embed=remove_embed)
+
+    # General commands
+
+    # Joining voice channel
+    @commands.slash_command(description="Invokes me to a voice channel")
+    async def join(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to join. Leave this blank if you want the bot to join where you are.", required=False)):
+        guild_id = interaction.guild.id
+        if interaction.author.voice is not None:
+            voice_channel = channel or interaction.author.voice.channel
+            self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
             # This allows for more functionality with voice channels
             if voice_state == None:
                 # None being the default value if the bot isnt in a channel (which is why the is_connected() is returning errors)
