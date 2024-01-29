@@ -16,10 +16,10 @@ class Untimeout(commands.Cog):
     async def untimeout(self, interaction: Interaction, member: Option(discord.Member, required=True), reason: Option(str, required=False)):
         if reason == None:
             await member.remove_timeout()
-            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{ctx.author.id}>.")
+            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.author.id}>.")
         else:
             await member.remove_timeout(reason=reason)
-            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{ctx.author.id}>. Reason: {reason}.")
+            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.author.id}>. Reason: {reason}.")
 
     @untimeout.error
     async def untimeout_error(self, interaction: Interaction, error):
