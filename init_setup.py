@@ -15,3 +15,5 @@ else:
 
 os.system(f"{pip_name} install discord.py[voice]")
 os.system(f"{pip_name} install py-cord")
+os.system(f"{pip_name} install yt_dlp")
+os.system(f"{pip_name} intstall youtubesearchpython")

@@ -19,10 +19,10 @@ class Timeout(commands.Cog):
             return
         if reason == None:
             await member.timeout_for(duration)
-            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{ctx.author.id}>.")
+            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{interaction.author.id}>.")
         else:
             await member.timeout_for(duration, reason=reason)
-            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{ctx.author.id}> for '{reason}'.")
+            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{interaction.author.id}> for '{reason}'.")
 
     # Timeouts a member for a specified amount of time
     @commands.slash_command(name="timeout", description="Timeouts a member")
