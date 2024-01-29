@@ -46,7 +46,7 @@ class Ban(commands.Cog):
         # Executes the following if the user currently in the server
         elif interaction.guild.get_member(user.id) is not None:
             if user.guild_permissions.administrator:
-                # Only server owner has privilege to ban an admin. Admins are not alowed to ban another admins
+                # Only server owner has privilege to ban an admin. Admins are not allowed to ban another admins
                 if interaction.author.id == interaction.guild.owner.id:
                     # The author is the server owner
                     await self.bans_user(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
