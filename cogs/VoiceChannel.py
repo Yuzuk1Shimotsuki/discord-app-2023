@@ -90,9 +90,9 @@ class VoiceChannel(commands.Cog):
         # - this is a channel leave as opposed to anything else
         # Actions:
         # - Reset all settings if the bot leave or being kicked by someone else
-        if (
+        elif (
             after.channel is None and  # if this is None this is certainly a leave
-            before.channel != after.channel  # if these match then this could be e.g. server deafen
+            before.channel != after.channel # if these match then this could be e.g. server deafen
         ):
             guild_id = before.channel.guild.id
             # Reset all settings on guild
