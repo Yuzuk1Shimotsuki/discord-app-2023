@@ -83,6 +83,8 @@ class VoiceChannel(commands.Cog):
             await asyncio.sleep(0.5)  # wait a moment for it to set in
             vc.pause()
             vc.resume()
+            # The bot has been moved and plays the original music again, there is no sense to execute the rest of statements.
+            return
 
         # Ensure:
         # - this is a channel leave as opposed to anything else
@@ -99,6 +101,7 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
             self.recording_vc[guild_id] = None
+            return
 
     # Music Playing
     # YouTube
@@ -524,6 +527,7 @@ Just curious to know, where should I move into right now, <@{interaction.author.
                     break
             else:
                 specified_vc = channel
+            # Getting bot member as a 'Member' object instead of 'ClientUser' object (which is why the bot.user is returning errors)
             guild = self.bot.get_guild(interaction.guild.id)
             bot_member = guild.get_member(self.bot.application_id)
             if reason is None:
