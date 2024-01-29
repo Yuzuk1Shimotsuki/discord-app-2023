@@ -92,18 +92,21 @@ class VoiceChannel(commands.Cog):
         # - Reset all settings if the bot leave or being kicked by someone else
         if (
             after.channel is None and  # if this is None this is certainly a leave
-            before.channel != after.channel # if these match then this could be e.g. server deafen
+            before.channel != after.channel  # if these match then this could be e.g. server deafen
         ):
             guild_id = before.channel.guild.id
+            # To ensure the bot actually left the voice channel
             self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=before.channel.guild)
-            if self.vc[guild_id] is None:
-                # Reset all settings on guild
-                self.music_queue[guild_id] = []
-                self.current_music_queue_index[guild_id] = 0
-                self.vc[guild_id] = None
-                self.is_paused[guild_id] = self.is_playing[guild_id] = False
-                self.recording_vc[guild_id] = None
+            if self.vc[guild_id] is not None:
+                # The bot actually still in the voice channel, or moving between another voice channels
                 return
+            # Reset all settings on guild
+            self.music_queue[guild_id] = []
+            self.current_music_queue_index[guild_id] = 0
+            self.vc[guild_id] = None
+            self.is_paused[guild_id] = self.is_playing[guild_id] = False
+            self.recording_vc[guild_id] = None
+            return
 
     # Music Playing
     # YouTube
