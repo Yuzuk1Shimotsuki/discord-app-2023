@@ -19,6 +19,7 @@ class ChangeStatus(commands.Cog):
 
     # Fucntion to get the desired activity
     async def get_type(self, type, name, url):
+        name = name or "?help"
         if type == types[0]:
             # Returns discord Gaming status with desired message.
             return Game(name=name)
