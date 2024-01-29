@@ -28,5 +28,5 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/discord_bot_2023_internal:${{ github.sha }}-development
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/discord_bot_2023_internal:${{ github.sha }}-stable
           
