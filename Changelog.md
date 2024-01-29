@@ -409,3 +409,6 @@ A blank line will now shown and deletes immediately when the command are all fin
 # 20240129
 
 (+) Merging dev build to stable build
+
+(+) Fixed music player automatically resets itself while moving between voice channels in **"root/cogs/VoiceChannel.py"**
+
