@@ -248,28 +248,34 @@ couuld u join it first before inviting meee？ :pleading_face:''')
     
     # Skipping tracks
     @commands.slash_command(name="skip", description="Skips the current track being played in voice channel")
-    async def skip(self, interaction: Interaction, amount: Option(int, min_value=1, description="Number of tracks to be skipped. Leave this blank if you want to skip the current track only.", required=False)):
+    async def skip(self, interaction: Interaction, amount: Option(int, min_value=1, description="Number of track to skip. Leave this blank if you want to skip the current track only.", required=False)):
         guild_id = interaction.guild.id
         skip_embed = discord.Embed(title="", color=interaction.author.colour)
         if self.vc[guild_id] is not None:
-            # Skip mutiple tracks
-            if amount is not None and amount < len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id]):
-                self.current_music_queue_index[guild_id] += amount - 1
-                skip_embed.add_field(name="", value=f"Skipped **{amount}** tracks in the queue", inline=False)
-            # Skip mutiple tracks and out of range
-            elif amount is not None and amount > len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id] + 1):
+            amount = amount or 1
+            if self.current_music_queue_index[guild_id] > len(self.music_queue[guild_id]) - 1:
+                # The author has been already gone through all tracks in the queue
+                skip_embed.add_field(name="", value=f"<@{interaction.author.id}> You have already gone through all tracks in the queue.", inline=False)
+            elif amount > len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id]):
+                # Auto skip to the last track as the required amount exceeded the total number of available tracks can be skipped in the queue
                 self.current_music_queue_index[guild_id] += len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id] + 1) - 1
                 skip_embed.add_field(name="", value="The amount of tracks you tried to skip exceeded the total number of available tracks can be skipped in the queue. Automatically skipping to the last track in the queue...", inline=False)
-            # Skip the current playing track
+            elif amount == len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id]):
+                # The author just skipped the final track
+                skip_embed.add_field(name="", value=f"Skipped the final track. There are no upcoming tracks will be played.", inline=False)
             else:
-                skip_embed.add_field(name="", value="Skipped the current track", inline=False)
-            # Stop the current song and plays the next song in queue if exsist
+                # Skip the required amount of tracks
+                self.current_music_queue_index[guild_id] += amount - 1
+                if amount > 1:
+                    skip_embed.add_field(name="", value=f"Skipped **{amount}** tracks in the queue", inline=False)
+                else:
+                    skip_embed.add_field(name="", value="Skipped the current track", inline=False)
             self.vc[guild_id].stop()
         else:
             skip_embed.add_field(name="", value="I'm not in a voice channel.", inline=False)
         await interaction.response.send_message(embed=skip_embed)
 
-    # Plays the previous track in the queue
+    # Playing previous track or rolling back multiple tracks
     @commands.slash_command(name="previous", description="Plays the previous track in the queue")
     async def previous(self, interaction: Interaction, amount: Option(int, min_value=1, description="Number of tracks to be rollback. Leave this blank if you want to play the previous track only.", required=False)):
         guild_id = interaction.guild.id
@@ -289,7 +295,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
                     # Rollback the required amount of tracks
                     self.current_music_queue_index[guild_id] -= amount
                     if amount > 1:
-                        prev_embed.add_field(name="", value=f"Rolling back for **{amount}** tracks...", inline=False)
+                        prev_embed.add_field(name="", value=f"Rolling back **{amount}** tracks from the current track...", inline=False)
                     else:
                         prev_embed.add_field(name="", value="Playing previous track...", inline=False)
                 await self.play_music(interaction)
