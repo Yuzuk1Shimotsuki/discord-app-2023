@@ -28,7 +28,7 @@ class DisplayUserInfo(commands.Cog):
         user = user or interaction.author
         embedinfo = discord.Embed()
         embedinfo.set_author(name=user.display_name, icon_url=user.display_avatar.url)
-        embedinfo.set_thumbnail(url=user.avatar.url)
+        embedinfo.set_thumbnail(url=user.display_avatar.url)
         embedinfo.add_field(name="Name:", value=user.name)
         embedinfo.add_field(name="Joined Discord on:",
                             value=f"**{discord.utils.format_dt(user.created_at, style='R')}**")
