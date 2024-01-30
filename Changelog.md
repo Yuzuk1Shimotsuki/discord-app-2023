@@ -412,3 +412,16 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Fixed music player automatically resets itself while moving between voice channels in **"root/cogs/VoiceChannel.py"**
 
+#
+
+# 20240130
+
+**"root/general/DisplayUserInfo.py"**
+
+(+) Fixed bot crashing issues for display info of a user with default avatar in **"root/general/DisplayUserInfo.py"**
+
+**"root/general/VoiceChannel.py"**
+
+(+) Music player will now return a notification if the author just skipped the last track or has been already gone through all tracks in the queue
+
+(+) Fixed music player still attempting to skip tracks even the last track in the queue has been finished when the **"skip()"** function is called
