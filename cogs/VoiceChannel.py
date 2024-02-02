@@ -143,10 +143,7 @@ class VoiceChannel(commands.Cog):
             if os.path.exists(f"{guild_dir}/{guild_id}") is False:
                 path = os.path.join(guild_dir, str(guild_id))
                 os.mkdir(path)
-            if self.is_playing[guild_id]:
-                audio_path = f"{guild_dir}/{guild_id}/audio{1 + self.current_music_queue_index[guild_id]}.{extension}"
-            else:
-                audio_path = f"{guild_dir}/{guild_id}/audio{self.current_music_queue_index[guild_id]}.{extension}"
+            audio_path = f"{guild_dir}/{guild_id}/audio{len(self.music_queue[guild_id])}.{extension}"
             await attachment.save(audio_path, use_cached=False)
             audiofile = TinyTag.get(audio_path)
             audio_artist =  audiofile.artist or "<Unknown artist>"
