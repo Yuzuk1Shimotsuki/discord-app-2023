@@ -112,87 +112,20 @@ class VoiceChannel(commands.Cog):
             self.recording_vc[guild_id] = None
             return
 
-    # Music Playing
-    # YouTube
+    # Music Player
 
-    # Searching the item on YouTube
+    # YouTube
+    # Searching required item on YouTube
     def search_yt(self, item):
         if item.startswith("https://"):
             title = self.ytdl.extract_info(item, download=False)["title"]
             return {'source':item, 'title':title}
         search = VideosSearch(item, limit=10)
         return {'source':search.result()["result"][0]["link"], 'title':search.result()["result"][0]["title"]}
-
-    # Infinite loop checking 
-    async def auto_play_next(self, interaction: Interaction):
-        guild_id = interaction.guild.id
-        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-        if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
-            self.is_playing[guild_id] = True
-            self.is_paused[guild_id] = False
-            self.current_music_queue_index[guild_id] += 1
-            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
-                raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
-                loop = asyncio.get_event_loop()
-                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
-                track = data['url']
-            else:
-                track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(track, **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
-        else:
-            self.is_playing[guild_id] = False
-            self.is_paused[guild_id] = False
-
-    # Function to play music
-    async def play_music(self, interaction: Interaction):
-        guild_id = interaction.guild.id
-        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-        if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
-            self.is_playing[guild_id] = True
-            self.is_paused[guild_id] = False
-            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
-                raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
-                loop = asyncio.get_event_loop()
-                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
-                track = data['url']
-            else:
-                track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
-            if self.vc[guild_id] is None:
-                self.vc[guild_id] = await interaction.author.voice.channel.connect()
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(track, **self.FFMPEG_OPTIONS), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
-        else:
-            self.is_playing[guild_id] = False
-            self.is_paused[guild_id] = False
-
-    # Discord Autocomplete for YouTube search
-    async def get_youtube_search_result(self: discord.AutocompleteContext):
-        source = self.options['source']
-        query = self.options["query"]
-        if query is None:
-            query = ""
-        if source == 'YouTube':
-            result_list = []
-            if not query.startswith("https://"):
-                try:
-                    max_limit = 25
-                    search = VideosSearch(query, limit=max_limit)
-                    for i in range(max_limit):
-                        try:
-                            result_list.append(search.result()["result"][i]["title"])
-                        except IndexError:
-                            break
-                    return result_list
-                except TypeError:
-                    # The author did not entered anything yet
-                    # Originally it should return a defult list on Windows, not sure why it's not working on linux...
-                    return []
-            return []
-        else:
-            # The source is not from YouTube
-            return []
-
-    # Fetching custom raw data
-    async def fetch_customfile_data(self, interaction: Interaction, attachment: discord.Attachment):
+    
+    # Custom files
+    # Fetching raw data from custom file
+    async def fetch_custom_rawfile(self, interaction: Interaction, attachment: discord.Attachment):
         try:
             guild_id = interaction.guild.id
             if attachment.content_type == "audio/mpeg":
@@ -225,6 +158,78 @@ class VoiceChannel(commands.Cog):
             else:
                 raise e
 
+    # Infinite loop checking 
+    async def auto_play_next(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
+            self.is_playing[guild_id] = True
+            self.is_paused[guild_id] = False
+            self.current_music_queue_index[guild_id] += 1
+            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
+                raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
+                loop = asyncio.get_event_loop()
+                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
+                track = data['url']
+                options = self.FFMPEG_OPTIONS
+            else:
+                track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
+                options = None
+            self.vc[guild_id].play(discord.FFmpegPCMAudio(track, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+        else:
+            self.is_playing[guild_id] = False
+            self.is_paused[guild_id] = False
+
+    # Function to play music
+    async def play_music(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
+            self.is_playing[guild_id] = True
+            self.is_paused[guild_id] = False
+            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
+                raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
+                loop = asyncio.get_event_loop()
+                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
+                track = data['url']
+                options = self.FFMPEG_OPTIONS
+            else:
+                track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
+                options = None
+            if self.vc[guild_id] is None:
+                self.vc[guild_id] = await interaction.author.voice.channel.connect()
+            self.vc[guild_id].play(discord.FFmpegPCMAudio(track, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+        else:
+            self.is_playing[guild_id] = False
+            self.is_paused[guild_id] = False
+
+    # Discord Autocomplete for YouTube search
+    async def get_youtube_search_result(self: discord.AutocompleteContext):
+        source = self.options['source']
+        query = self.options["query"]
+        if query is None:
+            query = ""
+        if source == 'YouTube':
+            result_list = []
+            if not query.startswith("https://"):
+                try:
+                    max_limit = 25
+                    search = VideosSearch(query, limit=max_limit)
+                    for i in range(max_limit):
+                        try:
+                            result_list.append(search.result()["result"][i]["title"])
+                        except IndexError:
+                            break
+                    return result_list
+                except TypeError:
+                    # The author did not entered anything yet
+                    # Originally it should return a defult list on Windows, not sure why it's not working on linux...
+                    return []
+            return []
+        else:
+            # The source is not from YouTube
+            return []
+
     # Play selected tracks from YouTube
     @commands.slash_command(description="Play selected tracks from YouTube")
     async def play(self, interaction:Interaction, source: Option(str, choices=audio_source, required=True), query: Option(str, autocomplete=discord.utils.basic_autocomplete(get_youtube_search_result), description="Link or keywords of the track you want to play.", required=False), attachment: Option(discord.Attachment, name="attachment", description="The track to be played.", required=False)):
@@ -254,7 +259,7 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
                     play_embed.add_field(name="", value=f'''Looks like you've selected custom as the audio source, but haven't specified the file you would like to play :thinking: ...
 Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼Ÿ''', inline=False)
                     return await interaction.followup.send(embed=play_embed)
-                track = await self.fetch_customfile_data(interaction, attachment)
+                track = await self.fetch_custom_rawfile(interaction, attachment)
                 track_title = track["filename"]
             if self.is_playing[guild_id]:
                 play_embed.add_field(name="", value=f"**#{1 + len(self.music_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
