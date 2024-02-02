@@ -1,5 +1,6 @@
 import discord
 import os
+import shutil
 import eyed3
 import asyncio
 from discord import SlashCommandGroup, Interaction, Option, FFmpegPCMAudio
@@ -110,6 +111,9 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
             self.recording_vc[guild_id] = None
+            guild_custom_dir = f"plugins/custom_audio/guild/{guild_id}"
+            if os.path.exists(guild_custom_dir):
+                shutil.rmtree(guild_custom_dir)
             return
 
     # Music Player
@@ -122,12 +126,13 @@ class VoiceChannel(commands.Cog):
             return {'source':item, 'title':title}
         search = VideosSearch(item, limit=10)
         return {'source':search.result()["result"][0]["link"], 'title':search.result()["result"][0]["title"]}
-    
+
     # Custom files
     # Fetching raw data from custom file
     async def fetch_custom_rawfile(self, interaction: Interaction, attachment: discord.Attachment):
         try:
             guild_id = interaction.guild.id
+            print(attachment.content_type)
             if attachment.content_type == "audio/mpeg":
                 extension = "mp3"
             elif attachment.content_type == "audio/x-wav":
@@ -147,14 +152,23 @@ class VoiceChannel(commands.Cog):
                 audiofile = eyed3.load(audio_path)
                 audio_artist =  audiofile.tag.artist or "<Unknown artist>"
                 audio_title = audiofile.tag.title or "<Unknown title>"
-                filename = f"{audio_artist} - {audio_title}" or attachment.filename.replace("_", " ")
-                return {"source": attachment,"filename": filename, "audio_path": audio_path, "title": audiofile.tag.title, "artist": audiofile.tag.album_artist, "album": audiofile.tag.album, "album_artist": audiofile.tag.album_artist, "track_number": audiofile.tag.track_num, "year": audiofile.tag.getBestDate().year}
+                try:
+                    year = audiofile.tag.getBestDate().year
+                except AttributeError:
+                    year = None
+                if audiofile.tag.title is None and audiofile.tag.artist is None:
+                    filename = attachment.filename.replace("_", " ")
+                elif year is None:
+                    filename = f"{audio_artist} - {audio_title}"
+                else:
+                    filename = f"{audio_artist} - {audio_title} ({year})"
+                return {"source": attachment,"filename": filename, "audio_path": audio_path, "title": audiofile.tag.title, "artist": audiofile.tag.album_artist, "album": audiofile.tag.album, "album_artist": audiofile.tag.album_artist, "track_number": audiofile.tag.track_num, "year": year}
             else:
                 filename = attachment.filename.replace("_", " ")
                 return {"source": attachment,"filename": filename, "audio_path": audio_path, "title": None, "artist": None, "album": None, "album_artist": None, "track_number": None, "year": None}
         except discord.errors.HTTPException as e:
             if e.status == 413:
-                return "payload_too_large"
+                return "!error%payload_too_large%"
             else:
                 raise e
 
@@ -170,12 +184,13 @@ class VoiceChannel(commands.Cog):
                 raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
-                track = data['url']
-                options = self.FFMPEG_OPTIONS
+                source = data['url']
+                before_options = self.FFMPEG_OPTIONS["before_options"]
+                options = self.FFMPEG_OPTIONS["options"]
             else:
-                track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
-                options = None
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(track, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+                source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
+                before_options = options = None
+            self.vc[guild_id].play(discord.FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
@@ -191,14 +206,15 @@ class VoiceChannel(commands.Cog):
                 raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
-                track = data['url']
-                options = self.FFMPEG_OPTIONS
+                source = data['url']
+                before_options = self.FFMPEG_OPTIONS["before_options"]
+                options = self.FFMPEG_OPTIONS["options"]
             else:
-                track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
-                options = None
+                source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
+                before_options = options = None
             if self.vc[guild_id] is None:
                 self.vc[guild_id] = await interaction.author.voice.channel.connect()
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(track, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(discord.FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
@@ -230,8 +246,8 @@ class VoiceChannel(commands.Cog):
             # The source is not from YouTube
             return []
 
-    # Play selected tracks from YouTube
-    @commands.slash_command(description="Play selected tracks from YouTube")
+    # Play selected tracks
+    @commands.slash_command(description="Adds a selected track to the queue from YouTube link, keywords or a local file")
     async def play(self, interaction:Interaction, source: Option(str, choices=audio_source, required=True), query: Option(str, autocomplete=discord.utils.basic_autocomplete(get_youtube_search_result), description="Link or keywords of the track you want to play.", required=False), attachment: Option(discord.Attachment, name="attachment", description="The track to be played.", required=False)):
         guild_id = interaction.guild.id
         play_embed = discord.Embed(title="", color=interaction.author.colour)
@@ -245,6 +261,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
                 self.vc[guild_id].resume()
         elif self.vc[guild_id] is not None:
             if source == audio_source[0]:
+                # From YouTube
                 if query is None:
                     play_embed.add_field(name="", value=f'''Looks like you've selected YouTube as the audio source, but haven't specified the track you would like to play :thinking: ...
 Just curious to know, what should I play right now, <@{interaction.author.id}>？''', inline=False)
@@ -255,11 +272,16 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>�
                     play_embed.add_field(name="", value="Could not download the song: Incorrect format. Try another keywords. This could be due to the link you entered is a playlist or livestream format.", inline=False)
                     return await interaction.followup.send(embed=play_embed)
             elif source == audio_source[1]:
+                # Custom file
                 if attachment is None:
                     play_embed.add_field(name="", value=f'''Looks like you've selected custom as the audio source, but haven't specified the file you would like to play :thinking: ...
 Just curious to know, what should I play right now, <@{interaction.author.id}>？''', inline=False)
                     return await interaction.followup.send(embed=play_embed)
                 track = await self.fetch_custom_rawfile(interaction, attachment)
+                # Return errors if occurs, or proceed to the next step if no errors encountered
+                if track == "!error%payload_too_large%":
+                    play_embed.add_field(name="", value=f"Yooo, The file you uploaded was too large! I can't handle it apparently...", inline=False)
+                    return await interaction.followup.send(embed=play_embed)
                 track_title = track["filename"]
             if self.is_playing[guild_id]:
                 play_embed.add_field(name="", value=f"**#{1 + len(self.music_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
@@ -377,7 +399,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             # Get all tracks upcoming to play
             for next_track_index in range(self.current_music_queue_index[guild_id] + 1, len(self.music_queue[guild_id])):
                 if self.music_queue[guild_id][next_track_index][1] == audio_source[0]:
-                    # From YT
+                    # From YouTube
                     retval += f"**#{1 + next_track_index}** - " + self.music_queue[guild_id][next_track_index][0]['title'] + "\n"
                 else:
                     # Custom file
@@ -385,7 +407,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             if retval != "":
                 # Return the track that currently playing and all upcoming tracks normally
                 if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
-                    # From YT
+                    # From YouTube
                     queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['title']}", inline=False)
                 else:
                     # Custom file
@@ -398,7 +420,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             else:
                 # Return the track that currently playing if that track was the last track in the queue
                 if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
-                    # From YT
+                    # From YouTube
                     queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['title']}", inline=False)
                 else:
                     # Custom file
@@ -418,6 +440,9 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             self.music_queue[guild_id] = []
             if self.vc[guild_id] is not None and self.is_playing[guild_id]:
                 self.vc[guild_id].stop()
+                guild_custom_dir = f"plugins/custom_audio/guild/{guild_id}"
+                if os.path.exists(guild_custom_dir):
+                    shutil.rmtree(guild_custom_dir)
             self.current_music_queue_index[guild_id] == 0
             clear_embed.add_field(name="", value="Music queue has been cleared.")
         else:
