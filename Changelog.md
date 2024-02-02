@@ -425,3 +425,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Music player will now return a notification if the author just skipped the last track or has been already gone through all tracks in the queue
 
 (+) Fixed music player still attempting to skip tracks even the last track in the queue has been finished when the **"skip()"** function is called
+
+#
+
+# 20240202
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added support for playing custom audio (mp3/wav) files
+
+(+) Code improvement
