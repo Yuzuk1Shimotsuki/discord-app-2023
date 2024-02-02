@@ -435,3 +435,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Added support for playing custom audio (mp3/wav) files
 
 (+) Code improvement
+
+#
+
+# 20240203
+
+**"root/general/VoiceChannel.py"**
+
+(-/+) Replaced module "eyed3" with "tinytag"
+
+(+) Fixed custom files won't play on music player in VoiceChannel.py

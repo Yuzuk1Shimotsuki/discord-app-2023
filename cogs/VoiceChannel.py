@@ -1,13 +1,13 @@
 import discord
 import os
 import shutil
-import eyed3
 import asyncio
 from discord import SlashCommandGroup, Interaction, Option, FFmpegPCMAudio
 from discord.ext import commands
 from discord.ext.commands import MissingPermissions
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
+from tinytag import TinyTag
 
 audio_source = ["YouTube", "Custom file"]
 
@@ -133,12 +133,11 @@ class VoiceChannel(commands.Cog):
         try:
             guild_id = interaction.guild.id
             print(attachment.content_type)
-            if attachment.content_type == "audio/mpeg":
-                extension = "mp3"
-            elif attachment.content_type == "audio/x-wav":
-                extension = "wav"
+            supported_type = {"audio/mpeg": "mp3", "audio/x-wav": "wav", "audio/flac": "flac", "audio/mp4": "m4a"}
+            if attachment.content_type in supported_type:
+                extension = supported_type[attachment.content_type]
             else:
-                return
+                return "!error%!unsupportted_file_type%"
             guild_dir = f"plugins/custom_audio/guild"
             if os.path.exists(f"{guild_dir}/{guild_id}") is False:
                 path = os.path.join(guild_dir, str(guild_id))
@@ -148,27 +147,20 @@ class VoiceChannel(commands.Cog):
             else:
                 audio_path = f"{guild_dir}/{guild_id}/audio{self.current_music_queue_index[guild_id]}.{extension}"
             await attachment.save(audio_path, use_cached=False)
-            if extension != "wav":
-                audiofile = eyed3.load(audio_path)
-                audio_artist =  audiofile.tag.artist or "<Unknown artist>"
-                audio_title = audiofile.tag.title or "<Unknown title>"
-                try:
-                    year = audiofile.tag.getBestDate().year
-                except AttributeError:
-                    year = None
-                if audiofile.tag.title is None and audiofile.tag.artist is None:
-                    filename = attachment.filename.replace("_", " ")
-                elif year is None:
-                    filename = f"{audio_artist} - {audio_title}"
-                else:
-                    filename = f"{audio_artist} - {audio_title} ({year})"
-                return {"source": attachment,"filename": filename, "audio_path": audio_path, "title": audiofile.tag.title, "artist": audiofile.tag.album_artist, "album": audiofile.tag.album, "album_artist": audiofile.tag.album_artist, "track_number": audiofile.tag.track_num, "year": year}
-            else:
+            audiofile = TinyTag.get(audio_path)
+            audio_artist =  audiofile.artist or "<Unknown artist>"
+            audio_title = audiofile.title or "<Unknown title>"
+            year = audiofile.year
+            if audiofile.title is None and audiofile.artist is None:
                 filename = attachment.filename.replace("_", " ")
-                return {"source": attachment,"filename": filename, "audio_path": audio_path, "title": None, "artist": None, "album": None, "album_artist": None, "track_number": None, "year": None}
+            elif year is None:
+                filename = f"{audio_artist} - {audio_title}"
+            else:
+                filename = f"{audio_artist} - {audio_title} ({year})"
+            return {"source": attachment, "filename": filename, "audio_path": audio_path, "title": audiofile.title, "artist": audiofile.artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
         except discord.errors.HTTPException as e:
             if e.status == 413:
-                return "!error%payload_too_large%"
+                return "!error%!payload_too_large%"
             else:
                 raise e
 
@@ -279,8 +271,11 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
                     return await interaction.followup.send(embed=play_embed)
                 track = await self.fetch_custom_rawfile(interaction, attachment)
                 # Return errors if occurs, or proceed to the next step if no errors encountered
-                if track == "!error%payload_too_large%":
+                if track == "!error%!payload_too_large%":
                     play_embed.add_field(name="", value=f"Yooo, The file you uploaded was too large! I can't handle it apparently...", inline=False)
+                    return await interaction.followup.send(embed=play_embed)
+                elif track == "!error%!unsupportted_file_type%":
+                    play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle itï¼Ÿ", inline=False)
                     return await interaction.followup.send(embed=play_embed)
                 track_title = track["filename"]
             if self.is_playing[guild_id]:
