@@ -137,6 +137,7 @@ class VoiceChannel(commands.Cog):
             if attachment.content_type in supported_type:
                 extension = supported_type[attachment.content_type]
             else:
+                # Unsupportted file
                 return "!error%!unsupportted_file_type%"
             guild_dir = f"plugins/custom_audio/guild"
             if os.path.exists(f"{guild_dir}/{guild_id}") is False:
@@ -434,8 +435,14 @@ couuld u join it first before inviting meee？ :pleading_face:''')
         if self.music_queue[guild_id] != []:
             self.music_queue[guild_id] = []
             if self.vc[guild_id] is not None and self.is_playing[guild_id]:
+                self.is_playing[guild_id] = False
+                self.is_paused[guild_id] = False
                 self.vc[guild_id].stop()
                 guild_custom_dir = f"plugins/custom_audio/guild/{guild_id}"
+                if os.name == "nt":
+                    # Kill ffmpeg.exe before remove the directory in Windows to prevent error
+                    # No need to do this in linux
+                    os.system("taskkill /im ffmpeg.exe /f")
                 if os.path.exists(guild_custom_dir):
                     shutil.rmtree(guild_custom_dir)
             self.current_music_queue_index[guild_id] == 0
@@ -480,8 +487,6 @@ couuld u join it first before inviting meee？ :pleading_face:''')
                 # Connect the bot to voice channel
                 self.vc[guild_id] = await voice_channel.connect()
                 await interaction.response.send_message(f"I joined the voice channel <#{voice_channel.id}>")
-                # #source = FFmpegPCMAudio("test.mp3")
-                # #player = voice.play(source)
             elif self.vc[guild_id].channel.id != voice_channel.id:
                 # The bot has been connected to a voice channel but not as same as the author or required one
                 if channel is not None:
