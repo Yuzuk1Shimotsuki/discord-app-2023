@@ -11,10 +11,39 @@ from tinytag import TinyTag
 
 audio_source = ["YouTube", "Custom file"]
 
+# Custom Errors
+class AuthorNotInVoiceError():
+    def __init__(self, interaction: Interaction, user: discord.User):
+        self.user = user
+        self.interaction = interaction
+    def return_embed(self):
+        embed = discord.Embed(title="", color=self.interaction.author.colour)
+        embed.add_field(name="", value=f"<@{self.user.id}> Join a voice channel first plz :pleading_face:", inline=False)
+        return embed
+
+class BotAlreadyInVoiceError():
+    def __init__(self, bot_vc, user_vc):
+        self.bot_vc = bot_vc
+        self.user_vc = user_vc
+    def notauthor(self):
+        return f'''I've already joined the voice channel :D , but not where you are ~
+**I'm currently in:** <#{self.bot_vc.id}>
+**You're currently in:** <#{self.user_vc.id}>'''
+    def notrequired(self):
+        return f'''I've already joined the voice channel :D , but not the required one ~
+**I'm currently in:** <#{self.bot_vc.id}>
+**The channel you wanted me to join:** <#{self.user_vc.id}>'''
+    def same(self):
+        return f"Can u found me in the voice channel？ I have connected to  <#{self.user_vc.id}> already :>"
+
+
+# Main cog
 class VoiceChannel(commands.Cog):
     def __init__(self, bot):
         # General init
         self.bot = bot
+        self.fallback_channel = {}
+        self.is_moving = {}
         # Music playing from YT
         # all the music related stuff
         global audio_source
@@ -55,6 +84,8 @@ class VoiceChannel(commands.Cog):
         for guild in self.bot.guilds:
             guild_id = int(guild.id)
             # 2d array containing [song, filetype]
+            self.fallback_channel[guild_id] = None
+            self.is_moving[guild_id] = False
             self.music_queue[guild_id] = []
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
@@ -78,17 +109,19 @@ class VoiceChannel(commands.Cog):
             before.channel != after.channel and  # if these match then this could be e.g. server deafen
             isinstance(vc, discord.VoiceClient) and  # None & not external Protocol check
             vc.channel == after.channel  # our current voice client is in this channel
-        ):
+        ):  
+            self.is_moving[guild_id] = True
             # If the voice was intentionally paused don't resume it for no reason
             if vc.is_paused():
                 return
             # If the voice isn't playing anything there is no sense in trying to resume
             if not vc.is_playing():
-                return     
+                return
             await asyncio.sleep(0.5)  # wait a moment for it to set in
             vc.pause()
             vc.resume()
             # The bot has been moved and plays the original music again, there is no sense to execute the rest of statements.
+            self.is_moving[guild_id] = False
             return
 
         # Ensure:
@@ -101,11 +134,12 @@ class VoiceChannel(commands.Cog):
         ):
             guild_id = before.channel.guild.id
             # To ensure the bot actually left the voice channel
-            self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=before.channel.guild)
-            if self.vc[guild_id] is not None:
-                # The bot actually still in the voice channel, or moving between another voice channels
+            if self.is_moving[guild_id]:
                 return
+            if self.fallback_channel[guild_id] is not None:
+                await self.fallback_channel[guild_id].send("I left the voice channel.", silent=True)
             # Reset all settings on guild
+            self.fallback_channel[guild_id] = None
             self.music_queue[guild_id] = []
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
@@ -204,6 +238,8 @@ class VoiceChannel(commands.Cog):
                 before_options = options = None
             if self.vc[guild_id] is None:
                 self.vc[guild_id] = await interaction.author.voice.channel.connect()
+                self.fallback_channel[guild_id] = interaction.channel
+                print(self.fallback_channel[guild_id])
             self.vc[guild_id].play(discord.FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
@@ -244,8 +280,7 @@ class VoiceChannel(commands.Cog):
         try:
             self.vc[guild_id] = self.vc[guild_id] or interaction.author.voice.channel
         except:
-            return await interaction.response.send_message(f'''i don't want to be alone in the voice channel . . .  :pensive:
-couuld u join it first before inviting meee？ :pleading_face:''')
+            return await interaction.response.send_message(AuthorNotInVoiceError(interaction, interaction.author))
         await interaction.response.defer()
         if self.vc[guild_id] is not None and self.is_paused[guild_id]:
                 self.vc[guild_id].resume()
@@ -286,8 +321,7 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>�
                 self.current_music_queue_index[guild_id] = 0
                 await self.play_music(interaction)
         else:
-            await interaction.response.send_message(f'''i don't want to be alone in the voice channel . . .  :pensive:
-couuld u join it first before inviting meee？ :pleading_face:''')
+            await interaction.response.send_message(AuthorNotInVoiceError(interaction, interaction.author))
 
     # Pauses the current track
     @commands.slash_command(name="pause", description="Pauses the current track being played in voice channel")
@@ -465,6 +499,20 @@ couuld u join it first before inviting meee？ :pleading_face:''')
                 remove_embed.add_field(name="", value=f"**#{position}** has been removed from queue.", inline=False)
             if (self.current_music_queue_index[guild_id] + 1) > position:
                 self.current_music_queue_index[guild_id] -= 1
+            guild_custom_dir = f"plugins/custom_audio/guild/{guild_id}"
+            for track in self.music_queue[guild_id]:
+                renewed_index = 0
+                if track[1] == "Custom file":
+                    if os.name == "nt":
+                        os.system("taskkill /im ffmpeg.exe /f")
+                    try:
+                        os.rename(f"{track[0]['audio_path']}", f"{track[0]['audio_path'][:-5]}{renewed_index}{track[0]['audio_path'][-4:]}")
+                    except FileExistsError:
+                        pass
+                    print("test")
+                renewed_index += 1
+
+
         else:
             remove_embed.add_field(name="", value="There are no tracks in the queue")
         await interaction.response.send_message(embed=remove_embed)
@@ -484,26 +532,21 @@ couuld u join it first before inviting meee？ :pleading_face:''')
                 # Connect the bot to voice channel
                 self.vc[guild_id] = await voice_channel.connect()
                 await interaction.response.send_message(f"I joined the voice channel <#{voice_channel.id}>")
+                self.fallback_channel[guild_id] = interaction.channel
             elif self.vc[guild_id].channel.id != voice_channel.id:
                 # The bot has been connected to a voice channel but not as same as the author or required one
                 if channel is not None:
                     # The bot has been connected to a voice channel but not as same as the required one
-                    await interaction.response.send_message(f'''I've already joined the voice channel :D , but not the channel you wanted me to join.
-**I'm currently in:** <#{self.vc[guild_id].channel.id}>
-**The channel you wanted me to join:** <#{voice_channel.id}>''')
+                    await interaction.response.send_message(BotAlreadyInVoiceError(self.vc[guild_id].channel, voice_channel).notrequired())
                 else:
                     # The bot has been connected to a voice channel but not as same as the author one
-                    await interaction.response.send_message(f'''I've already joined the voice channel :D , but not where you are ~
-**I'm currently in:** <#{self.vc[guild_id].channel.id}>
-**You're currently in:** <#{voice_channel.id}>''')
+                    await interaction.response.send_message(BotAlreadyInVoiceError(self.vc[guild_id].channel, voice_channel).notauthor())
             else:
                 # The bot has been connected to the same channel as the author
-                await interaction.response.send_message(
-                    f"can u found mee in the voice channel？ i have connected to  <#{voice_channel.id}> already :>")
+                await interaction.response.send_message(BotAlreadyInVoiceError(voice_channel, voice_channel).same())
         else:
             # The author has not joined the voice channel yet
-            await interaction.response.send_message(f'''i don't want to be alone in the voice channel . . .  :pensive:
-couuld u join it first before inviting meee？ :pleading_face:''')
+            await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.author).return_embed())
 
     # Leaving voice channel
     @commands.slash_command(description="Leaving a voice channel")
@@ -513,7 +556,7 @@ couuld u join it first before inviting meee？ :pleading_face:''')
         if self.vc[guild_id] is not None:
             # Disconnect the bot from voice channel if it has been connected
             await self.vc[guild_id].disconnect()
-            await interaction.response.send_message("I left the voice channel.")
+            await interaction.response.send_message("Leaving...", ephemeral=True, delete_after=0)
         else:
             # The bot is currently not in a voice channel
             await interaction.response.send_message("I'm not in a voice channel ^_^.")
@@ -704,8 +747,7 @@ Just curious to know, where should I move into right now, <@{interaction.author.
             except discord.sinks.errors.RecordingException:
                 await interaction.followup.send("There's a recording already going on right now.")
         else:
-            await interaction.followup.send(f'''i don't want to be alone in the voice channel . . .  :pensive:
-couuld u join it first before inviting meee？ :pleading_face:''')
+            await interaction.followup.send(AuthorNotInVoiceError(interaction, interaction.author))
 
     # Stop the recording of a voice channel
     @commands.slash_command(description="Stop the recording of a voice channel")
@@ -720,7 +762,6 @@ couuld u join it first before inviting meee？ :pleading_face:''')
             await interaction.followup.send("I wasn't recording audio in this guild.")
 
     # ----------</Voice Channels>----------
-
 
 def setup(bot):
     bot.add_cog(VoiceChannel(bot))
