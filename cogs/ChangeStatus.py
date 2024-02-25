@@ -35,9 +35,11 @@ class ChangeStatus(commands.Cog):
     # Changing the status of the bot
     @change.command(name="status", description="Changing the bot status")
     @app_commands.describe(status="Status of the bot")
-    @app_commands.describe(activity_type="The type u would like to display. Choose '(Ignore)' if u want to leave it blank.")
-    @app_commands.describe(activity_name="The message u would like to display")
-    @app_commands.describe(url="The URL u want to redirect (For streaming only)")
+    @app_commands.rename(activity_type="type")
+    @app_commands.describe(activity_type="The type you would like to display. Choose '(Ignore)' if you want to leave it blank.")
+    @app_commands.describe(activity_name="name")
+    @app_commands.describe(activity_name="The text you would like the bot to display on bio")
+    @app_commands.describe(url="The URL you want to redirect (For streaming only)")
     @app_commands.choices(status=[
         app_commands.Choice(name="Idle", value="idle"),
         app_commands.Choice(name="Invisible", value="invisible"),
