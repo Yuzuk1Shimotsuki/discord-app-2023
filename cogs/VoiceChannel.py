@@ -94,9 +94,10 @@ class VoiceChannel(commands.Cog):
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if member != self.bot.user:
             return
-        vc = member.guild.voice_client
-        
-        """
+        guild_channel = before.channel or after.channel
+        guild = guild_channel.guild
+        guild_id = guild_channel.guild.id
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=guild)
 
         # Ensure:
         # - this is a channel move as opposed to anything else
@@ -107,22 +108,21 @@ class VoiceChannel(commands.Cog):
             before.channel and  # if this is None this could be a join
             after.channel and  # if this is None this could be a leave
             before.channel != after.channel and  # if these match then this could be e.g. server deafen
-            isinstance(vc, discord.VoiceClient) and  # None & not external Protocol check
-            vc.channel == after.channel  # our current voice client is in this channel
+            isinstance(self.vc[guild_id], discord.VoiceClient) and  # None & not external Protocol check
+            self.vc[guild_id].channel == after.channel  # our current voice client is in this channel
         ):  
             # If the voice was intentionally paused don't resume it for no reason
-            if vc.is_paused():
+            if self.vc[guild_id].is_paused():
                 return
             # If the voice isn't playing anything there is no sense in trying to resume
-            if not vc.is_playing():
+            if not self.vc[guild_id].is_playing():
                 return     
-            await asyncio.sleep(0.5)  # wait a moment for it to set in
-            vc.pause()
-            vc.resume()
+            await asyncio.sleep(1)  # wait a moment for it to set in
+            self.vc[guild_id].pause()
+            await asyncio.sleep(0.75)
+            self.vc[guild_id].resume()
             # The bot has been moved and plays the original music again, there is no sense to execute the rest of statements.
             return
-
-        """
 
         # Ensure:
         # - this is a channel leave as opposed to anything else
@@ -134,6 +134,9 @@ class VoiceChannel(commands.Cog):
         ):
             guild_id = before.channel.guild.id
             # To ensure the bot actually left the voice channel
+            self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=before.channel.guild)
+            if self.vc[guild_id] is not None:
+                await self.vc[guild_id].disconnect()
             if self.fallback_channel[guild_id] is not None:
                 await self.fallback_channel[guild_id].send("I left the voice channel.", silent=True)
             # Reset all settings on guild
@@ -237,7 +240,6 @@ class VoiceChannel(commands.Cog):
             if self.vc[guild_id] is None:
                 self.vc[guild_id] = await interaction.user.voice.channel.connect()
                 self.fallback_channel[guild_id] = interaction.channel
-                print(self.fallback_channel[guild_id])
             self.vc[guild_id].play(FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
@@ -555,7 +557,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 await interaction.response.send_message(BotAlreadyInVoiceError(voice_channel, voice_channel).same())
         else:
             # The author has not joined the voice channel yet
-            await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.author).return_embed())
+            await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
 
     # Leaving voice channel
     @app_commands.command(description="Leaving a voice channel")
