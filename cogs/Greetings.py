@@ -1,5 +1,5 @@
 import discord
-from discord import Interaction
+from discord import app_commands, Interaction
 from discord.ext import commands
 
 
@@ -11,9 +11,9 @@ class Greetings(commands.Cog):
     # ----------<Greetings>----------
 
     # Greets the bot and recive a greeting message from the bot
-    @commands.slash_command(description="Greets the bot")
+    @app_commands.command(description="Greets the bot")
     async def hello(self, interaction: Interaction):
-        await interaction.response.send_message(f"hi ! <3\n*uwu*")
+        await interaction.response.send_message(f"Hello! Nice to meet u!")
 
     # Greeting user when somebody joined
     @commands.Cog.listener()
@@ -65,5 +65,5 @@ The administration team of this server
     # ----------</Greetings>----------
 
 
-def setup(bot):
-    bot.add_cog(Greetings(bot))
+async def setup(bot):
+    await bot.add_cog(Greetings(bot))

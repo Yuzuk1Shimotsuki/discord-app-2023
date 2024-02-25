@@ -1,24 +1,27 @@
 import discord
-from discord import SlashCommandGroup, Interaction, Option
+from discord import app_commands, Interaction
 from discord.ext import commands
-from discord.ext.commands import MissingPermissions
+from discord.app_commands.errors import MissingPermissions
+from typing import Optional
 
 
 class Kick(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    voice = SlashCommandGroup("voice", "Voice Channel Commands")
 
     # ----------<Kick members>----------
 
     # Kicks a member from the entire server
-    @commands.slash_command(description="Kicks a member")
-    @commands.has_permissions(kick_members=True)
-    async def kick(self, interaction: Interaction, member: Option(discord.Member, name="user", description="User to kick", required=True), reason: Option(str, description="Reason for kick", required=False)):
+    @app_commands.command(description="Kicks a member")
+    @app_commands.checks.has_permissions(kick_members=True)
+    @app_commands.describe(member="User to kick")
+    @app_commands.rename(member="user")
+    @app_commands.describe(reason="Reason for kick")
+    async def kick(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         # Executes if the user currently in the server
         try:
-            if member.id == interaction.author.id:
+            if member.id == interaction.user.id:
                 # Checks to see if they're the same
                 await interaction.response.send_message("BRUH! You can't kick yourself!")
             elif member.id == self.bot.application_id:
@@ -26,7 +29,7 @@ class Kick(commands.Cog):
                 await interaction.response.send_message(f"i cannot just kick myself away the server ^u^")
             elif member.guild_permissions.administrator:
                 # Only server owner has privilege to kick an admin. Admins are not alowed to kick another admins
-                if interaction.author.id == interaction.guild.owner.id:
+                if interaction.user.id == interaction.guild.owner.id:
                     # The author is the server owner
                     await member.kick(reason=reason)
                     await interaction.response.send_message(f"<@{member.id}> **has been kicked**. **Reason:** {reason}")
@@ -48,10 +51,14 @@ class Kick(commands.Cog):
             raise error
 
     # Kicks a member from voice
-    @commands.slash_command(description="Kicks a member from the voice channel")
-    async def vkick(self, interaction: Interaction, member: Option(discord.Member, required=True), reason: Option(str, required=False)):
+    @app_commands.command(description="Kicks a member from the voice channel")
+    @app_commands.checks.has_permissions(kick_members=True)
+    @app_commands.describe(member="User to kick")
+    @app_commands.rename(member="user")
+    @app_commands.describe(reason="Reason for kick")
+    async def vkick(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         try:
-            if member.id == interaction.author.id:
+            if member.id == interaction.user.id:
                 # Checks to see if they're the same
                 await interaction.response.send_message("BRUH! You can't kick yourself!")
             elif member.id == self.bot.application_id:
@@ -59,7 +66,7 @@ class Kick(commands.Cog):
                 await interaction.response.send_message(f"i cannot just kick myself away the voice ^u^")
             elif member.guild_permissions.administrator:
                 # Only server owner has privilege to kick an admin. Admins are not alowed to kick another admins
-                if interaction.author.id == interaction.guild.owner.id:
+                if interaction.user.id == interaction.guild.owner.id:
                     # The author is the server owner
                     await member.move_to(None)
                     await interaction.response.send_message(f"<@{member.id}> **has been kicked from voice**. **Reason:** {reason}")
@@ -76,5 +83,5 @@ class Kick(commands.Cog):
 # ----------</Kick members>----------
 
 
-def setup(bot):
-    bot.add_cog(Kick(bot))
+async def setup(bot):
+    await bot.add_cog(Kick(bot))

@@ -2,14 +2,13 @@ import discord
 import os
 import shutil
 import asyncio
-from discord import SlashCommandGroup, Interaction, Option, FFmpegPCMAudio
+from discord import app_commands, Interaction, FFmpegPCMAudio
 from discord.ext import commands
-from discord.ext.commands import MissingPermissions
+from discord.app_commands.errors import MissingPermissions
 from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 from tinytag import TinyTag
-
-audio_source = ["YouTube", "Custom file"]
+from typing import Optional, List
 
 # Custom Errors
 class AuthorNotInVoiceError():
@@ -17,7 +16,7 @@ class AuthorNotInVoiceError():
         self.user = user
         self.interaction = interaction
     def return_embed(self):
-        embed = discord.Embed(title="", color=self.interaction.author.colour)
+        embed = discord.Embed(title="", color=self.interaction.user.colour)
         embed.add_field(name="", value=f"<@{self.user.id}> Join a voice channel first plz :pleading_face:", inline=False)
         return embed
 
@@ -43,7 +42,6 @@ class VoiceChannel(commands.Cog):
         # General init
         self.bot = bot
         self.fallback_channel = {}
-        self.is_moving = {}
         # Music playing from YT
         # all the music related stuff
         global audio_source
@@ -74,18 +72,18 @@ class VoiceChannel(commands.Cog):
         # Recording VC
         self.recording_vc = {}
 
-    move = SlashCommandGroup("move", "Move User")
+    move = app_commands.Group(name="move", description="Move User")
 
     # ----------<Voice Channels>-----------
 
     # Startup
     @commands.Cog.listener()
+
     async def on_ready(self):
         for guild in self.bot.guilds:
             guild_id = int(guild.id)
             # 2d array containing [song, filetype]
             self.fallback_channel[guild_id] = None
-            self.is_moving[guild_id] = False
             self.music_queue[guild_id] = []
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
@@ -98,6 +96,8 @@ class VoiceChannel(commands.Cog):
             return
         vc = member.guild.voice_client
         
+        """
+
         # Ensure:
         # - this is a channel move as opposed to anything else
         # - this is our instance's voice client and we can action upon it
@@ -110,19 +110,19 @@ class VoiceChannel(commands.Cog):
             isinstance(vc, discord.VoiceClient) and  # None & not external Protocol check
             vc.channel == after.channel  # our current voice client is in this channel
         ):  
-            self.is_moving[guild_id] = True
             # If the voice was intentionally paused don't resume it for no reason
             if vc.is_paused():
                 return
             # If the voice isn't playing anything there is no sense in trying to resume
             if not vc.is_playing():
-                return
+                return     
             await asyncio.sleep(0.5)  # wait a moment for it to set in
             vc.pause()
             vc.resume()
             # The bot has been moved and plays the original music again, there is no sense to execute the rest of statements.
-            self.is_moving[guild_id] = False
             return
+
+        """
 
         # Ensure:
         # - this is a channel leave as opposed to anything else
@@ -134,8 +134,6 @@ class VoiceChannel(commands.Cog):
         ):
             guild_id = before.channel.guild.id
             # To ensure the bot actually left the voice channel
-            if self.is_moving[guild_id]:
-                return
             if self.fallback_channel[guild_id] is not None:
                 await self.fallback_channel[guild_id].send("I left the voice channel.", silent=True)
             # Reset all settings on guild
@@ -204,7 +202,7 @@ class VoiceChannel(commands.Cog):
             self.is_playing[guild_id] = True
             self.is_paused[guild_id] = False
             self.current_music_queue_index[guild_id] += 1
-            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
+            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
                 raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
@@ -214,7 +212,7 @@ class VoiceChannel(commands.Cog):
             else:
                 source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
                 before_options = options = None
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
@@ -226,7 +224,7 @@ class VoiceChannel(commands.Cog):
         if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
             self.is_playing[guild_id] = True
             self.is_paused[guild_id] = False
-            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
+            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
                 raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
@@ -237,32 +235,35 @@ class VoiceChannel(commands.Cog):
                 source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
                 before_options = options = None
             if self.vc[guild_id] is None:
-                self.vc[guild_id] = await interaction.author.voice.channel.connect()
+                self.vc[guild_id] = await interaction.user.voice.channel.connect()
                 self.fallback_channel[guild_id] = interaction.channel
                 print(self.fallback_channel[guild_id])
-            self.vc[guild_id].play(discord.FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
 
-    # Discord Autocomplete for YouTube search
-    async def get_youtube_search_result(self: discord.AutocompleteContext):
-        source = self.options['source']
-        query = self.options["query"]
-        if query is None:
-            query = ""
-        if source == 'YouTube':
+
+    # Discord Autocomplete for YouTube search, rewrited for discord.py
+    async def yt_autocomplete(self,
+        interaction: Interaction,
+        current: str
+    ) -> List[app_commands.Choice[str]]:
+        if interaction.namespace.source == "yt":
             result_list = []
-            if not query.startswith("https://"):
+            if not current.startswith("https://"):
                 try:
                     max_limit = 25
-                    search = VideosSearch(query, limit=max_limit)
+                    search = VideosSearch(current, limit=max_limit)
                     for i in range(max_limit):
                         try:
                             result_list.append(search.result()["result"][i]["title"])
                         except IndexError:
                             break
-                    return result_list
+                    return [
+                        app_commands.Choice(name=video, value=video)
+                        for video in result_list if current.lower() in video.lower()
+                    ]
                 except TypeError:
                     # The author did not entered anything yet
                     # Originally it should return a defult list on Windows, not sure why it's not working on linux...
@@ -273,34 +274,41 @@ class VoiceChannel(commands.Cog):
             return []
 
     # Play selected tracks
-    @commands.slash_command(description="Adds a selected track to the queue from YouTube link, keywords or a local file")
-    async def play(self, interaction:Interaction, source: Option(str, choices=audio_source, required=True), query: Option(str, autocomplete=discord.utils.basic_autocomplete(get_youtube_search_result), description="Link or keywords of the track you want to play.", required=False), attachment: Option(discord.Attachment, name="attachment", description="The track to be played.", required=False)):
+    @app_commands.command(description="Adds a selected track to the queue from YouTube link, keywords or a local file")
+    @app_commands.describe(source="Source to play the track on")
+    @app_commands.describe(query="Link or keywords of the track you want to play.")
+    @app_commands.describe(attachment="The track to be played.")
+    @app_commands.choices(source=[app_commands.Choice(name="YouTube", value="yt"),
+                                 app_commands.Choice(name="Custom files", value="custom")
+                                 ])
+    @app_commands.autocomplete(query=yt_autocomplete)
+    async def play(self, interaction:Interaction, source: app_commands.Choice[str], query: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
         guild_id = interaction.guild.id
-        play_embed = discord.Embed(title="", color=interaction.author.colour)
+        play_embed = discord.Embed(title="", color=interaction.user.colour)
         try:
-            self.vc[guild_id] = self.vc[guild_id] or interaction.author.voice.channel
+            self.vc[guild_id] = self.vc[guild_id] or interaction.user.voice.channel
         except:
-            return await interaction.response.send_message(AuthorNotInVoiceError(interaction, interaction.author))
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
         await interaction.response.defer()
         if self.vc[guild_id] is not None and self.is_paused[guild_id]:
                 self.vc[guild_id].resume()
         elif self.vc[guild_id] is not None:
-            if source == audio_source[0]:
+            if source.value == "yt":
                 # From YouTube
                 if query is None:
                     play_embed.add_field(name="", value=f'''Looks like you've selected YouTube as the audio source, but haven't specified the track you would like to play :thinking: ...
-Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼Ÿ''', inline=False)
+Just curious to know, what should I play right now, <@{interaction.user.id}>ï¼Ÿ''', inline=False)
                     return await interaction.followup.send(embed=play_embed)
                 track = self.search_yt(query)
                 track_title = track['title']
                 if type(track) == type(True):
                     play_embed.add_field(name="", value="Could not download the song: Incorrect format. Try another keywords. This could be due to the link you entered is a playlist or livestream format.", inline=False)
                     return await interaction.followup.send(embed=play_embed)
-            elif source == audio_source[1]:
+            elif source.value == "custom":
                 # Custom file
                 if attachment is None:
                     play_embed.add_field(name="", value=f'''Looks like you've selected custom as the audio source, but haven't specified the file you would like to play :thinking: ...
-Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼Ÿ''', inline=False)
+Just curious to know, what should I play right now, <@{interaction.user.id}>ï¼Ÿ''', inline=False)
                     return await interaction.followup.send(embed=play_embed)
                 track = await self.fetch_custom_rawfile(interaction, attachment)
                 # Return errors if occurs, or proceed to the next step if no errors encountered
@@ -315,19 +323,19 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
                 play_embed.add_field(name="", value=f"**#{1 + len(self.music_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
             else:
                 play_embed.add_field(name="", value=f"**'{track_title}'** added to the queue", inline=False)
-            self.music_queue[guild_id].append([track, source])
+            self.music_queue[guild_id].append([track, source.value])
             await interaction.followup.send(embed=play_embed)
             if self.is_playing[guild_id] == False:
                 self.current_music_queue_index[guild_id] = 0
                 await self.play_music(interaction)
         else:
-            await interaction.response.send_message(AuthorNotInVoiceError(interaction, interaction.author))
+            await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
 
     # Pauses the current track
-    @commands.slash_command(name="pause", description="Pauses the current track being played in voice channel")
+    @app_commands.command(name="pause", description="Pauses the current track being played in voice channel")
     async def pause(self, interaction: Interaction):
         guild_id = interaction.guild.id
-        pause_embed = discord.Embed(title="", color=interaction.author.colour)
+        pause_embed = discord.Embed(title="", color=interaction.user.colour)
         if self.vc[guild_id] is not None:
             if self.is_playing[guild_id] and not self.is_paused[guild_id]:
                 self.is_playing[guild_id] = False
@@ -343,10 +351,10 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
         await interaction.response.send_message(embed=pause_embed)
 
     # Resume a paused track
-    @commands.slash_command(name = "resume", description="Resume a paused track in voice channel")
+    @app_commands.command(name = "resume", description="Resume a paused track in voice channel")
     async def resume(self, interaction: Interaction):
         guild_id = interaction.guild.id
-        resume_embed = discord.Embed(title="", color=interaction.author.colour)
+        resume_embed = discord.Embed(title="", color=interaction.user.colour)
         if self.vc[guild_id] is not None:
             if self.is_paused[guild_id] and not self.is_playing[guild_id]:
                 self.is_paused[guild_id] = False
@@ -360,15 +368,15 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
         await interaction.response.send_message(embed=resume_embed)
     
     # Skipping tracks
-    @commands.slash_command(name="skip", description="Skips the current track being played in voice channel")
-    async def skip(self, interaction: Interaction, amount: Option(int, min_value=1, description="Number of track to skip. Leave this blank if you want to skip the current track only.", required=False)):
+    @app_commands.command(name="skip", description="Skips the current track being played in voice channel")
+    @app_commands.describe(amount="Number of track to skip. Leave this blank if you want to skip the current track only.")
+    async def skip(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
         guild_id = interaction.guild.id
-        skip_embed = discord.Embed(title="", color=interaction.author.colour)
+        skip_embed = discord.Embed(title="", color=interaction.user.colour)
         if self.vc[guild_id] is not None:
-            amount = amount or 1
             if self.current_music_queue_index[guild_id] > len(self.music_queue[guild_id]) - 1:
                 # The author has been already gone through all tracks in the queue
-                skip_embed.add_field(name="", value=f"<@{interaction.author.id}> You have already gone through all tracks in the queue.", inline=False)
+                skip_embed.add_field(name="", value=f"<@{interaction.user.id}> You have already gone through all tracks in the queue.", inline=False)
             elif amount > len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id]):
                 # Auto skip to the last track as the required amount exceeded the total number of available tracks can be skipped in the queue
                 self.current_music_queue_index[guild_id] += len(self.music_queue[guild_id]) - (self.current_music_queue_index[guild_id] + 1) - 1
@@ -389,12 +397,12 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
         await interaction.response.send_message(embed=skip_embed)
 
     # Playing previous track or rolling back multiple tracks
-    @commands.slash_command(name="previous", description="Plays the previous track in the queue")
-    async def previous(self, interaction: Interaction, amount: Option(int, min_value=1, description="Number of tracks to be rollback. Leave this blank if you want to play the previous track only.", required=False)):
+    @app_commands.command(name="previous", description="Plays the previous track in the queue")
+    @app_commands.describe(amount="Number of tracks to be rollback. Leave this blank if you want to play the previous track only.")
+    async def previous(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
         guild_id = interaction.guild.id
-        prev_embed = discord.Embed(title="", color=interaction.author.colour)
+        prev_embed = discord.Embed(title="", color=interaction.user.colour)
         if self.vc[guild_id] is not None:
-            amount = amount or 1
             if self.current_music_queue_index[guild_id] == 0:
                 prev_embed.add_field(name="", value="There is no previous track in the queue.", inline=False)
             else:
@@ -417,15 +425,15 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
         await interaction.response.send_message(embed=prev_embed)
         
     # Shows the queue
-    @commands.slash_command(name="queue", description="Shows the queue in this server")
+    @app_commands.command(name="queue", description="Shows the queue in this server")
     async def queue(self, interaction: Interaction):
         guild_id = interaction.guild.id
-        queue_embed = discord.Embed(title="Queue:", color=interaction.author.colour)
+        queue_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
         if self.music_queue[guild_id] != []:
             retval = ""
             # Get all tracks upcoming to play
             for next_track_index in range(self.current_music_queue_index[guild_id] + 1, len(self.music_queue[guild_id])):
-                if self.music_queue[guild_id][next_track_index][1] == audio_source[0]:
+                if self.music_queue[guild_id][next_track_index][1] == "yt":
                     # From YouTube
                     retval += f"**#{1 + next_track_index}** - " + self.music_queue[guild_id][next_track_index][0]['title'] + "\n"
                 else:
@@ -433,7 +441,7 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
                     retval += f"**#{1 + next_track_index}** - " + self.music_queue[guild_id][next_track_index][0]['filename'] + "\n"
             if retval != "":
                 # Return the track that currently playing and all upcoming tracks normally
-                if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
+                if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
                     # From YouTube
                     queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['title']}", inline=False)
                 else:
@@ -446,7 +454,7 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
                 queue_embed.add_field(name="Upcoming tracks:", value="There are no upcoming tracks will be played", inline=False)
             else:
                 # Return the track that currently playing if that track was the last track in the queue
-                if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == audio_source[0]:
+                if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
                     # From YouTube
                     queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['title']}", inline=False)
                 else:
@@ -459,10 +467,10 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
         await interaction.response.send_message(embed=queue_embed)
 
     # Stops the track currently playing and clears the queue
-    @commands.slash_command(name="clear", description="Stops the track currently playing and clears the queue")
+    @app_commands.command(name="clear", description="Stops the track currently playing and clears the queue")
     async def clear(self, interaction: Interaction):
         guild_id = interaction.guild.id
-        clear_embed = discord.Embed(title="Queue:", color=interaction.author.colour)
+        clear_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
         if self.music_queue[guild_id] != []:
             self.music_queue[guild_id] = []
             if self.vc[guild_id] is not None and self.is_playing[guild_id]:
@@ -483,10 +491,11 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
         await interaction.response.send_message(embed=clear_embed)
 
     # Removes the last or a specified track added to the queue
-    @commands.slash_command(name="remove", description="Removes the last or a specified track added to the queue")
-    async def remove(self, interaction: Interaction, position: Option(int, min = 1, description="Postion of track to remove. Leave this blank if you want to remove the last track.", required=False)):
+    @app_commands.command(name="remove", description="Removes the last or a specified track added to the queue")
+    @app_commands.describe(position="Postion of track to remove. Leave this blank if you want to remove the last track.")
+    async def remove(self, interaction: Interaction, position: Optional[app_commands.Range[int, 1]] = None):
         guild_id = interaction.guild.id
-        remove_embed = discord.Embed(title="Queue", color=interaction.author.colour)
+        remove_embed = discord.Embed(title="Queue", color=interaction.user.colour)
         if self.music_queue[guild_id] != []:
             position = position or len(self.music_queue[guild_id])
             if position > len(self.music_queue[guild_id]):
@@ -511,20 +520,20 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
                         pass
                     print("test")
                 renewed_index += 1
-
-
         else:
             remove_embed.add_field(name="", value="There are no tracks in the queue")
         await interaction.response.send_message(embed=remove_embed)
 
+
     # General commands
 
     # Joining voice channel
-    @commands.slash_command(description="Invokes me to a voice channel")
-    async def join(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to join. Leave this blank if you want the bot to join where you are.", required=False)):
+    @app_commands.command(description="Invokes me to a voice channel")
+    @app_commands.describe(channel="Channel to join. Leave this blank if you want the bot to join where you are.")
+    async def join(self, interaction: Interaction, channel: Optional[discord.VoiceChannel] = None):
         guild_id = interaction.guild.id
-        if interaction.author.voice is not None:
-            voice_channel = channel or interaction.author.voice.channel
+        if interaction.user.voice is not None:
+            voice_channel = channel or interaction.user.voice.channel
             self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
             # This allows for more functionality with voice channels
             if self.vc[guild_id] is None:
@@ -549,7 +558,7 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
             await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.author).return_embed())
 
     # Leaving voice channel
-    @commands.slash_command(description="Leaving a voice channel")
+    @app_commands.command(description="Leaving a voice channel")
     async def leave(self, interaction: Interaction):
         guild_id = interaction.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
@@ -576,8 +585,8 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
                 await member.move_to(None)
 
     # Ending a voice call
-    @commands.slash_command(name="end", description="End the call for all voice channels")
-    @commands.has_guild_permissions(move_members=True)
+    @app_commands.command(name="end", description="End the call for all voice channels")
+    @app_commands.checks.has_permissions(move_members=True)
     async def end(self, interaction: Interaction):
         await self.end_voice_call(interaction)
         await interaction.response.send_message("Ended the call for all voice channels.")
@@ -605,16 +614,18 @@ Just curious to know, what should I play right now, <@{interaction.author.id}>ï¼
             await interaction.response.send_message(f"Moved all users to <#{specified_vc.id}> for **{reason}**.")
 
     @move.command(name="all", description="Moves all users to the specified voice channel")
-    @commands.has_guild_permissions(move_members=True)
-    async def move_all(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to move them to. Leave this blank if you want to move them into where you are.", required=False), reason: Option(str, description="Reason for move", required=False)):
+    @app_commands.checks.has_permissions(move_members=True)
+    @app_commands.describe(channel="Channel to move them to. Leave this blank if you want to move them into where you are.")
+    @app_commands.describe(reason="Reason for move")
+    async def move_all(self, interaction: Interaction, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
         while True:
             if channel is None:
-                if interaction.author.voice is not None:
-                    specified_vc = interaction.author.voice.channel
+                if interaction.user.voice is not None:
+                    specified_vc = interaction.user.voice.channel
                 else:
                     # The author has not joined the voice channel yet
                     await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move all connected members into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move them into right now, <@{interaction.author.id}>ï¼Ÿ''')
+Just curious to know, where should I move them into right now, <@{interaction.user.id}>ï¼Ÿ''')
                     break
             else:
                 specified_vc = channel
@@ -630,25 +641,28 @@ Just curious to know, where should I move them into right now, <@{interaction.au
 
     # Move an user to another voice channel which the author is already connected, or a specified voice channel.
     @move.command(name="user", description="Moves a member to another specified voice channel")
+    @app_commands.describe(member="Member to move")
+    @app_commands.describe(channel="Channel to move user to. Leave this blank if you want to move the user into where you are.")
+    @app_commands.describe(reason="Reason for move")
     @commands.has_guild_permissions(move_members=True)
-    async def move_user(self, interaction: Interaction, member: Option(discord.Member, description="User to move", required=True), channel: Option(discord.VoiceChannel, description="Channel to move user to. Leave this blank if you want to move the user into where you are.", required=False), reason: Option(str, description="Reason for move", required=False)):
+    async def move_user(self, interaction: Interaction, member: discord.Member, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
         while True:
             if channel is None:
-                if interaction.author.voice is not None:
-                    specified_vc = interaction.author.voice.channel
+                if interaction.user.voice is not None:
+                    specified_vc = interaction.user.voice.channel
                 else:
                     # The author has not joined the voice channel yet
                     await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move someone into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move <@{member.id}> into right now, <@{interaction.author.id}>ï¼Ÿ''')
+Just curious to know, where should I move <@{member.id}> into right now, <@{interaction.user.id}>ï¼Ÿ''')
                     break
             else:
                 specified_vc = channel
             if reason is None:
                 await member.move_to(specified_vc)
-                await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> by <@{interaction.author.id}>.")
+                await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> by <@{interaction.user.id}>.")
             else:
                 await member.move_to(specified_vc, reason=reason)
-                await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> by <@{interaction.author.id}> for **{reason}**")
+                await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> by <@{interaction.user.id}> for **{reason}**")
             break
 
     @move_user.error
@@ -661,26 +675,29 @@ Just curious to know, where should I move <@{member.id}> into right now, <@{inte
     # Moves the author to another specified voice channel
     @move.command(name="me", description="Moves you to another specified voice channel")
     @commands.has_guild_permissions(move_members=True)
-    async def move_me(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to move you to.", required=True), reason: Option(str, description="Reason for move", required=False)):
+    @app_commands.describe(channel="Channel to move you to.")
+    @app_commands.describe(reason="Reason for move")
+    async def move_me(self, interaction: Interaction, channel: discord.VoiceChannel, reason: Optional[str] = None):
         if reason is None:
-            await interaction.author.move_to(channel)
-            await interaction.response.send_message(f"<@{interaction.author.id}> has been moved to <#{channel.id}>.")
+            await interaction.user.move_to(channel)
+            await interaction.response.send_message(f"<@{interaction.user.id}> has been moved to <#{channel.id}>.")
         else:
-            await interaction.author.move_to(channel, reason=reason)
-            await interaction.response.send_message(f"<@{interaction.author.id}> has been moved to <#{channel.id}> for {reason}")
+            await interaction.user.move_to(channel, reason=reason)
+            await interaction.response.send_message(f"<@{interaction.user.id}> has been moved to <#{channel.id}> for {reason}")
 
     @move_me.error
     async def move_me_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to move yourself!")
+            await interaction.response.send_message("It seems that you don't have permission to move!")
         else:
             raise error
         
     # Moves the bot to another voice channel which the author is already connected, or a specified voice channel.
     @move.command(name="bot", description="Moves me to another specified voice channel")
-    @commands.has_guild_permissions(move_members=True)
-    @commands.has_guild_permissions(moderate_members=True)
-    async def move_bot(self, interaction: Interaction, channel: Option(discord.VoiceChannel, description="Channel to move me to. Leave this blank if you want to move me into where you are.", required=False), reason: Option(str, description="Reason for move", required=False)):
+    @app_commands.checks.has_permissions(move_members=True, moderate_members=True)
+    @app_commands.describe(channel="Channel to move me to. Leave this blank if you want to move me into where you are.")
+    @app_commands.describe(reason="Reason for move")
+    async def move_bot(self, interaction: Interaction, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
         while True:
             if channel is None:
                 if interaction.author.voice is not None:
@@ -688,7 +705,7 @@ Just curious to know, where should I move <@{member.id}> into right now, <@{inte
                 else:
                     # The author has not joined the voice channel yet
                     await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move me into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move into right now, <@{interaction.author.id}>ï¼Ÿ''')
+Just curious to know, where should I move into right now, <@{interaction.user.id}>ï¼Ÿ''')
                     break
             else:
                 specified_vc = channel
@@ -709,6 +726,10 @@ Just curious to know, where should I move into right now, <@{interaction.author.
             await interaction.response.send_message("It seems that you don't have permission to move me!")
         else:
             raise error
+
+    # discord.py has no recording vc function.
+
+    """
         
     # Recording voice channels
 
@@ -761,7 +782,10 @@ Just curious to know, where should I move into right now, <@{interaction.author.
         else:
             await interaction.followup.send("I wasn't recording audio in this guild.")
 
+    """
+
     # ----------</Voice Channels>----------
 
-def setup(bot):
-    bot.add_cog(VoiceChannel(bot))
+
+async def setup(bot):
+    await bot.add_cog(VoiceChannel(bot))

@@ -1,16 +1,17 @@
 import discord
 import asyncio
-from discord import SlashCommandGroup, Interaction, Option
+from discord import app_commands, Interaction
 from discord.ext import commands
-from discord.ext.commands import MissingPermissions
+from discord.app_commands.errors import MissingPermissions
 from datetime import timedelta
+from typing import Optional
 
 
 class Mute(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    mute = SlashCommandGroup("mute", "Mute people")
+    mute = app_commands.Group(name="mute", description="Mute people")
 
     # ----------<Mutes a member from text or voice channel>----------
 
@@ -24,25 +25,26 @@ class Mute(commands.Cog):
         else:
             if reason == None:
                 await member.add_roles(muted)
-                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from the text for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.author.id}>! :zipper_mouth:")
+                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from the text for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.user.id}>! :zipper_mouth:")
             else:
                 await member.add_roles(muted, reason=reason)
-                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from the text for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.author.id}>! :zipper_mouth: **Reason: {reason}**")
+                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from the text for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.user.id}>! :zipper_mouth: **Reason: {reason}**")
             await asyncio.sleep(duration.total_seconds())
             await member.remove_roles(muted)
 
     # Mutes a member from text for a specified amount of time
     @mute.command(name="text", description="Mutes a member from text channels")
-    @commands.has_guild_permissions(moderate_members=True)
-    async def mute_text(self, interaction: Interaction, member: Option(discord.Member, required=True), reason: Option(str, required=False), days: Option(int, min_value=0, default=0, required=False), hours: Option(int, min_value=0, max_value=23, default=0, required=False), minutes: Option(int, min_value=0, max_value=59, default=0, required=False), seconds: Option(int, min_value=0, max_value=59, default=0, required=False)):  # setting each value with a default value of 0 reduces a lot of the code
-        if member.id == interaction.author.id:
+    @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.describe(member="Member to mute")
+    async def mute_text(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None, days: Optional[app_commands.Range[int, 0]] = 0, hours: Optional[app_commands.Range[int, None, 23]] = 0, minutes: Optional[app_commands.Range[int, None, 59]] = 0, seconds: Optional[app_commands.Range[int, None, 59]] = 0):  # setting each value with a default value of 0 reduces a lot of the code
+        if member.id == interaction.user.id:
             await interaction.response.send_message("BRUH! You can't mute yourself!")
             return
         elif member.id == self.bot.application_id:
             # To prevent the bot bans itself from the server by accident
             await interaction.response.send_message(f"i cannot just mute myself ^u^")
         elif member.guild_permissions.administrator:
-            if interaction.author.id == interaction.guild.owner.id:
+            if interaction.user.id == interaction.guild.owner.id:
                 await self.mute_member_text(interaction, member, days, hours, minutes, seconds, reason)
             else:
                 await interaction.response.send_message("You can't do this, this person is a moderator!")
@@ -67,25 +69,26 @@ class Mute(commands.Cog):
         else:
             if reason == None:
                 await member.edit(mute=True)
-                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from voice for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.author.id}>! :zipper_mouth:")
+                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from voice for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.user.id}>! :zipper_mouth:")
             else:
                 await member.edit(mute=True, reason=reason)
-                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from voice for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.author.id}>! :zipper_mouth: **Reason: {reason}**")
+                await interaction.response.send_message(f":white_check_mark: <@{member.id}> muted from voice for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds by <@{interaction.user.id}>! :zipper_mouth: **Reason: {reason}**")
             await asyncio.sleep(duration.total_seconds())
             await member.edit(mute=False)
 
     # Mutes a member from voice for a specified amount of time
     @mute.command(name="voice", description="Mutes a member from voice channels")
-    @commands.has_guild_permissions(moderate_members=True)
-    async def mute_voice(self, interaction: Interaction, member: Option(discord.Member, required=True), reason: Option(str, required=False), days: Option(int, min_value=0, default=0, required=False), hours: Option(int, min_value=0, max_value=23, default=0, required=False), minutes: Option(int, min_value=0, max_value=59, default=0, required=False), seconds: Option(int, min_value=0, max_value=59, default=0, required=False)):  # setting each value with a default value of 0 reduces a lot of the code
-        if member.id == interaction.author.id:
+    @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.describe(member="Member to mute")
+    async def mute_voice(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None, days: Optional[app_commands.Range[int, 0]] = 0, hours: Optional[app_commands.Range[int, None, 23]] = 0, minutes: Optional[app_commands.Range[int, None, 59]] = 0, seconds: Optional[app_commands.Range[int, None, 59]] = 0):  # setting each value with a default value of 0 reduces a lot of the code
+        if member.id == interaction.user.id:
             await interaction.response.send_message("BRUH! You can't mute yourself!")
             return
         elif member.id == self.bot.application_id:
             # To prevent the bot bans itself from the server by accident
             await interaction.response.send_message(f"i cannot just mute myself ^u^")
         elif member.guild_permissions.administrator:
-            if interaction.author.id == interaction.guild.owner.id:
+            if interaction.user.id == interaction.guild.owner.id:
                 await self.mute_member_text(interaction, member, days, hours, minutes, seconds, reason)
             else:
                 await interaction.response.send_message("You can't do this, this person is a moderator!")
@@ -103,5 +106,5 @@ class Mute(commands.Cog):
 # ----------</Mutes a member from text or voice channel>----------
 
 
-def setup(bot):
-    bot.add_cog(Mute(bot))
+async def setup(bot):
+    await bot.add_cog(Mute(bot))

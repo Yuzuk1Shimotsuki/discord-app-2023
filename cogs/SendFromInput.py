@@ -1,8 +1,8 @@
 import discord
-from discord import Interaction, Option
+from discord import app_commands, Interaction
 from discord.ext import commands
+from typing import Optional
 
-bool_value = ["True", "False"]
 
 class SendFromInput(commands.Cog):
     def __init__(self, bot):
@@ -12,12 +12,23 @@ class SendFromInput(commands.Cog):
     # ----------<Send from input>----------
 
     # Send message from user input
-    @commands.slash_command(description="Send your message or attatchment")
-    async def send(self, interaction: Interaction, silent: Option(str, name="silent", choices=bool_value, description="Send it as a silent message?", required=True), message: Option(str, name="message", description="The message u would like to send. Leave this empty if u want to send the attachment only.", required=False), attachment: Option(discord.Attachment, name="attachment", description="The attachment u would like to send. Leave this empty if u want to send the message only.", required=False)):
+    @app_commands.command(description="Send your message or attatchment")
+    @app_commands.describe(silent="Send it as a silent message?")
+    @app_commands.describe(message="The message u would like to send. Leave this empty if u want to send the attachment only.")
+    @app_commands.describe(attachment="The attachment u would like to send. Leave this empty if u want to send the message only.")
+    @app_commands.choices(silent=[
+        app_commands.Choice(name="True", value="True"),
+        app_commands.Choice(name="False", value="False")
+        ])
+    async def send(self, interaction: Interaction, silent: app_commands.Choice[str], message: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
         if message is None and attachment is None:
             # Returns if no message or attachment are provided
             await interaction.response.send_message("You cannot let me to send nothing! (say at least send a message or an attachment)")
         else:
+            if silent.value == "True":
+                silent = True
+            else:
+                silent = False
             # Sends the required input
             await interaction.response.defer()
             # Checks if the attachment is None or not
@@ -30,16 +41,16 @@ class SendFromInput(commands.Cog):
                     await interaction.channel.send(message, file=files, silent=silent)
                 else:
                     # Sends the attachment only
-                    await interaction.send(file=files, silent=silent)
+                    await interaction.channel.send(file=files, silent=silent)
             else:
                 # Sends the message only
-                await interaction.send(message, silent=silent)
+                await interaction.channel.send(message, silent=silent)
             # Deletes the interaction
-            await interaction.followup.send('\u200b', delete_after=0)
+            msg = await interaction.followup.send('\u200b', silent=True)
+            await msg.delete()
 
     # ----------</Send from input>----------
 
-
-def setup(bot):
-    bot.add_cog(SendFromInput(bot))
+async def setup(bot):
+    await bot.add_cog(SendFromInput(bot))
   

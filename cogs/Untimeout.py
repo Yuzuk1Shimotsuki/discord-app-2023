@@ -1,7 +1,8 @@
 import discord
-from discord import Interaction, Option
+from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.ext.commands import MissingPermissions
+from typing import Optional
 
 
 class Untimeout(commands.Cog):
@@ -11,15 +12,17 @@ class Untimeout(commands.Cog):
     # ----------<Untimeout members>----------
 
     # Untimeouts a member
-    @commands.slash_command(name="untimeout", description="Remove timeouts for a member")
-    @commands.has_guild_permissions(moderate_members=True)
-    async def untimeout(self, interaction: Interaction, member: Option(discord.Member, required=True), reason: Option(str, required=False)):
+    @app_commands.command(name="untimeout", description="Remove timeouts for a member")
+    @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.describe(member="Member to untimeout (Enter the User ID e.g. 529872483195806124)")
+    @app_commands.describe(reason="Reason for untimeout")
+    async def untimeout(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         if reason == None:
-            await member.remove_timeout()
-            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.author.id}>.")
+            await member.timeout(None)
+            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.user.id}>.")
         else:
-            await member.remove_timeout(reason=reason)
-            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.author.id}>. Reason: {reason}.")
+            await member.timeout(None, reason=reason)
+            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.user.id}>. Reason: {reason}.")
 
     @untimeout.error
     async def untimeout_error(self, interaction: Interaction, error):
@@ -31,5 +34,5 @@ class Untimeout(commands.Cog):
     # ----------</Timeout and untimeout members>----------
 
 
-def setup(bot):
-    bot.add_cog(Untimeout(bot))
+async def setup(bot):
+    await bot.add_cog(Untimeout(bot))

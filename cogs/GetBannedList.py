@@ -1,7 +1,7 @@
 import discord
-from discord import SlashCommandGroup, Interaction
+from discord import app_commands, Interaction
 from discord.ext import commands
-from discord.ext.commands import MissingPermissions
+from discord.app_commands.errors import MissingPermissions
 from datetime import datetime
 
 
@@ -9,12 +9,12 @@ class GetBannedList(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    banned = SlashCommandGroup("banned", "Action for banned people")
+    banned = app_commands.Group(name="banned", description="Action for banned people")
 
     # ----------<List banned members>----------
 
     @banned.command(name="list", description="Returns a list of banned members")
-    @commands.has_permissions(ban_members=True)
+    @app_commands.checks.has_permissions(ban_members=True)
     async def banned_list(self, interaction: Interaction):
         banned_list = None
         embed = discord.Embed(title=f"List of Bans in {interaction.guild}", timestamp=datetime.now(), color=discord.Colour.red())
@@ -38,5 +38,5 @@ class GetBannedList(commands.Cog):
     # ----------</List banned members>----------
 
 
-def setup(bot):
-    bot.add_cog(GetBannedList(bot))
+async def setup(bot):
+    await bot.add_cog(GetBannedList(bot))

@@ -1,14 +1,15 @@
 import discord
-from discord import SlashCommandGroup, Interaction, Option, PermissionOverwrite
+from discord import app_commands, Interaction, PermissionOverwrite
 from discord.ext import commands
-from discord.ext.commands import MissingPermissions
+from discord.app_commands.errors import MissingPermissions
+from typing import Optional
 
 
 class LockChannel(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    antiraid = SlashCommandGroup("antiraid", "Commands to lock all channels")
+    antiraid = app_commands.Group(name="antiraid", description="Commands to lock all channels")
 
     # ----------<Locks and unlocks text channels>----------
 
@@ -52,10 +53,9 @@ class LockChannel(commands.Cog):
 
     # Locks all text channels
     @antiraid.command(name="activate", description="Locks all text channels for everyone")
-    @commands.has_permissions(administrator=True)
-    @commands.has_permissions(manage_channels=True)
-    @commands.has_permissions(manage_guild=True)
-    async def antiraid_activate(self, interaction: Interaction, reason: Option(str, description="Reason for anti-raid", required=False)):
+    @app_commands.checks.has_permissions(administrator=True, manage_channels=True, manage_guild=True)
+    @app_commands.describe(reason="Reason for anti-raid")
+    async def antiraid_activate(self, interaction: Interaction, reason: Optional[str] = None):
         await interaction.response.defer()
         channels = interaction.guild.text_channels
         is_locked_channels_count = 0
@@ -82,10 +82,9 @@ class LockChannel(commands.Cog):
 
     # Unlocks all text channels
     @antiraid.command(name="deactivate", description="Unlocks all text channels for everyone")
-    @commands.has_permissions(administrator=True)
-    @commands.has_permissions(manage_channels=True)
-    @commands.has_permissions(manage_guild=True)
-    async def antiraid_deactivate(self, interaction: Interaction, reason: Option(str, description="Reason for deactivating anti-raid", required=False)):
+    @app_commands.checks.has_permissions(administrator=True, manage_channels=True, manage_guild=True)
+    @app_commands.describe(reason="Reason for deactivating anti-raid")
+    async def antiraid_deactivate(self, interaction: Interaction, reason: Optional[str] = None):
         await interaction.response.defer()
         channels = interaction.guild.text_channels
         is_unlocked_channels_count = 0
@@ -112,10 +111,11 @@ class LockChannel(commands.Cog):
             raise error
 
     # Locks the current or a specified text channel
-    @commands.slash_command(name="lock", description="Locks the current or a specified text channel for everyone")
-    @commands.has_permissions(administrator=True)
-    @commands.has_permissions(manage_channels=True)
-    async def lock(self, interaction: Interaction, channel: Option(discord.TextChannel, description="Text channel to lock. Leave this blank if you want to lock the current text channel.", required=False), reason: Option(str, description="Reason for lock", required=False)):
+    @app_commands.command(name="lock", description="Locks the current or a specified text channel for everyone")
+    @app_commands.checks.has_permissions(administrator=True, manage_channels=True)
+    @app_commands.describe(channel="Text channel to lock. Leave this blank if you want to lock the current text channel.")
+    @app_commands.describe(reason="Reason for lock")
+    async def lock(self, interaction: Interaction, channel: Optional[discord.TextChannel] = None, reason: Optional[str] = None):
         await interaction.response.defer()
         channel = channel or interaction.channel
         if await self.is_locked(channel, interaction) is True:
@@ -134,10 +134,11 @@ class LockChannel(commands.Cog):
             raise error
 
     # Unlocks the current or a specified channel
-    @commands.slash_command(name="unlock", description="Unlocks the current or a specified text channel for everyone")
-    @commands.has_permissions(administrator=True)
-    @commands.has_permissions(manage_channels=True)
-    async def unlock(self, interaction: Interaction, channel: Option(discord.TextChannel, description="Text channel to unlock. Leave this blank if you want to unlock the current text channel.", required=False), reason: Option(str, description="Reason for unlock", required=False)):
+    @app_commands.command(name="unlock", description="Unlocks the current or a specified text channel for everyone")
+    @app_commands.checks.has_permissions(administrator=True, manage_channels=True)
+    @app_commands.describe(channel="Text channel to unlock. Leave this blank if you want to unlock the current text channel.")
+    @app_commands.describe(reason="Reason for unlock")
+    async def unlock(self, interaction: Interaction, channel: Optional[discord.TextChannel] = None, reason: Optional[str] = None):
         await interaction.response.defer()
         channel = channel or interaction.channel
         if await self.is_locked(channel, interaction) is True:
@@ -159,5 +160,5 @@ class LockChannel(commands.Cog):
 # ----------</Locks and unlocks text channels>----------
 
 
-def setup(bot):
-    bot.add_cog(LockChannel(bot))
+async def setup(bot):
+    await bot.add_cog(LockChannel(bot))
