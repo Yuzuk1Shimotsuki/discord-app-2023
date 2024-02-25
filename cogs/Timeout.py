@@ -1,8 +1,9 @@
 import discord
-from discord import Interaction, Option
+from discord import app_commands, Interaction
 from discord.ext import commands
-from discord.ext.commands import MissingPermissions
+from discord.app_commands.errors import MissingPermissions
 from datetime import timedelta
+from typing import Optional
 
 
 class Timeout(commands.Cog):
@@ -18,28 +19,28 @@ class Timeout(commands.Cog):
             await interaction.response.send_message("I can't timeout someone for more than 28 days!", ephemeral = True) #responds, but only the author can see the response
             return
         if reason == None:
-            await member.timeout_for(duration)
-            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{interaction.author.id}>.")
+            await member.timeout(duration)
+            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{interaction.user.id}>.")
         else:
-            await member.timeout_for(duration, reason=reason)
-            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{interaction.author.id}> for '{reason}'.")
+            await member.timeout(duration, reason=reason)
+            await interaction.response.send_message(f"<@{member.id}> has been timed out for {days} days, {hours} hours, {minutes} minutes, and {seconds} seconds by <@{interaction.user.id}> for '{reason}'.")
 
     # Timeouts a member for a specified amount of time
-    @commands.slash_command(name="timeout", description="Timeouts a member")
-    @commands.has_guild_permissions(moderate_members=True)
-    async def timeout(self, interaction: Interaction, member: Option(discord.Member, required=True), reason: Option(str, required=False), days: Option(int, min_value=0, max_value=27, default=0, required=False), hours: Option(int, min_value=0, max_value=23, default=0, required=False), minutes: Option(int, min_value=0, max_value=59, default=0, required=False), seconds: Option(int, min_value=0, max_value=59, default=0, required=False)):  # setting each value with a default value of 0 reduces a lot of the code
-        if member.id == interaction.author.id:
-            await interaction.response.send_message("BRUH! You can't timeout yourself!")
-            return
+    @app_commands.command(name="timeout", description="Timeouts a member")
+    @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.describe(member="Member to timeout")
+    @app_commands.describe(reason="Reason for timeout")
+    async def timeout(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None, days: Optional[app_commands.Range[int, 0]] = 0, hours: Optional[app_commands.Range[int, None, 23]] = 0, minutes: Optional[app_commands.Range[int, None, 59]] = 0, seconds: Optional[app_commands.Range[int, None, 59]] = 0):  # setting each value with a default value of 0 reduces a lot of the code
+        if member.id == interaction.user.id:
+            return await interaction.response.send_message("BRUH! You can't timeout yourself!")
         elif member.id == self.bot.application_id:
             # To prevent the bot bans itself from the server by accident
             await interaction.response.send_message(f"i cannot just timeout myself ^u^")
         elif member.guild_permissions.administrator:
-            if interaction.author.id == interaction.guild.owner.id:
+            if interaction.user.id == interaction.guild.owner.id:
                 await self.timeout_member(interaction, member, days, hours, minutes, seconds, reason)
             else:
-                await interaction.response.send_message("You can't do this, this person is a moderator!")
-                return
+                return await interaction.response.send_message("You can't do this, this person is a moderator!")
         else:
             await self.timeout_member(interaction, member, days, hours, minutes, seconds, reason)
 
@@ -53,6 +54,5 @@ class Timeout(commands.Cog):
 # ----------</Timeouts a member>----------
 
 
-def setup(bot):
-    bot.add_cog(Timeout(bot))
-  
+async def setup(bot):
+    await bot.add_cog(Timeout(bot))
