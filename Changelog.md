@@ -472,3 +472,8 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # (+/-) Rewriting all code for changing the module from **"pycord"** to **"discord.py"**\
 
+(+) Custom status is now supported
+
+(-) Removed **"recording_vc()"** function for privacy concerns
+
+(-/+) Futher optimization
