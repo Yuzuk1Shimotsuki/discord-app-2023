@@ -1,4 +1,7 @@
+# This example requires the 'message_content' intent.
+
 import discord
+import asyncio
 import os
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -9,7 +12,16 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-bot = commands.Bot(command_prefix="?", intents=intents)
+class Bot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            intents=intents, 
+            command_prefix="?", 
+            self_bot=False, strip_after_prefix = True
+        )
+
+bot = Bot()
+
 
 # Startup
 @bot.event
@@ -22,21 +34,24 @@ async def on_ready():
     print("The bot is now ready for use!")
     print("-" * 65)
 
-# Load extensions
-def load_extensions():
-    initial_extensions = []
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py"):
-            initial_extensions.append(f"cogs.{filename[:-3]}")
-    print("\nLoading extensions...\n")
-    print(initial_extensions)
-    for extension in initial_extensions:
-        bot.load_extension(extension)
-    print("\nEstablishing connection...\n")
+@bot.command(name="sync") 
+async def sync(ctx):
+    synced = await bot.tree.sync()
+    print(f"Synced {len(synced)} command(s).")
 
+# Load extensions
+async def load_extensions():
+    print("\nLoading extensions...\n")
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            await bot.load_extension(f'cogs.{filename[:-3]}')
+            print(f'cogs.{filename[:-3]}')
 
 if __name__ == "__main__":
-    load_extensions()
+    asyncio.run(load_extensions())
+
+for commands in bot.tree.walk_commands():
+    print(commands.name)
 
 # Runs the bot
 try:
