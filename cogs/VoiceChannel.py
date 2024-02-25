@@ -119,7 +119,7 @@ class VoiceChannel(commands.Cog):
                 return     
             await asyncio.sleep(1)  # wait a moment for it to set in
             self.vc[guild_id].pause()
-            await asyncio.sleep(0.75)
+            await asyncio.sleep(1)
             self.vc[guild_id].resume()
             # The bot has been moved and plays the original music again, there is no sense to execute the rest of statements.
             return
@@ -135,7 +135,7 @@ class VoiceChannel(commands.Cog):
             guild_id = before.channel.guild.id
             # To ensure the bot actually left the voice channel
             self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=before.channel.guild)
-            if self.vc[guild_id] is not None:
+            if self.vc[guild_id] is not None and self.is_playing[guild_id] is False:
                 await self.vc[guild_id].disconnect()
             if self.fallback_channel[guild_id] is not None:
                 await self.fallback_channel[guild_id].send("I left the voice channel.", silent=True)
