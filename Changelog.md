@@ -445,3 +445,30 @@ A blank line will now shown and deletes immediately when the command are all fin
 (-/+) Replaced module "eyed3" with "tinytag"
 
 (+) Fixed custom files won't play on music player in VoiceChannel.py
+
+#
+
+.
+.
+.
+
+#
+
+# 20240224
+
+**"root/general/VoiceChannel.py"**
+
+(+/-) Grouped major error messages each as a seperated class
+
+(+) Bug fixing
+
+**"root/general/SendFromInput.py"**
+
+(+) Added send as @silent message option as boolean
+
+#
+
+# 20240225
+
+# (+/-) Rewriting all code for changing the module from **"pycord"** to **"discord.py"**\
+
