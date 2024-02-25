@@ -1,14 +1,15 @@
 import discord
-from discord import SlashCommandGroup, Interaction, Option
+from discord import app_commands, Interaction
 from discord.ext import commands
-from discord.ext.commands import MissingPermissions
+from discord.app_commands.errors import MissingPermissions
+from typing import Optional
 
 
 class Ban(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    ban = SlashCommandGroup("ban", "Bans an user")
+    ban = app_commands.Group(name="ban", description="Bans an user")
 
     # ----------<Ban users or members>----------
 
@@ -31,7 +32,7 @@ class Ban(commands.Cog):
 
     # Function to check if the author is able to ban the user or not
     async def ban_check(self, interaction, user, reason, ban_from_guild):
-        if user.id == interaction.author.id:
+        if user.id == interaction.user.id:
             # checks to see if they're the same
             await interaction.response.send_message("BRUH! You can't ban yourself!")
         elif user.id == self.bot.application_id:
@@ -46,8 +47,8 @@ class Ban(commands.Cog):
         # Executes the following if the user currently in the server
         elif interaction.guild.get_member(user.id) is not None:
             if user.guild_permissions.administrator:
-                # Only server owner has privilege to ban an admin. Admins are not allowed to ban another admins
-                if interaction.author.id == interaction.guild.owner.id:
+                # Only server owner has privilege to ban an admin. Admins are not alowed to ban another admins
+                if interaction.user.id == interaction.guild.owner.id:
                     # The author is the server owner
                     await self.bans_user(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
                 else:
@@ -60,14 +61,18 @@ class Ban(commands.Cog):
 
     # Ban users who is in the guild or not with user_id
     @ban.command(name="guild", description="Bans a user or member with the corresponding user_id")
-    @commands.has_guild_permissions(ban_members=True)
-    async def ban_guild(self, interaction: Interaction, user: Option(discord.User, description="User to ban (Enter the User ID e.g. 529872483195806124)", required=True), reason: Option(str, description="Reason for ban", required=False)):
+    @app_commands.checks.has_permissions(ban_members=True)
+    @app_commands.describe(user="User to ban (Enter the User ID e.g. 529872483195806124)")
+    @app_commands.describe(reason="Reason for ban")
+    async def ban_guild(self, interaction: Interaction, user: discord.User, reason: Optional[str] = None):
         await self.ban_check(interaction=interaction, user=user, reason=reason, ban_from_guild=True)
 
     # Ban members in the server
     @ban.command(name="member", description="Bans a member")
-    @commands.has_permissions(ban_members=True)
-    async def ban_member(self, interaction: Interaction, member: Option(discord.Member, description="Member to ban", required=True), reason: Option(str, description="Reason for ban", required=False)):
+    @app_commands.checks.has_permissions(ban_members=True)
+    @app_commands.describe(member="Member to ban")
+    @app_commands.describe(reason="Reason for ban")
+    async def ban_member(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         await self.ban_check(interaction=interaction, user=member, reason=reason, ban_from_guild=False)
 
     @ban_member.error
@@ -87,5 +92,5 @@ class Ban(commands.Cog):
 # ----------</Ban users or members>----------
 
 
-def setup(bot):
-    bot.add_cog(Ban(bot))
+async def setup(bot):
+    await bot.add_cog(Ban(bot))

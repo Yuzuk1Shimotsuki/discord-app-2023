@@ -2,7 +2,7 @@ import discord
 import openai
 import os
 import math
-from discord import SlashCommandGroup, Interaction, Option
+from discord import app_commands, Interaction
 from discord.ext import commands
 from langdetect import detect, DetectorFactory
 
@@ -19,9 +19,10 @@ class ChatGPT(commands.Cog):
         self.default_top_p = 1.00
         self.default_frequency_penalty = 0.00
         self.default_presence_penalty = 0.00
+        # This will be futher edited
         self.default_instruction = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired."
 
-    chatgpt = SlashCommandGroup("chatgpt", "Commands in ChatGPT")
+    chatgpt = app_commands.Group(name="chatgpt", description="Commands in ChatGPT")
 
     # ----------<ChatGPT>----------
 
@@ -38,7 +39,8 @@ class ChatGPT(commands.Cog):
 
     # Chat with ChatGPT
     @chatgpt.command(name="prompt", description="Chat with ChatGPT")
-    async def chatgpt_prompt(self, interaction: Interaction, prompt: Option(str, description="Anything you would like to ask", required=True)):
+    @app_commands.describe(prompt="Anything you would like to ask")
+    async def chatgpt_prompt(self, interaction: Interaction, prompt: str):
         await interaction.response.defer()
         # Main ChatGPT function
         try:
@@ -123,5 +125,5 @@ class ChatGPT(commands.Cog):
 # ----------</ChatGPT>----------
 
 
-def setup(bot):
-    bot.add_cog(ChatGPT(bot))
+async def setup(bot):
+    await bot.add_cog(ChatGPT(bot))
