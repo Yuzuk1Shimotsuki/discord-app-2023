@@ -21,7 +21,7 @@ class Unmute(commands.Cog):
     async def unmute_text(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         muted = discord.utils.get(interaction.guild.roles, name="Muted")
         if muted not in member.roles:
-            await interaction.response.send_message(f"<@{member.id}> is not muted!", ephemeral=True)
+            await interaction.response.send_message(f"<@{member.id}> has not been muted!", ephemeral=True)
             return
         else:
             if reason is None:
