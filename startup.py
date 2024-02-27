@@ -125,14 +125,14 @@ async def reload(ctx, cog_name):
         if f"{cog_name}.py" not in os.listdir("./cogs"):
             return await ctx.reply(ExtensionNotFoundError(cog=cog_name).return_msg())
         try:
-            await bot.reload_extension(cog_name)
+            await bot.reload_extension(f"cogs.{cog_name}")
             await bot.tree.sync()
             msg = await ctx.reply(f"Cog `{cog_name}` has been reloaded.")
             await asyncio.sleep(2)
             await msg.delete()
             await ctx.message.delete()
         except ExtensionNotLoaded:
-            return await ctx.send(f"Cog `{cog_name}` has not been loaded.")
+            return await ctx.reply(f"Cog `{cog_name}` has not been loaded.")
         except NoEntryPointError:
             return await ctx.reply(ReturnNoEntryPointError(cog=cog_name).return_msg())
         except ExtensionFailed:
