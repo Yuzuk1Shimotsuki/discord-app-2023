@@ -2,6 +2,7 @@ import discord
 import asyncio
 import os
 from discord.ext import commands
+from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
 from dotenv import load_dotenv
 
 intents = discord.Intents.default()
@@ -14,6 +15,27 @@ class NotBotOwnerError:
     def __repr__(self) -> str:
         return "Sorry, only the bot owner can perform this command."
 
+class ExtensionNotFoundError:
+    def __init__(self, cog: str) -> None:
+        self.cog = cog
+
+    def return_msg(self) -> str:
+        return f"I can't found the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？"
+
+class ReturnNoEntryPointError:
+    def __init__(self, cog: str) -> None:
+        self.cog = cog
+
+    def return_msg(self) -> str:
+        return f"I can't found the `async def setup()` function in cog `{self.cog}` :pensive_face: ... Perhaps check the cog and try again :thinking: ？"
+    
+class ExtensionFailedError:
+    def __init__(self, cog: str) -> None:
+        self.cog = cog
+
+    def return_msg(self) -> str:
+        return f"Some unexpected stuff happened while executing `{self.cog}`."
+
 # Default configuration
 class Bot(commands.Bot):
     def __init__(self):
@@ -24,6 +46,7 @@ class Bot(commands.Bot):
         )
 
 bot = Bot()
+
 
 # Startup info
 @bot.event
@@ -46,55 +69,76 @@ async def sync(ctx):
         await msg.delete()
         await ctx.message.delete()
     else:
-        msg = await ctx.reply(NotBotOwnerError)
+        await ctx.reply(NotBotOwnerError)
 
 # Load cogs manually
 @bot.command()
-async def load(ctx, cog):
+async def load(ctx, cog_name):
     if await bot.is_owner(ctx.author):
-        if bot.get_cog(cog):
-            await bot.add_cog(cog)
+        # Front check if the cog was in the valid cog list or not
+        if f"{cog_name}.py" not in os.listdir("./cogs"):
+            return await ctx.reply(ExtensionNotFoundError(cog=cog_name).return_msg())
+        try:
+            await bot.load_extension(f"cogs.{cog_name}")
             await bot.tree.sync()
-            msg = await ctx.reply(f"Cog `{cog}` has been loaded.")
+            msg = await ctx.reply(f"Cog `{cog_name}` has been loaded.")
             await asyncio.sleep(1)
             await msg.delete()
             await ctx.message.delete()
-        else:
-            await ctx.reply(f"I can't load the cog `{cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？")
+        except ExtensionAlreadyLoaded:
+            return await ctx.reply(f"Cog `{cog_name}` is already loaded.")
+        except NoEntryPointError:
+            return await ctx.reply(ReturnNoEntryPointError(cog=cog_name).return_msg())
+        except ExtensionFailed:
+            return await ctx.reply(ExtensionFailedError(cog=cog_name).return_msg())
     else:
-        msg = await ctx.reply(NotBotOwnerError())
+        await ctx.reply(NotBotOwnerError())
 
 # Unload cogs manually
 @bot.command()
-async def unload(ctx, cog):
+async def unload(ctx, cog_name):
     if await bot.is_owner(ctx.author):
-        if bot.get_cog(cog):
-            await bot.remove_cog(cog)
+        if f"{cog_name}.py" not in os.listdir("./cogs"):
+            # Front check if the cog was in the valid cog list or not
+            return await ctx.reply(ExtensionNotFoundError(cog=cog_name).return_msg())
+        try:
+            await bot.unload_extension(f"cogs.{cog_name}")
             await bot.tree.sync()
-            msg = await ctx.reply(f"Cog `{cog}` has been unloaded.")
-            await asyncio.sleep(1)
+            msg = await ctx.reply(f"Cog `{cog_name}` has been unloaded.")
+            await asyncio.sleep(2)
             await msg.delete()
             await ctx.message.delete()
-        else:
-            await ctx.reply(f"I can't unload the cog `{cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？")
+        except ExtensionNotLoaded:
+            return await ctx.reply(f"Cog `{cog_name}` is already unloaded.")
+        except NoEntryPointError:
+            return await ctx.reply(ReturnNoEntryPointError(cog=cog_name).return_msg())
+        except ExtensionFailed:
+            return await ctx.reply(ExtensionFailedError(cog=cog_name).return_msg())
     else:
-        msg = await ctx.reply(NotBotOwnerError())
+        await ctx.reply(NotBotOwnerError())
 
 # Reload cogs manually
 @bot.command()
-async def reload(ctx, extension):
+async def reload(ctx, cog_name):
     if await bot.is_owner(ctx.author):
-        if bot.get_cog(extension):
-            bot.reload_extension(extension)
+        # Front check if the cog was in the valid cog list or not
+        if f"{cog_name}.py" not in os.listdir("./cogs"):
+            return await ctx.reply(ExtensionNotFoundError(cog=cog_name).return_msg())
+        try:
+            await bot.reload_extension(cog_name)
             await bot.tree.sync()
-            msg = await ctx.reply(f"`{extension}` has been reloaded.")
-            await asyncio.sleep(1)
+            msg = await ctx.reply(f"Cog `{cog_name}` has been reloaded.")
+            await asyncio.sleep(2)
             await msg.delete()
             await ctx.message.delete()
-        else:
-            await ctx.reply(f"I can't reload the cog `{extension}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？")
+        except ExtensionNotLoaded:
+            return await ctx.send(f"Cog `{cog_name}` has not been loaded.")
+        except NoEntryPointError:
+            return await ctx.reply(ReturnNoEntryPointError(cog=cog_name).return_msg())
+        except ExtensionFailed:
+            return await ctx.reply(ExtensionFailedError(cog=cog_name).return_msg())
     else:
-        msg = await ctx.reply(NotBotOwnerError())
+        await ctx.reply(NotBotOwnerError())
 
 # Load extensions
 async def load_extensions():
@@ -112,7 +156,6 @@ if __name__ == "__main__":
     for commands in bot.tree.walk_commands():
         print(commands.name)
 
-    # Runs the bot
     try:
         token = os.getenv("DISCORD_BOT_TOKEN") or ""
         if token == "":
