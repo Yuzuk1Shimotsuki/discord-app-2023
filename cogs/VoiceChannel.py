@@ -17,7 +17,7 @@ class AuthorNotInVoiceError():
         self.interaction = interaction
     def return_embed(self):
         embed = discord.Embed(title="", color=self.interaction.user.colour)
-        embed.add_field(name="", value=f"<@{self.user.id}> Join a voice channel first plz :pleading_face:", inline=False)
+        embed.add_field(name="", value=f"<@{self.user.id}> Join a voice channel plz :pleading_face:  I don't think I can stay there without u :pensive: ...", inline=False)
         return embed
 
 class BotAlreadyInVoiceError():

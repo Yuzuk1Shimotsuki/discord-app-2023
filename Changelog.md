@@ -477,3 +477,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 (-) Removed **"recording_vc()"** function for privacy concerns
 
 (-/+) Futher optimization
+
+#
+
+# 20240227
+
+(-/+) Rewrited **"root/startup.py"**
+
+(+) Updated some return messages in **"root/cogs/VoiceChannel.py"**
