@@ -3,6 +3,17 @@ from discord import app_commands, Interaction
 from discord.ext import commands
 
 
+# Custom errors
+class InvaildTypeError():
+    def __repr__(self) -> str:
+        return "Looks like the type of message u provided it's not a valid type :thinking:..."
+    
+class MessageNotFoundError():
+    def __repr__(self) -> str:
+        return f'''I couldn't found the message from the given ID or URL :(
+Have you entered a vaild ID or URL in the `message_id` field？'''
+
+# Main cog
 class ReactingMessages(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -35,21 +46,30 @@ class ReactingMessages(commands.Cog):
             else:
                 raise error  # Raise other errors to ensure they aren't ignored
 
-    # Adding reaction to a specified message
-    @reaction.command(name="add", description="Reacting to a specified message")
-    @app_commands.describe(message="The ID of message (Enter the message ID e.g. 11xxx... or URL e.g. https://discord.com/channels/...)")
-    @app_commands.describe(emoji="The emoji u want to reacts with")
-    async def reaction_add(self, interaction: Interaction, message: str, emoji: str):
+    # Getting required message ID from user input
+    async def get_message_id(self, message: str):
         try:
             if message.startswith("https://discord.com/channels/"):
                 # URL
                 url_list = message.split("/")
                 message_id = int(url_list[-1])
             else:
-                # id
+                # ID
                 message_id = int(message)
+            return message_id
         except ValueError:
-            return await interaction.response.send_message(f"Looks like the type of message u provided it's not a valid type :thinking:...")
+            # The type of message user provided was not a valid type
+            return None
+
+    # Adding reaction to a specified message
+    @reaction.command(name="add", description="Reacting to a specified message")
+    @app_commands.describe(message="The ID of message (Enter the message ID e.g. 11xxx... or URL e.g. https://discord.com/channels/...)")
+    @app_commands.describe(emoji="The emoji u want to reacts with")
+    async def reaction_add(self, interaction: Interaction, message: str, emoji: str):
+        message_id = await self.get_message_id(message)
+        if message_id is None:
+            # The type of message user provided was not a valid type
+            return await interaction.response.send_message(InvaildTypeError())
         message = await interaction.channel.fetch_message(message_id)
         # Adding the reaction to the message
         if await self.add_reaction(interaction, message, emoji):
@@ -60,16 +80,10 @@ class ReactingMessages(commands.Cog):
     @app_commands.describe(message="The ID of message (Enter the message ID e.g. 11xxx... or URL e.g. https://discord.com/channels/...)")
     @app_commands.describe(emoji="The emoji u want to remove from the message")
     async def reaction_remove(self, interaction: Interaction, message: str, emoji: str):
-        try:
-            if message.startswith("https://discord.com/channels/"):
-                # URL
-                url_list = message.split("/")
-                message_id = int(url_list[-1])
-            else:
-                # id
-                message_id = int(message)
-        except ValueError:
-            return await interaction.response.send_message(f"Looks like the type of message u provided it's not a valid type :thinking:...")
+        message_id = await self.get_message_id(message)
+        if message_id is None:
+            # The type of message user provided was not a valid type
+            return await interaction.response.send_message(InvaildTypeError())
         message = await interaction.channel.fetch_message(message_id)
         # Removing the reaction from the message
         if await self.remove_reaction(interaction, message, emoji):
@@ -79,16 +93,10 @@ class ReactingMessages(commands.Cog):
     @reaction.command(name="list", description="Listing all the reactions from a specified message")
     @app_commands.describe(message="The ID of message (Enter the message ID e.g. 11xxx... or URL e.g. https://discord.com/channels/...)")
     async def reaction_list(self, interaction: Interaction, message: str):
-        try:
-            if message.startswith("https://discord.com/channels/"):
-                # URL
-                url_list = message.split("/")
-                message_id = int(url_list[-1])
-            else:
-                # id
-                message_id = int(message)
-        except ValueError:
-            return await interaction.response.send_message(f"Looks like the type of message u provided it's not a valid type :thinking:...")
+        message_id = await self.get_message_id(message)
+        if message_id is None:
+            # The type of message user provided was not a valid type
+            return await interaction.response.send_message(InvaildTypeError())
         message = await interaction.channel.fetch_message(message_id)
         await interaction.response.defer()
         # Listing all the reactions from the message
@@ -110,16 +118,10 @@ class ReactingMessages(commands.Cog):
     @reaction.command(name="clear", description="Clear all reactions from a specified message")
     @app_commands.describe(message="The ID of message (Enter the message ID e.g. 11xxx... or URL e.g. https://discord.com/channels/...)")
     async def reaction_clear(self, interaction: Interaction, message: str):
-        try:
-            if message.startswith("https://discord.com/channels/"):
-                # URL
-                url_list = message.split("/")
-                message_id = int(url_list[-1])
-            else:
-                # id
-                message_id = int(message)
-        except ValueError:
-            return await interaction.response.send_message(f"Looks like the type of message u provided it's not a valid type :thinking:...")
+        message_id = await self.get_message_id(message)
+        if message_id is None:
+            # The type of message user provided was not a valid type
+            return await interaction.response.send_message(InvaildTypeError())
         message = await interaction.channel.fetch_message(message_id)
         await interaction.response.send_message("Clearing reactions...", ephemeral=True, silent=True, delete_after=0)
         # Clearing all the reactions from the message
@@ -129,13 +131,11 @@ class ReactingMessages(commands.Cog):
     async def cog_command_error(self, interaction: commands.Context, error: commands.CommandError):
         # Handles error for message could not be found
         if isinstance(error, commands.errors.MessageNotFound):
-            await interaction.response.send_message(f'''I couldn't found the message from the given ID or URL :(
-Have you entered a vaild ID or URL in the `message_id` field？''')
+            await interaction.response.send_message(MessageNotFoundError())
         else:
             raise error  # Raise other errors to ensure they aren't ignored
     # ----------</Reacting to messages>----------
     
-
 
 async def setup(bot):
     await bot.add_cog(ReactingMessages(bot))

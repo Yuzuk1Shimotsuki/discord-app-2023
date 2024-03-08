@@ -485,3 +485,20 @@ A blank line will now shown and deletes immediately when the command are all fin
 (-/+) Rewrited **"root/startup.py"**
 
 (+) Updated some return messages in **"root/cogs/VoiceChannel.py"**
+
+#
+
+.
+.
+.
+
+#
+
+# 20240309
+
+(+) Fixed errors when using default avatars for **"root/cogs/DisplayUserInfo.py"**
+
+(+) Optimized the code sturcture in **"root/cogs/ReactingMessages.py"**
+
+(+) Minor bug fixes and improvement
+

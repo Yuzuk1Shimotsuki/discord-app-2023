@@ -226,7 +226,7 @@ class Poll(commands.Cog):
                 poll_add_embed.add_field(name="Choose an option:", value="", inline=False)
                 for i in range(len(self.poll_options[guild_id])):
                     poll_add_embed.add_field(name=f'{poll_emojis[i]}：{self.poll_options[guild_id][i]}', value='\u200b', inline=False)
-                poll_add_embed.set_footer(text=f'Poll edited by {interaction.user.display_name}', icon_url=interaction.user.avatar.url)
+                poll_add_embed.set_footer(text=f'Poll edited by {interaction.user.display_name}', icon_url=interaction.user.display_avatar.url)
                 await self.poll_message[guild_id].edit(embed=poll_add_embed)
                 for i in range(len(self.poll_options[guild_id])):
                     await self.poll_message[guild_id].add_reaction(poll_emojis[i])
@@ -254,7 +254,7 @@ class Poll(commands.Cog):
                 remove_embed.add_field(name="Choose an option:", value="", inline=False)
                 for i in range(len(self.poll_options[guild_id])):
                     remove_embed.add_field(name=f'{self.poll_reactions[guild_id][i]}：{self.poll_options[guild_id][i]}', value='\u200b', inline=False)
-                remove_embed.set_footer(text=f'Poll edited by {interaction.user.display_name}', icon_url=interaction.user.avatar.url)
+                remove_embed.set_footer(text=f'Poll edited by {interaction.user.display_name}', icon_url=interaction.user.display_avatar.url)
                 await self.poll_message[guild_id].edit(embed=remove_embed)
                 # Gets the cached message and removes the reaction from it
                 if reaction is not None:
@@ -275,7 +275,7 @@ class Poll(commands.Cog):
             await interaction.response.send_message("Ended the poll.", ephemeral=True, delete_after=0)
             result_embed = discord.Embed(title=self.poll_message[guild_id].embeds[0].title, description=self.poll_message[guild_id].embeds[0].description, color=interaction.user.colour)
             result_embed.timestamp = datetime.now()
-            result_embed.set_footer(text=f'Poll ended by {interaction.user.display_name}', icon_url=interaction.user.avatar.url)
+            result_embed.set_footer(text=f'Poll ended by {interaction.user.display_name}', icon_url=interaction.user.display_avatar.url)
             result_embed.add_field(name='Results', value='\u200b', inline=False)
             if self.poll_type[guild_id] == "options":
                 try:
