@@ -502,3 +502,18 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minor bug fixes and improvement
 
+#
+
+.
+.
+.
+
+#
+
+# 20240319
+
+(+) Bot owner can now shutdown the bot by entering "`command_prefix`shutdown" for maintenance on every server the bot in or DM. Other users attempting to do this will return **"NotBotOwnerError()"**.
+
+(+) Optimized error handling in **"root/cogs/ChatGPT.py"**
+
+

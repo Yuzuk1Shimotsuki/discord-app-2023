@@ -1,10 +1,12 @@
 import discord
 import openai
 import os
+import ast
 import math
 from discord import app_commands, Interaction
 from discord.ext import commands
 from langdetect import detect, DetectorFactory
+from datetime import datetime
 
 
 class ChatGPT(commands.Cog):
@@ -96,24 +98,52 @@ class ChatGPT(commands.Cog):
                 await interaction.followup.send(final_response)
         # End of regular ChatGPT function and the normal procedure
         except openai.APITimeoutError as e:
-            await interaction.followup.send(
-                f"OpenAI API request timed out. The GPT model may currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved. Error message: {e}")
+            error_embed = discord.Embed(title="<a:cross_custom:1219601144905601146>  OpenAI API request timed out", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed.add_field(name='\u200b', value=f"OpenAI API request timed out. This may due to the GPT model currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
+            error_embed.add_field(name='\u200b', value=f"", inline=False)
+            error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
+            await interaction.followup.send(embed=error_embed)
             pass
         except openai.APIConnectionError as e:
-            await interaction.followup.send(
-                f"Failed to connect to OpenAI API. The GPT model may currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved. Error message: {e}")
+            error_embed = discord.Embed(title="<a:cross_custom:1219601144905601146>  Failed to connect OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed.add_field(name='\u200b', value=f"Failed to connect OpenAI API. The GPT model may currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
+            error_embed.add_field(name='\u200b', value=f"", inline=False)
+            error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
+            await interaction.followup.send(embed=error_embed)
             pass
         except openai.RateLimitError as e:
-            await interaction.followup.send(f":x: OpenAI API request exceeded rate limit: {e}")
+            error_embed = discord.Embed(title="<a:cross_custom:1219601144905601146>  OpenAI API request rate limit exceeded", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed.add_field(name='\u200b', value=error_message, inline=False)
+            error_embed.add_field(name='\u200b', value=f"", inline=False)
+            error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
+            await interaction.followup.send(embed=error_embed)
             pass
         except openai.BadRequestError as e:
-            await interaction.followup.send(f":x: Invalid request to OpenAI API: {e}")
+            error_embed = discord.Embed(title="<a:cross_custom:1219601144905601146>  Invalid request to OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed.add_field(name='\u200b', value=error_message, inline=False)
+            error_embed.add_field(name='\u200b', value=f"", inline=False)
+            error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
+            await interaction.followup.send(embed=error_embed)
             pass
         except openai.AuthenticationError as e:
-            await interaction.followup.send(f":x: Authentication error with OpenAI API: {e}")
+            error_embed = discord.Embed(title="<a:cross_custom:1219601144905601146>  Authentication error with OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed.add_field(name='\u200b', value=error_message, inline=False)
+            error_embed.add_field(name='\u200b', value=f"", inline=False)
+            error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
+            await interaction.followup.send(embed=error_embed)
             pass
         except openai.APIError as e:
-            await interaction.followup.send(f":x: OpenAI API returned an API Error: {e}")
+            error_embed = discord.Embed(title="<a:cross_custom:1219601144905601146>  An error returned from OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed.add_field(name='\u200b', value=error_message, inline=False)
+            error_embed.add_field(name='\u200b', value=f"", inline=False)
+            error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
+            await interaction.followup.send(embed=error_embed)
             pass
 
     # Connects the bot to the OpenAI API
