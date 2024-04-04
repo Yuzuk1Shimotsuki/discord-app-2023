@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import os
+import subprocess
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
 from dotenv import load_dotenv
@@ -8,7 +9,6 @@ from dotenv import load_dotenv
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-
 
 # Custom errors
 class NotBotOwnerError:
@@ -41,15 +41,18 @@ class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
             intents=intents, 
-            command_prefix="?",
+            command_prefix="!",
             self_bot=False, strip_after_prefix = True
         )
 
 bot = Bot()
+is_restarting = False
 
 # Startup info
 @bot.event
 async def on_ready():
+    global is_restarting
+    is_restarting = False
     print("-" * 140)
     print("Welcome to use the bot.")
     print(f"Bot Username: {bot.user.name} #{bot.user.discriminator}")
@@ -148,6 +151,17 @@ async def shutdown(ctx):
     else:
         await ctx.reply(NotBotOwnerError())
 
+# Restart the bot (Use it only as a LAST RESORT)
+@bot.command()
+async def restart(ctx):
+    if await bot.is_owner(ctx.author):
+        global is_restarting
+        is_restarting = True
+        bot.clear()
+        await bot.close()
+    else:
+        await ctx.reply(NotBotOwnerError())
+
 # Load extensions
 async def load_extensions():
     print("\nLoading extensions...\n")
@@ -169,12 +183,16 @@ if __name__ == "__main__":
         if token == "":
             raise Exception("Please add your token to the Secrets pane.")
         bot.run(token)
+        # Executes when the bot is restarting
+        if is_restarting:
+            subprocess.run(["python", "restarter.py"])
+            exit()
     except discord.HTTPException as http_error:
         if http_error.status == 429:
             print("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
             print("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
-            os.system("python restarter.py")
-            os.system("kill 1")
+            subprocess.run(["python", "restarter.py"])
+            exit()
         else:
             raise http_error
     except discord.errors.LoginFailure as token_error:
