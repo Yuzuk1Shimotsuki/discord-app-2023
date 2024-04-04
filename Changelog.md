@@ -517,3 +517,23 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Optimized error handling in **"root/cogs/ChatGPT.py"**
 
 
+.
+.
+.
+
+#
+
+# 20240404
+
+**"root/startup.py"**
+
+(+) Added command **restart()** and **restarter.py** for bot owner to restart the bot. Again, other users attempting to do this will return **"NotBotOwnerError()"**.
+
+(-/+) Replaced **os.system()** with **subprocess**
+
+**"root/general/MessageFiltering.py"**
+
+(+) Optimized messages handling
+
+(+) Messages (except Stickers) sent in system channel will now be deleted automatically.
+
