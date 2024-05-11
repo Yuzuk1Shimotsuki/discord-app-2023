@@ -3,8 +3,7 @@ FROM python:3.11-bookworm
 RUN mkdir app
 WORKDIR /app
 
-ENV DISCORD_BOT_TOKEN="MTE1ODYzMjExOTU1MjE5NjYyOA.GcDX-S.AoxwPcRN6khBev0fOAlXHTb9UWf2yQq5fAezYw"
-ENV OPENAI_API_KEY="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"
+ENV PORT=8080
 
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
