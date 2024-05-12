@@ -1,11 +1,19 @@
 import discord
 import asyncio
+import nest_asyncio
 import os
 import logging
+import signal
 import subprocess
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
+from quart import Quart
 from dotenv import load_dotenv
+
+
+load_dotenv()
+nest_asyncio.apply()
+app = Quart("DiscordBot")
 
 logger = logging.getLogger(__name__)
 ConsoleOutputHandler = logging.StreamHandler()
@@ -15,6 +23,20 @@ logging.basicConfig(filename='bot.log', level=logging.INFO)
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+
+
+# Default configuration
+class Bot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            intents=intents, 
+            command_prefix="?",
+            self_bot=False, strip_after_prefix = True
+        )
+
+
+bot = Bot()
+
 
 # Custom errors
 class NotBotOwnerError:
@@ -42,30 +64,18 @@ class ExtensionFailedError:
     def return_msg(self) -> str:
         return f"Some unexpected stuff happened while executing `{self.cog}`."
 
-# Default configuration
-class Bot(commands.Bot):
-    def __init__(self):
-        super().__init__(
-            intents=intents, 
-            command_prefix="?",
-            self_bot=False, strip_after_prefix = True
-        )
-
-bot = Bot()
-is_restarting = False
 
 # Startup info
 @bot.event
 async def on_ready():
-    global is_restarting
-    is_restarting = False
     logger.info("-" * 140)
     logger.info("Welcome to use the bot.")
     logger.info(f"Bot Username: {bot.user.name} #{bot.user.discriminator}")
     logger.info(f"Bot ID: {bot.application_id}")
     logger.info("-" * 140)
-    logger.info("The bot is now ready for use!")
+    logger.info("The bot is now initiated ready for use!")
     logger.info("-" * 140)
+
 
 # Sync all cogs for latest changes
 @bot.command() 
@@ -78,6 +88,7 @@ async def sync(ctx):
         await ctx.message.delete()
     else:
         await ctx.reply(NotBotOwnerError)
+
 
 # Load cogs manually
 @bot.command()
@@ -102,6 +113,7 @@ async def load(ctx, cog_name):
     else:
         await ctx.reply(NotBotOwnerError())
 
+
 # Unload cogs manually
 @bot.command()
 async def unload(ctx, cog_name):
@@ -124,6 +136,7 @@ async def unload(ctx, cog_name):
             return await ctx.reply(ExtensionFailedError(cog=cog_name).return_msg())
     else:
         await ctx.reply(NotBotOwnerError())
+
 
 # Reload cogs manually
 @bot.command()
@@ -148,25 +161,31 @@ async def reload(ctx, cog_name):
     else:
         await ctx.reply(NotBotOwnerError())
 
+
 # Shut down the bot (Self Destruct)
 @bot.command()
 async def shutdown(ctx):
     if await bot.is_owner(ctx.author):
         bot.clear()
         await bot.close()
+        # Shut down
+        os.kill(os.getpid(), signal.SIGINT) # Terminates the current application
     else:
         await ctx.reply(NotBotOwnerError())
+
 
 # Restart the bot (Use it only as a LAST RESORT)
 @bot.command()
 async def restart(ctx):
     if await bot.is_owner(ctx.author):
-        global is_restarting
-        is_restarting = True
         bot.clear()
         await bot.close()
+        # Restart
+        subprocess.run(["python", "restarter.py"])  # Activating restart script
+        os.kill(os.getpid(), signal.SIGINT) # Terminates the current application
     else:
         await ctx.reply(NotBotOwnerError())
+
 
 # Load extensions
 async def load_extensions():
@@ -176,33 +195,50 @@ async def load_extensions():
             await bot.load_extension(f'cogs.{filename[:-3]}')
             logger.info(f'cogs.{filename[:-3]}')
 
-# Runs the bot
-if __name__ == "__main__":
-    load_dotenv()
-    asyncio.run(load_extensions())
 
-    for commands in bot.tree.walk_commands():
-        logger.info(commands.name)
-
+# Starting the bot before Quart
+@app.before_serving
+async def before_serving():
+    loop = asyncio.get_event_loop()
     try:
         token = os.getenv("DISCORD_BOT_TOKEN") or ""
         if token == "":
-            raise Exception("Please add your token to the Secrets pane.")
-        bot.run(token)
-        # Executes when the bot is restarting
-        if is_restarting:
-            subprocess.run(["python", "restarter.py"])
-            exit()
+            logger.error("No vaild tokens were found in the environment variable. Please add your token to the Secrets pane.")
+            exit(1)
+        await bot.login(token)
+        loop.create_task(bot.connect())
+        asyncio.run(load_extensions())
     except discord.HTTPException as http_error:
         if http_error.status == 429:
             logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
             logger.error("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
             subprocess.run(["python", "restarter.py"])
-            exit()
+            os.kill(os.getpid(), signal.SIGINT)
         else:
             raise http_error
     except discord.errors.LoginFailure as token_error:
         logger.error(f"Cannot login to the bot at this point due to the following error: {token_error}\nPlease check your token and try again.")
         exit(1)
 
-        
+# ----------<Quart app>----------
+
+# Returning the status of the Quart app
+@app.route("/")
+async def hello_world():
+    return "Your application is now hosting on our cloud."
+
+# Actions after shutting down the Quart app
+@app.after_serving
+async def my_shutdown():
+    await bot.close()
+    print("Shuting down...")
+
+# ----------</Quart app>----------
+
+
+
+
+# Runs the whole application (Bot + Quart)
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
+

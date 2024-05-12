@@ -537,3 +537,28 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Messages (except Stickers) sent in system channel will now be deleted automatically.
 
+
+.
+.
+.
+
+# 20240407 - 20240511
+
+(!) Bot unavailible due to another migration and reconstruction from Microsoft Azure to Google Cloud Run API.
+
+#
+
+# 20240512
+
+(!) The bot is now being hosted as a Quart app in a docker container.
+
+(-/+) Rewrited **"startup.py"** with breaking logical changes to comply with the migration.
+
+(-) Removed variable **"is_restarting"** due to the breaking changes.
+
+(+) Minor bug fixs and optimization
+
+
+
+
+

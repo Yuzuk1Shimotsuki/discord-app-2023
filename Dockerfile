@@ -3,7 +3,7 @@ FROM python:3.11-bookworm
 RUN mkdir app
 WORKDIR /app
 
-# For Google cloud
+# For Google Cloud Run
 EXPOSE 8080
 
 COPY requirements.txt requirements.txt
