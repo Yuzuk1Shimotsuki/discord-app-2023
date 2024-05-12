@@ -3,10 +3,12 @@ import asyncio
 import nest_asyncio
 import os
 import logging
+import psutil
 import signal
 import subprocess
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
+from datetime import datetime
 from quart import Quart
 from dotenv import load_dotenv
 
@@ -162,6 +164,43 @@ async def reload(ctx, cog_name):
         await ctx.reply(NotBotOwnerError())
 
 
+# Retrieving system info from the bot
+@bot.command()
+async def systeminfo(ctx):
+    if await bot.is_owner(ctx.author):
+        # CPU
+        cpuPercentage = psutil.cpu_percent(interval=1, percpu=False) * 100
+        numberOfSystemCores = psutil.cpu_count(logical=False)
+        numberOfLogicalCores = psutil.cpu_count(logical=True)
+        # Memory
+        ram = psutil.virtual_memory()
+        usedRamInGB = round(ram.used / 1024 ** 3, 2)
+        freeRamInGB = round(ram.free / 1024 ** 3, 2)
+        totalRamInGB = round(ram.total / 1024 ** 3, 2)
+        ramPercentage = ram.percent
+        # Storage
+        disk = psutil.disk_usage('/')
+        usedVolumeInGB = round(disk.used / 1024 ** 3, 2)
+        freeVolumeInGB = round(disk.free / 1024 ** 3, 2)
+        totalVolumeInGB = round(disk.total / 1024 ** 3, 2)
+        diskPercentage = disk.percent
+        # Network
+        network = psutil.net_io_counters()
+        # Returning system info as embed
+        hardware_info_embed = discord.Embed(title="Resource Usage (For reference only):", description='\u200b', timestamp=datetime.now(), color=ctx.author.colour)
+        hardware_info_embed.add_field(name="CPU", value=f"CPU utilization: {cpuPercentage}%\nNumber of system cores: {numberOfSystemCores}\nNumber of logical cores: {numberOfLogicalCores}", inline=False)
+        hardware_info_embed.add_field(name="\u200b", value="", inline=False)
+        hardware_info_embed.add_field(name="RAM", value=f"Memory in use: {usedRamInGB} / {totalRamInGB} GB ({ramPercentage}%)\nAvailible memory: {freeRamInGB} GB", inline=False)
+        hardware_info_embed.add_field(name="\u200b", value="", inline=False)
+        hardware_info_embed.add_field(name="Storage", value=f"Space used: {usedVolumeInGB} / {totalVolumeInGB} GB ({diskPercentage}%)\nAvailible space: {freeVolumeInGB} GB", inline=False)
+        hardware_info_embed.add_field(name="\u200b", value="", inline=False)
+        hardware_info_embed.add_field(name="Network", value=f"Number of bytes sent: {network.bytes_sent}\nNumber of bytes received: {network.bytes_recv}\nNumber of packets sent: {network.packets_sent}\nNumber of packets received: {network.packets_recv}\nTotal number of errors while receiving: {network.errin}\nTotal number of errors while sending: {network.errout}\nTotal number of incoming packets dropped: {network.dropin}\nTotal number of outgoing packets dropped: {network.dropout}", inline=False)
+        hardware_info_embed.add_field(name="\u200b", value="", inline=False)
+        await ctx.reply(embed=hardware_info_embed)
+    else:
+        await ctx.reply(NotBotOwnerError())
+
+
 # Since Google Cloud Run API does not support "ACPI shutdown", command ?shutdown has been removed.
 # Restart the bot (Use it only as a LAST RESORT)
 @bot.command()
@@ -230,5 +269,5 @@ async def my_shutdown():
 
 # Runs the whole application (Bot + Quart)
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
 
