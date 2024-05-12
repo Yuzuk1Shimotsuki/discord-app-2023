@@ -3,7 +3,8 @@ FROM python:3.11-bookworm
 RUN mkdir app
 WORKDIR /app
 
-ENV PORT=8080
+# For Google cloud
+EXPOSE 8080
 
 COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
