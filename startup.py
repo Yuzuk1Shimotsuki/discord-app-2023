@@ -170,7 +170,8 @@ async def shutdown(ctx):
         await bot.close()
         logger.info("Terminating the application...")
         # Shut down
-        exit() # Terminates the current application
+        raise RuntimeError("Server is now going down...")
+        exit(1) # Terminates the current application
     else:
         await ctx.reply(NotBotOwnerError())
 
