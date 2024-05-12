@@ -1,10 +1,16 @@
 import discord
 import asyncio
 import os
+import logging
 import subprocess
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
+ConsoleOutputHandler = logging.StreamHandler()
+logger.addHandler(ConsoleOutputHandler)
+logging.basicConfig(filename='bot.log', level=logging.INFO)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -53,13 +59,13 @@ is_restarting = False
 async def on_ready():
     global is_restarting
     is_restarting = False
-    print("-" * 140)
-    print("Welcome to use the bot.")
-    print(f"Bot Username: {bot.user.name} #{bot.user.discriminator}")
-    print(f"Bot ID: {bot.application_id}")
-    print("-" * 140)
-    print("The bot is now ready for use!")
-    print("-" * 140)
+    logger.info("-" * 140)
+    logger.info("Welcome to use the bot.")
+    logger.info(f"Bot Username: {bot.user.name} #{bot.user.discriminator}")
+    logger.info(f"Bot ID: {bot.application_id}")
+    logger.info("-" * 140)
+    logger.info("The bot is now ready for use!")
+    logger.info("-" * 140)
 
 # Sync all cogs for latest changes
 @bot.command() 
@@ -164,11 +170,11 @@ async def restart(ctx):
 
 # Load extensions
 async def load_extensions():
-    print("\nLoading extensions...\n")
+    logger.info("\nLoading extensions...\n")
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             await bot.load_extension(f'cogs.{filename[:-3]}')
-            print(f'cogs.{filename[:-3]}')
+            logger.info(f'cogs.{filename[:-3]}')
 
 # Runs the bot
 if __name__ == "__main__":
@@ -176,7 +182,7 @@ if __name__ == "__main__":
     asyncio.run(load_extensions())
 
     for commands in bot.tree.walk_commands():
-        print(commands.name)
+        logger.info(commands.name)
 
     try:
         token = os.getenv("DISCORD_BOT_TOKEN") or ""
@@ -189,12 +195,14 @@ if __name__ == "__main__":
             exit()
     except discord.HTTPException as http_error:
         if http_error.status == 429:
-            print("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
-            print("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
+            logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
+            logger.error("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
             subprocess.run(["python", "restarter.py"])
             exit()
         else:
             raise http_error
     except discord.errors.LoginFailure as token_error:
-        print(f"Cannot login to the bot at this point due to the following error: {token_error}\nPlease check your token and try again.")
+        logger.error(f"Cannot login to the bot at this point due to the following error: {token_error}\nPlease check your token and try again.")
         exit(1)
+
+        
