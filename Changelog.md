@@ -556,9 +556,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (-) Removed variable **"is_restarting"** due to the breaking changes.
 
+(-) Removed command **"shutdown()"** in startup.py
+
 (+) Minor bug fixs and optimization
-
-
 
 
 

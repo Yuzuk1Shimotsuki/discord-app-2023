@@ -162,18 +162,7 @@ async def reload(ctx, cog_name):
         await ctx.reply(NotBotOwnerError())
 
 
-# Shut down the bot (Self Destruct)
-@bot.command()
-async def shutdown(ctx):
-    if await bot.is_owner(ctx.author):
-        bot.clear()
-        await bot.close()
-        # Shut down
-        os.kill(os.getpid(), signal.SIGINT) # Terminates the current application
-    else:
-        await ctx.reply(NotBotOwnerError())
-
-
+# Since Google Cloud Run API does not support "ACPI shutdown", command ?shutdown has been removed.
 # Restart the bot (Use it only as a LAST RESORT)
 @bot.command()
 async def restart(ctx):
