@@ -232,6 +232,7 @@ async def hello_world():
 async def my_shutdown():
     await bot.close()
     print("Shuting down...")
+    os.kill(os.getpid(), signal.SIGINT)
 
 # ----------</Quart app>----------
 
