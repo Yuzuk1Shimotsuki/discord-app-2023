@@ -168,10 +168,8 @@ async def shutdown(ctx):
     if await bot.is_owner(ctx.author):
         bot.clear()
         await bot.close()
-        logger.info("Terminating the application...")
         # Shut down
-        raise RuntimeError("Server is now going down...")
-        exit(1) # Terminates the current application
+        os.kill(os.getpid(), signal.SIGINT) # Terminates the current application
     else:
         await ctx.reply(NotBotOwnerError())
 
@@ -182,10 +180,9 @@ async def restart(ctx):
     if await bot.is_owner(ctx.author):
         bot.clear()
         await bot.close()
-        logger.info("Restarting the application...")
         # Restart
         subprocess.run(["python", "restarter.py"])  # Activating restart script
-        exit() # Terminates the current application
+        os.kill(os.getpid(), signal.SIGINT) # Terminates the current application
     else:
         await ctx.reply(NotBotOwnerError())
 
@@ -216,7 +213,7 @@ async def before_serving():
             logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
             logger.error("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
             subprocess.run(["python", "restarter.py"])
-            exit()
+            os.kill(os.getpid(), signal.SIGINT)
         else:
             raise http_error
     except discord.errors.LoginFailure as token_error:
