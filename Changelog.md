@@ -560,5 +560,10 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minor bug fixs and optimization
 
+#
 
+# 20240513
 
+**"root/startup.py"**
+
+(+) Added command **"systeminfo()"** for bot owner to retrieve system info from the bot. Other users attempting to do this will return **"NotBotOwnerError()"**.
