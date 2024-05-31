@@ -2,6 +2,7 @@ import discord
 import asyncio
 import nest_asyncio
 import os
+import sys
 import logging
 import psutil
 import signal
@@ -208,7 +209,7 @@ async def restart(ctx):
         bot.clear()
         await bot.close()
         # Restart
-        subprocess.run(["python", "restarter.py"])  # Activating restart script
+        subprocess.Popen([sys.executable, *sys.argv])
     else:
         await ctx.reply(NotBotOwnerError())
 
@@ -272,7 +273,6 @@ async def my_shutdown():
     os.kill(os.getpid(), signal.SIGINT)
 
 # ----------</Quart app>----------
-
 
 
 
