@@ -278,4 +278,5 @@ async def my_shutdown():
 
 # Runs the whole application (Bot + Quart)
 if __name__ == "__main__":
-    app.run(debug=False, port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
+    app.run(debug=False, host="10.0.0.4", port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
+
