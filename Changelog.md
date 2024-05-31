@@ -567,3 +567,22 @@ A blank line will now shown and deletes immediately when the command are all fin
 **"root/startup.py"**
 
 (+) Added command **"systeminfo()"** for bot owner to retrieve system info from the bot. Other users attempting to do this will return **"NotBotOwnerError()"**.
+
+
+.
+.
+.
+
+# 20240529 - 20240531
+
+(!) Bot temporarily unavailible due to a rollback to Microsoft Azure.
+
+#
+
+# 20240601
+
+(!) The bot is now hosting on Microsoft Azure again, with the same structure as hosting on Google Cloud Run.
+
+(+) Some typo and bug fixes
+
+(+) Command **"shutdown()"** is now returned with its original functionality

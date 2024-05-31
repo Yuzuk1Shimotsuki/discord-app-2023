@@ -75,7 +75,7 @@ async def on_ready():
     logger.info(f"Bot Username: {bot.user.name} #{bot.user.discriminator}")
     logger.info(f"Bot ID: {bot.application_id}")
     logger.info("-" * 140)
-    logger.info("The bot is now initiated ready for use!")
+    logger.info("The bot is now initiated and ready for use!")
     logger.info("-" * 140)
 
 
@@ -201,7 +201,6 @@ async def systeminfo(ctx):
         await ctx.reply(NotBotOwnerError())
 
 
-# Since Google Cloud Run API does not support "ACPI shutdown", command ?shutdown has been removed.
 # Restart the bot (Use it only as a LAST RESORT)
 @bot.command()
 async def restart(ctx):
@@ -210,7 +209,17 @@ async def restart(ctx):
         await bot.close()
         # Restart
         subprocess.run(["python", "restarter.py"])  # Activating restart script
-        os.kill(os.getpid(), signal.SIGINT) # Terminates the current application
+    else:
+        await ctx.reply(NotBotOwnerError())
+
+
+# Shut down the bot (SELF DESTRUCT)
+@bot.command()
+async def shutdown(ctx):
+    if await bot.is_owner(ctx.author):
+        bot.clear()
+        await bot.close()
+        exit(0)
     else:
         await ctx.reply(NotBotOwnerError())
 
@@ -224,7 +233,7 @@ async def load_extensions():
             logger.info(f'cogs.{filename[:-3]}')
 
 
-# Starting the bot before Quart
+# Starting the bot
 @app.before_serving
 async def before_serving():
     loop = asyncio.get_event_loop()
@@ -253,9 +262,9 @@ async def before_serving():
 # Returning the status of the Quart app
 @app.route("/")
 async def hello_world():
-    return "Your application is now hosting on our cloud."
+    return "Your application is now hosting normally."
 
-# Actions after shutting down the Quart app
+# Actions after shutting down the Quart app (Ctrl + C)
 @app.after_serving
 async def my_shutdown():
     await bot.close()
@@ -269,5 +278,4 @@ async def my_shutdown():
 
 # Runs the whole application (Bot + Quart)
 if __name__ == "__main__":
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
-
+    app.run(debug=False, port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
