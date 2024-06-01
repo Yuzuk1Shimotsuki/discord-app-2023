@@ -586,3 +586,22 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Some typo and bug fixes
 
 (+) Command **"shutdown()"** is now returned with its original functionality
+
+#
+
+# 20240602
+
+**"root/startup.py"**
+
+(-) Removed command **"restart()"** due to some compatibility issues
+
+(+) Marked command **"shutdown()"** as SELF DESTRUCT
+
+**"root/general/VoiceChannel.py"**
+
+(+) Some code improvement and bug fixes
+
+(+) The bot will now return error if no user were in the vc while trying to move them to another vc
+
+(+) Combined the main component of end vc call and moving all users
+
