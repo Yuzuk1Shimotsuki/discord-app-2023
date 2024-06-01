@@ -572,26 +572,29 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
             # The bot is currently not in a voice channel
             await interaction.response.send_message("I'm not in a voice channel ^_^.")
 
-    # Ends a voice call
+    # Moving all users or ends a voice call
 
-    # Function to end a voice call
-    async def end_voice_call(self, interaction: Interaction):
-        guild_id = interaction.guild.id
-        # Disconnect the bot from voice channel if it has been connected
-        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-        if self.vc[guild_id] is not None:
-            await self.vc[guild_id].disconnect()
-        # Disconnect the members from voice channel if they are connected
+    # Function to move all members (Can move them to any voice channel in the server, or use None to kick them away from the vc)
+    async def move_all_members(self, interaction: Interaction, specified_vc, reason):
+        moved_count = 0
         for member in interaction.guild.members:
             if member.voice is not None:
-                await member.move_to(None)
-
+                if reason is None:
+                    await member.move_to(specified_vc)
+                else:
+                    await member.move_to(specified_vc, reason=reason)
+                moved_count += 1
+        if moved_count == 0:
+            return False
+        return True
+    
     # Ending a voice call
     @app_commands.command(name="end", description="End the call for all voice channels")
     @app_commands.checks.has_permissions(move_members=True)
     async def end(self, interaction: Interaction):
-        await self.end_voice_call(interaction)
-        await interaction.response.send_message("Ended the call for all voice channels.")
+        await interaction.response.send_message("Ending the call for all voice channels...")
+        if await self.move_all_members(interaction, None, None):
+            await interaction.edit_original_response(content="Ended the call for all voice channels.")
 
     @end.error
     async def end_error(self, interaction: Interaction, error):
@@ -599,40 +602,33 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
             await interaction.response.send_message("It seems that you don't have permission to end the call!")
         else:
             raise error
-
+    
     # Move all users to the voice channel which the author is already connected, or a specified voice channel.
-
-    # Function to move all members
-    async def move_all_members(self, interaction: Interaction, specified_vc, reason):
-        for member in interaction.guild.members:
-            if member.voice is not None:
-                if reason is None:
-                    await member.move_to(specified_vc)
-                else:
-                    await member.move_to(specified_vc, reason=reason)
-        if reason is None:
-            await interaction.response.send_message(f"Moved all users to <#{specified_vc.id}>.")
-        else:
-            await interaction.response.send_message(f"Moved all users to <#{specified_vc.id}> for **{reason}**.")
-
     @move.command(name="all", description="Moves all users to the specified voice channel")
     @app_commands.checks.has_permissions(move_members=True)
     @app_commands.describe(channel="Channel to move them to. Leave this blank if you want to move them into where you are.")
     @app_commands.describe(reason="Reason for move")
     async def move_all(self, interaction: Interaction, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
-        while True:
-            if channel is None:
-                if interaction.user.voice is not None:
-                    specified_vc = interaction.user.voice.channel
-                else:
-                    # The author has not joined the voice channel yet
-                    await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move all connected members into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move them into right now, <@{interaction.user.id}>？''')
-                    break
+        if channel is None:
+            if interaction.user.voice is not None:
+                specified_vc = interaction.user.voice.channel
             else:
-                specified_vc = channel
-            await self.move_all_members(interaction, specified_vc, reason=reason)
-            break
+                # The author has not joined the voice channel yet
+                return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move all connected members into the voice channel that you're connected :thinking: ...
+Just curious to know, where should I move them all into right now, <@{interaction.user.id}>？''')
+        else:
+            specified_vc = channel
+        await interaction.response.send_message(f"Moving all users to <#{specified_vc.id}>...")
+        # Return True when successful to move, or return False when no users were found in the voice channel.
+        if await self.move_all_members(interaction, specified_vc, reason=reason):
+            if reason is None:
+                await interaction.edit_original_response(content=f"All users has been moved to <#{specified_vc.id}>.")
+            else:
+                await interaction.edit_original_response(content=f"All users has been moved to <#{specified_vc.id}> for **{reason}**.")
+        else:
+            # No users were found in the voice channel
+            await interaction.edit_original_response(content=f"No users were found in the voice channel.")
+
 
     @move_all.error
     async def move_all_error(self, interaction: Interaction, error):
@@ -648,24 +644,33 @@ Just curious to know, where should I move them into right now, <@{interaction.us
     @app_commands.describe(reason="Reason for move")
     @commands.has_guild_permissions(move_members=True)
     async def move_user(self, interaction: Interaction, member: discord.Member, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
-        while True:
-            if channel is None:
-                if interaction.user.voice is not None:
-                    specified_vc = interaction.user.voice.channel
-                else:
-                    # The author has not joined the voice channel yet
-                    await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move someone into the voice channel that you're connected :thinking: ...
+        # Check the target user was in the vc or not
+        if member.voice is None and interaction.user.id == self.bot.application_id:
+            return await interaction.response.send_message(f"I'm currently not in a voice channel.")
+        elif interaction.user.voice is None:
+            return await interaction.response.send_message(f"You're currently not in a voice channel!")
+        elif member.voice is None:
+            return await interaction.response.send_message(f"<@{member.id}> currently not in a voice channel.")
+        # Check the target vc
+        if channel is None:
+            if interaction.user.voice is not None:
+                specified_vc = interaction.user.voice.channel
+            else:
+                # The author has not joined the voice channel yet
+                return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move someone into the voice channel that you're connected :thinking: ...
 Just curious to know, where should I move <@{member.id}> into right now, <@{interaction.user.id}>？''')
-                    break
-            else:
-                specified_vc = channel
-            if reason is None:
-                await member.move_to(specified_vc)
-                await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> by <@{interaction.user.id}>.")
-            else:
-                await member.move_to(specified_vc, reason=reason)
-                await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> by <@{interaction.user.id}> for **{reason}**")
-            break
+        else:
+            specified_vc = channel
+        if reason is None:
+            await member.move_to(specified_vc)
+            if interaction.user.id == self.bot.application_id:
+                return await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}>. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
+            await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}>.")
+        else:
+            await member.move_to(specified_vc, reason=reason)
+            if interaction.user.id == self.bot.application_id:
+                return await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}> for **{reason}**. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
+            await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> for **{reason}**")
 
     @move_user.error
     async def move_user_error(self, interaction: Interaction, error):
@@ -680,6 +685,9 @@ Just curious to know, where should I move <@{member.id}> into right now, <@{inte
     @app_commands.describe(channel="Channel to move you to.")
     @app_commands.describe(reason="Reason for move")
     async def move_me(self, interaction: Interaction, channel: discord.VoiceChannel, reason: Optional[str] = None):
+        # Check the target user was in the vc or not
+        if interaction.user.voice is None:
+            return await interaction.response.send_message(f"You're currently not in a voice channel!")
         if reason is None:
             await interaction.user.move_to(channel)
             await interaction.response.send_message(f"<@{interaction.user.id}> has been moved to <#{channel.id}>.")
@@ -690,7 +698,7 @@ Just curious to know, where should I move <@{member.id}> into right now, <@{inte
     @move_me.error
     async def move_me_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to move!")
+            await interaction.response.send_message("It seems that you don't have permission to move yourself!")
         else:
             raise error
         
@@ -700,27 +708,27 @@ Just curious to know, where should I move <@{member.id}> into right now, <@{inte
     @app_commands.describe(channel="Channel to move me to. Leave this blank if you want to move me into where you are.")
     @app_commands.describe(reason="Reason for move")
     async def move_bot(self, interaction: Interaction, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
-        while True:
-            if channel is None:
-                if interaction.author.voice is not None:
-                    specified_vc = interaction.author.voice.channel
-                else:
-                    # The author has not joined the voice channel yet
-                    await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move me into the voice channel that you're connected :thinking: ...
+        # Getting bot member as a 'Member' object instead of 'ClientUser' object (which is why the bot.user is returning errors)
+        guild = self.bot.get_guild(interaction.guild.id)
+        bot_member = guild.get_member(self.bot.application_id)
+        # Check the bot was in the vc or not
+        if bot_member.voice is None:
+            return await interaction.response.send_message(f"I'm currently not in a voice channel.")
+        if channel is None:
+            if interaction.user.voice is not None:
+                specified_vc = interaction.user.voice.channel
+            else:
+                # The author has not joined the voice channel yet
+                return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move me into the voice channel that you're connected :thinking: ...
 Just curious to know, where should I move into right now, <@{interaction.user.id}>？''')
-                    break
-            else:
-                specified_vc = channel
-            # Getting bot member as a 'Member' object instead of 'ClientUser' object (which is why the bot.user is returning errors)
-            guild = self.bot.get_guild(interaction.guild.id)
-            bot_member = guild.get_member(self.bot.application_id)
-            if reason is None:
-                await bot_member.move_to(specified_vc)
-                await interaction.response.send_message(f"I moved to <#{specified_vc.id}>.")
-            else:
-                await bot_member.move_to(specified_vc, reason=reason)
-                await interaction.response.send_message(f"I moved to <#{specified_vc.id}> for {reason}")
-                break
+        else:
+            specified_vc = channel
+        if reason is None:
+            await bot_member.move_to(specified_vc)
+            await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}>.")
+        else:
+            await bot_member.move_to(specified_vc, reason=reason)
+            await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}> for **{reason}**.")
 
     @move_bot.error
     async def move_bot_error(self, interaction: Interaction, error):

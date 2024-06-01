@@ -27,7 +27,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-
 # Default configuration
 class Bot(commands.Bot):
     def __init__(self):
@@ -37,9 +36,7 @@ class Bot(commands.Bot):
             self_bot=False, strip_after_prefix = True
         )
 
-
 bot = Bot()
-
 
 # Custom errors
 class NotBotOwnerError:
@@ -79,7 +76,6 @@ async def on_ready():
     logger.info("The bot is now initiated and ready for use!")
     logger.info("-" * 140)
 
-
 # Sync all cogs for latest changes
 @bot.command() 
 async def sync(ctx):
@@ -91,7 +87,6 @@ async def sync(ctx):
         await ctx.message.delete()
     else:
         await ctx.reply(NotBotOwnerError)
-
 
 # Load cogs manually
 @bot.command()
@@ -116,7 +111,6 @@ async def load(ctx, cog_name):
     else:
         await ctx.reply(NotBotOwnerError())
 
-
 # Unload cogs manually
 @bot.command()
 async def unload(ctx, cog_name):
@@ -140,7 +134,6 @@ async def unload(ctx, cog_name):
     else:
         await ctx.reply(NotBotOwnerError())
 
-
 # Reload cogs manually
 @bot.command()
 async def reload(ctx, cog_name):
@@ -163,7 +156,6 @@ async def reload(ctx, cog_name):
             return await ctx.reply(ExtensionFailedError(cog=cog_name).return_msg())
     else:
         await ctx.reply(NotBotOwnerError())
-
 
 # Retrieving system info from the bot
 @bot.command()
@@ -201,19 +193,6 @@ async def systeminfo(ctx):
     else:
         await ctx.reply(NotBotOwnerError())
 
-
-# Restart the bot (Use it only as a LAST RESORT)
-@bot.command()
-async def restart(ctx):
-    if await bot.is_owner(ctx.author):
-        bot.clear()
-        await bot.close()
-        # Restart
-        subprocess.Popen([sys.executable, *sys.argv])
-    else:
-        await ctx.reply(NotBotOwnerError())
-
-
 # Shut down the bot (SELF DESTRUCT)
 @bot.command()
 async def shutdown(ctx):
@@ -224,15 +203,13 @@ async def shutdown(ctx):
     else:
         await ctx.reply(NotBotOwnerError())
 
-
 # Load extensions
 async def load_extensions():
     logger.info("\nLoading extensions...\n")
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
             await bot.load_extension(f'cogs.{filename[:-3]}')
-            logger.info(f'cogs.{filename[:-3]}')
-
+            logger.info(f'cogs.{filename[:-3]}')\
 
 # Starting the bot
 @app.before_serving
@@ -258,6 +235,7 @@ async def before_serving():
         logger.error(f"Cannot login to the bot at this point due to the following error: {token_error}\nPlease check your token and try again.")
         exit(1)
 
+
 # ----------<Quart app>----------
 
 # Returning the status of the Quart app
@@ -279,4 +257,4 @@ async def my_shutdown():
 # Runs the whole application (Bot + Quart)
 if __name__ == "__main__":
     app.run(debug=False, port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
-
+    
