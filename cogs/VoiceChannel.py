@@ -99,6 +99,11 @@ class VoiceChannel(commands.Cog):
         guild_id = guild_channel.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=guild)
 
+
+        #TODO: Testing. Rollback if failed.
+
+        '''
+
         # Ensure:
         # - this is a channel move as opposed to anything else
         # - this is our instance's voice client and we can action upon it
@@ -123,6 +128,8 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id].resume()
             # The bot has been moved and plays the original music again, there is no sense to execute the rest of statements.
             return
+
+        '''
 
         # Ensure:
         # - this is a channel leave as opposed to anything else
