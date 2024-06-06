@@ -92,6 +92,12 @@ class VoiceChannel(commands.Cog):
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+
+        # Ensure:
+        # - this is a channel leave as opposed to anything else
+        # Actions:
+        # - Reset all settings if the bot leave or being kicked by someone else
+
         if member != self.bot.user:
             return
         guild_channel = before.channel or after.channel
@@ -99,42 +105,6 @@ class VoiceChannel(commands.Cog):
         guild_id = guild_channel.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=guild)
 
-
-        #TODO: Testing. Rollback if failed.
-
-        '''
-
-        # Ensure:
-        # - this is a channel move as opposed to anything else
-        # - this is our instance's voice client and we can action upon it
-        # Actions:
-        # - Callback function when the bot moves from a voice channel to another voice channel
-        if (
-            before.channel and  # if this is None this could be a join
-            after.channel and  # if this is None this could be a leave
-            before.channel != after.channel and  # if these match then this could be e.g. server deafen
-            isinstance(self.vc[guild_id], discord.VoiceClient) and  # None & not external Protocol check
-            self.vc[guild_id].channel == after.channel  # our current voice client is in this channel
-        ):  
-            # If the voice was intentionally paused don't resume it for no reason
-            if self.vc[guild_id].is_paused():
-                return
-            # If the voice isn't playing anything there is no sense in trying to resume
-            if not self.vc[guild_id].is_playing():
-                return     
-            await asyncio.sleep(1)  # wait a moment for it to set in
-            self.vc[guild_id].pause()
-            await asyncio.sleep(1)
-            self.vc[guild_id].resume()
-            # The bot has been moved and plays the original music again, there is no sense to execute the rest of statements.
-            return
-
-        '''
-
-        # Ensure:
-        # - this is a channel leave as opposed to anything else
-        # Actions:
-        # - Reset all settings if the bot leave or being kicked by someone else
         if (
             after.channel is None and  # if this is None this is certainly a leave
             before.channel != after.channel  # if these match then this could be e.g. server deafen
@@ -156,7 +126,6 @@ class VoiceChannel(commands.Cog):
             guild_custom_dir = f"plugins/custom_audio/guild/{guild_id}"
             if os.path.exists(guild_custom_dir):
                 shutil.rmtree(guild_custom_dir)
-            return
 
     # Music Player
 
@@ -256,14 +225,15 @@ class VoiceChannel(commands.Cog):
     # Discord Autocomplete for YouTube search, rewrited for discord.py
     async def yt_autocomplete(self,
         interaction: Interaction,
-        current: str
+        query: str
     ) -> List[app_commands.Choice[str]]:
         if interaction.namespace.source == "yt":
             result_list = []
-            if not current.startswith("https://"):
+            if not query.startswith("https://"):
+                # Serach from keywords
                 try:
                     max_limit = 25
-                    search = VideosSearch(current, limit=max_limit)
+                    search = VideosSearch(query, limit=max_limit)
                     for i in range(max_limit):
                         try:
                             result_list.append(search.result()["result"][i]["title"])
@@ -271,12 +241,13 @@ class VoiceChannel(commands.Cog):
                             break
                     return [
                         app_commands.Choice(name=video, value=video)
-                        for video in result_list if current.lower() in video.lower()
+                        for video in result_list if query.lower() in video.lower()
                     ]
                 except TypeError:
                     # The author did not entered anything yet
                     # Originally it should return a defult list on Windows, not sure why it's not working on linux...
                     return []
+            # Reutrn a blank list because YouTube URL's does not required to be searched.
             return []
         else:
             # The source is not from YouTube
@@ -549,7 +520,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 # None being the default value if the bot isnt in a channel (which is why the is_connected() is returning errors)
                 # Connect the bot to voice channel
                 self.vc[guild_id] = await voice_channel.connect()
-                await interaction.response.send_message(f"I joined the voice channel <#{voice_channel.id}>")
+                await interaction.response.send_message(f"I've joined the voice channel <#{voice_channel.id}>")
                 self.fallback_channel[guild_id] = interaction.channel
             elif self.vc[guild_id].channel.id != voice_channel.id:
                 # The bot has been connected to a voice channel but not as same as the author or required one
@@ -655,7 +626,7 @@ Just curious to know, where should I move them all into right now, <@{interactio
         if member.voice is None and interaction.user.id == self.bot.application_id:
             return await interaction.response.send_message(f"I'm currently not in a voice channel.")
         elif interaction.user.voice is None:
-            return await interaction.response.send_message(f"You're currently not in a voice channel!")
+            return await interaction.response.send_message(f"You're currently not in a voice channel !")
         elif member.voice is None:
             return await interaction.response.send_message(f"<@{member.id}> currently not in a voice channel.")
         # Check the target vc
