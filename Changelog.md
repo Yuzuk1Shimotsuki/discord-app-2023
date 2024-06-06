@@ -599,9 +599,14 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 **"root/general/VoiceChannel.py"**
 
-(+) Some code improvement and bug fixes
+v
 
 (+) The bot will now return error if no user were in the vc while trying to move them to another vc
 
 (+) Combined the main component of end vc call and moving all users
 
+#
+
+# 20240607
+
+(+) Minior code improvement and bug fixes
