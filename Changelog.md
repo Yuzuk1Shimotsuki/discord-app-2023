@@ -599,8 +599,6 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 **"root/general/VoiceChannel.py"**
 
-v
-
 (+) The bot will now return error if no user were in the vc while trying to move them to another vc
 
 (+) Combined the main component of end vc call and moving all users
@@ -610,3 +608,17 @@ v
 # 20240607
 
 (+) Minior code improvement and bug fixes
+
+#
+
+# 20240608
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added Volume Control function and command **"replay()"**
+
+(-/+) Rewrited some codes on line 5, 196 and 221 due to above implementation
+
+(+) Minior code improvement and bug fixes
+
+

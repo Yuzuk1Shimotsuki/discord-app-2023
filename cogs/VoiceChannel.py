@@ -2,7 +2,7 @@ import discord
 import os
 import shutil
 import asyncio
-from discord import app_commands, Interaction, FFmpegPCMAudio
+from discord import app_commands, Interaction, FFmpegPCMAudio, PCMVolumeTransformer
 from discord.ext import commands
 from discord.app_commands.errors import MissingPermissions
 from youtubesearchpython import VideosSearch
@@ -49,6 +49,7 @@ class VoiceChannel(commands.Cog):
         self.is_paused = {}
         self.current_music_queue_index = {}
         self.music_queue = {}
+        self.player_volume = {}
         self.YDL_OPTIONS = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -88,6 +89,7 @@ class VoiceChannel(commands.Cog):
             self.current_music_queue_index[guild_id] = 0
             self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
+            self.player_volume[guild_id] = 100  # 0 - 200%
             self.recording_vc[guild_id] = None
 
     @commands.Cog.listener()
@@ -191,7 +193,7 @@ class VoiceChannel(commands.Cog):
             else:
                 source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
                 before_options = options = None
-            self.vc[guild_id].play(FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
@@ -216,11 +218,10 @@ class VoiceChannel(commands.Cog):
             if self.vc[guild_id] is None:
                 self.vc[guild_id] = await interaction.user.voice.channel.connect()
                 self.fallback_channel[guild_id] = interaction.channel
-            self.vc[guild_id].play(FFmpegPCMAudio(source, before_options=before_options, options=options), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         else:
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
-
 
     # Discord Autocomplete for YouTube search, rewrited for discord.py
     async def yt_autocomplete(self,
@@ -403,7 +404,47 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         else:
             prev_embed.add_field(name="", value="There is no previous track in the queue. I'm not even in a voice channel.", inline=False)
         await interaction.response.send_message(embed=prev_embed)
-        
+
+    # Replay the current track in the queue
+    @app_commands.command(name="replay", description="Replay the current track from the beginning")
+    async def replay(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        replay_embed = discord.Embed(title="", color=interaction.user.colour)
+        self.current_music_queue_index[guild_id] -= 1
+        self.vc[guild_id].stop()
+        replay_embed.add_field(name="", value=f"Replaying the current track...", inline=False)
+        await interaction.response.send_message(embed=replay_embed)
+
+    # Change the volume of the music player
+    @app_commands.command(name="volume", description="Change the volume of the music player")
+    @app_commands.describe(volume="The new volume you want me to set. Leave this blank if you want me to set it as default.")
+    async def volume(self, interaction: Interaction, volume: Optional[app_commands.Range[int, 0, 200]] = 100):
+        guild_id = interaction.guild.id
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        volume_embed = discord.Embed(title="", color=interaction.user.colour)
+        if self.vc[guild_id] is None:
+            volume_embed.add_field(name="", value="I'm not in a voice channel!", inline=False)
+        elif self.vc[guild_id].source is None:
+            self.player_volume[guild_id] = volume
+            volume_embed.add_field(name="", value=f"Changed volume to **{volume}%**. The change will be effected when music starts to play.", inline=False)
+        else:
+            self.vc[guild_id].source.volume = volume / 100
+            self.player_volume[guild_id] = volume
+            volume_embed.add_field(name="", value=f"Changed volume to **{volume}%**", inline=False)
+        await interaction.response.send_message(embed=volume_embed)
+
+    # Show the volume of the music player
+    @app_commands.command(name="showvolume", description="Show the volume of the music player")
+    async def showvolume(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        volume_embed = discord.Embed(title="", color=interaction.user.colour)
+        if self.vc[guild_id] is None:
+            volume_embed.add_field(name="", value="I'm not in a voice channel!", inline=False)
+        else:
+            volume_embed.add_field(name="", value=f"Volume: **{self.player_volume[guild_id]}%**", inline=False)
+        await interaction.response.send_message(embed=volume_embed)
+
     # Shows the queue
     @app_commands.command(name="queue", description="Shows the queue in this server")
     async def queue(self, interaction: Interaction):
