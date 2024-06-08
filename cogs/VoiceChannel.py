@@ -29,7 +29,7 @@ class BotAlreadyInVoiceError():
 **I'm currently in:** <#{self.bot_vc.id}>
 **You're currently in:** <#{self.user_vc.id}>'''
     def notrequired(self):
-        return f'''I've already joined the voice channel :D , but not the required one ~
+        return f'''I've already joined the voice channel :D , but not the one you wanted me to join ~
 **I'm currently in:** <#{self.bot_vc.id}>
 **The channel you wanted me to join:** <#{self.user_vc.id}>'''
     def same(self):
@@ -44,12 +44,13 @@ class VoiceChannel(commands.Cog):
         self.fallback_channel = {}
         # Music playing from YT
         # all the music related stuff
-        global audio_source
         self.is_playing = {}
         self.is_paused = {}
         self.current_music_queue_index = {}
         self.music_queue = {}
         self.player_volume = {}
+        self.repeat_one = {}
+        self.repeat_all = {}
         self.YDL_OPTIONS = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -85,11 +86,13 @@ class VoiceChannel(commands.Cog):
             guild_id = int(guild.id)
             # 2d array containing [song, filetype]
             self.fallback_channel[guild_id] = None
-            self.music_queue[guild_id] = []
-            self.current_music_queue_index[guild_id] = 0
-            self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
+            self.current_music_queue_index[guild_id] = 0
+            self.music_queue[guild_id] = []
             self.player_volume[guild_id] = 100  # 0 - 200%
+            self.repeat_one[guild_id] = False
+            self.repeat_all[guild] = False
+            self.vc[guild_id] = None
             self.recording_vc[guild_id] = None
 
     @commands.Cog.listener()
@@ -120,10 +123,13 @@ class VoiceChannel(commands.Cog):
                 await self.fallback_channel[guild_id].send("I left the voice channel.", silent=True)
             # Reset all settings on guild
             self.fallback_channel[guild_id] = None
-            self.music_queue[guild_id] = []
-            self.current_music_queue_index[guild_id] = 0
-            self.vc[guild_id] = None
             self.is_paused[guild_id] = self.is_playing[guild_id] = False
+            self.current_music_queue_index[guild_id] = 0
+            self.music_queue[guild_id] = []
+            self.player_volume[guild_id] = 100  # 0 - 200%
+            self.repeat_one[guild_id] = False
+            self.repeat_all[guild] = False
+            self.vc[guild_id] = None
             self.recording_vc[guild_id] = None
             guild_custom_dir = f"plugins/custom_audio/guild/{guild_id}"
             if os.path.exists(guild_custom_dir):
@@ -175,14 +181,16 @@ class VoiceChannel(commands.Cog):
             else:
                 raise e
 
-    # Infinite loop checking 
+    # Auto plays the next track accordingly, with conditions.
     async def auto_play_next(self, interaction: Interaction):
         guild_id = interaction.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
+        if not self.repeat_one[guild_id]:
+            self.current_music_queue_index[guild_id] += 1
+        print(len(self.music_queue[guild_id]))
         if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
             self.is_playing[guild_id] = True
             self.is_paused[guild_id] = False
-            self.current_music_queue_index[guild_id] += 1
             if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
                 raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
                 loop = asyncio.get_event_loop()
@@ -193,8 +201,16 @@ class VoiceChannel(commands.Cog):
             else:
                 source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
                 before_options = options = None
+            # Loop 
             self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+        # Executed after the player gone through all the taracks
+        # Normally the player will be stopped, except "repeat all" was set to True.
+        elif self.repeat_all[guild_id]:
+            # Repeat all tracks
+            self.current_music_queue_index[guild_id] = 0
+            await self.play_music(interaction)
         else:
+            # Stops the player
             self.is_playing[guild_id] = False
             self.is_paused[guild_id] = False
 
@@ -202,26 +218,23 @@ class VoiceChannel(commands.Cog):
     async def play_music(self, interaction: Interaction):
         guild_id = interaction.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-        if self.current_music_queue_index[guild_id] < len(self.music_queue[guild_id]):
-            self.is_playing[guild_id] = True
-            self.is_paused[guild_id] = False
-            if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
-                raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
-                loop = asyncio.get_event_loop()
-                data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
-                source = data['url']
-                before_options = self.FFMPEG_OPTIONS["before_options"]
-                options = self.FFMPEG_OPTIONS["options"]
-            else:
-                source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
-                before_options = options = None
-            if self.vc[guild_id] is None:
-                self.vc[guild_id] = await interaction.user.voice.channel.connect()
-                self.fallback_channel[guild_id] = interaction.channel
-            self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+        self.is_playing[guild_id] = True
+        self.is_paused[guild_id] = False
+        if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
+            raw_track = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["source"]
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(None, lambda: self.ytdl.extract_info(raw_track, download=False))
+            source = data['url']
+            before_options = self.FFMPEG_OPTIONS["before_options"]
+            options = self.FFMPEG_OPTIONS["options"]
         else:
-            self.is_playing[guild_id] = False
-            self.is_paused[guild_id] = False
+            source = self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]["audio_path"]
+            before_options = options = None
+        if self.vc[guild_id] is None:
+            self.vc[guild_id] = await interaction.user.voice.channel.connect()
+            self.fallback_channel[guild_id] = interaction.channel
+        # Plays the track. After the track is played, it will be checked in coroutine "auto_play_next" for further operation.
+        self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
 
     # Discord Autocomplete for YouTube search, rewrited for discord.py
     async def yt_autocomplete(self,
@@ -300,16 +313,23 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                     play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it？", inline=False)
                     return await interaction.followup.send(embed=play_embed)
                 track_title = track["filename"]
-            if self.is_playing[guild_id]:
-                play_embed.add_field(name="", value=f"**#{1 + len(self.music_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
-            else:
-                play_embed.add_field(name="", value=f"**'{track_title}'** added to the queue", inline=False)
+            # Append the audio to the queue
             self.music_queue[guild_id].append([track, source.value])
+            if len(self.music_queue[guild_id]) - 1 > 0:
+                # The queue contains more than 1 audio
+                play_embed.add_field(name="", value=f"**#{len(self.music_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
+            else:
+                # The queue only contains 1 audio
+                play_embed.add_field(name="", value=f"**'{track_title}'** added to the queue", inline=False)
             await interaction.followup.send(embed=play_embed)
-            if self.is_playing[guild_id] == False:
+            # Starts from index 0 if the queue only contains 1 audio
+            if len(self.music_queue[guild_id]) - 1 == 0:
                 self.current_music_queue_index[guild_id] = 0
+            # Plays the audio
+            if not self.is_playing[guild_id]:
                 await self.play_music(interaction)
         else:
+            # The author is currently not in a voice channel
             await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
 
     # Pauses the current track
@@ -326,9 +346,9 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
             elif self.is_paused[guild_id] and not self.is_playing[guild_id]:
                 pause_embed.add_field(name="", value="The track has been already paused!", inline=False)
             else:
-                pause_embed.add_field(name="", value="No track was playing in voice channel.", inline=False)
+                pause_embed.add_field(name="", value="No tracks were playing in voice channel.", inline=False)
         else:
-            pause_embed.add_field(name="", value="No track was playing. I'm not even in a voice channel.", inline=False)
+            pause_embed.add_field(name="", value="No tracks were playing. I'm not even in a voice channel.", inline=False)
         await interaction.response.send_message(embed=pause_embed)
 
     # Resume a paused track
@@ -355,6 +375,9 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         guild_id = interaction.guild.id
         skip_embed = discord.Embed(title="", color=interaction.user.colour)
         if self.vc[guild_id] is not None:
+            # Disable "repeat one" temporarily as it would affecting the entire process
+            repeat_one = self.repeat_one[guild_id]
+            self.repeat_one[guild_id] = False
             if self.current_music_queue_index[guild_id] > len(self.music_queue[guild_id]) - 1:
                 # The author has been already gone through all tracks in the queue
                 skip_embed.add_field(name="", value=f"<@{interaction.user.id}> You have already gone through all tracks in the queue.", inline=False)
@@ -373,6 +396,10 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 else:
                     skip_embed.add_field(name="", value="Skipped the current track", inline=False)
             self.vc[guild_id].stop()
+            if repeat_one:
+            # Enable "repeat one" if it was enabled intentionally
+                await asyncio.sleep(2)
+                self.repeat_one[guild_id] = True
         else:
             skip_embed.add_field(name="", value="I'm not in a voice channel.", inline=False)
         await interaction.response.send_message(embed=skip_embed)
@@ -405,13 +432,65 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
             prev_embed.add_field(name="", value="There is no previous track in the queue. I'm not even in a voice channel.", inline=False)
         await interaction.response.send_message(embed=prev_embed)
 
+    # Looping the current track or all tracks in the list
+    @app_commands.command(name="repeat", description="Looping the current track or all tracks in the list")
+    @app_commands.describe(type="The type to repeat (Can be the current track or all tracks)")
+    @app_commands.choices(type=[app_commands.Choice(name="Repeat one", value="repeat_one"),
+                                 app_commands.Choice(name="Repeat all", value="repeat_all")
+                                 ])
+    @app_commands.choices(option=[app_commands.Choice(name="True", value="true"),
+                                 app_commands.Choice(name="False", value="false")
+                                 ])
+    async def repeat(self, interaction: Interaction, type: app_commands.Choice[str], option: app_commands.Choice[str]):
+        guild_id = interaction.guild.id
+        repeat_embed = discord.Embed(title="", color=interaction.user.colour)
+        if type.value == "repeat_one":
+            if self.repeat_one[guild_id] and option.value == "true":
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been already **enabled**!''', inline=False)
+            elif not self.repeat_one[guild_id] and option.value == "false":
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been already **disabled**!''', inline=False)
+            elif not self.repeat_one[guild_id] and option.value == "true":
+                self.repeat_all[guild_id] = False
+                self.repeat_one[guild_id] = True
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been **enabled**.''', inline=False)
+            elif self.repeat_one[guild_id] and option.value == "false":
+                self.repeat_one[guild_id] = False
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been **disabled**.''', inline=False)
+        else:
+            if self.repeat_all[guild_id] and option.value == "true":
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been already **enabled**!''', inline=False)
+            elif not self.repeat_all[guild_id] and option.value == "false":
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been already **disabled**!''', inline=False)
+            elif not self.repeat_all[guild_id] and option.value == "true":
+                self.repeat_one[guild_id] = False
+                self.repeat_all[guild_id] = True
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been **enabled**.''', inline=False)
+            elif self.repeat_all[guild_id] and option.value == "false":
+                self.repeat_all[guild_id] = False
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been **disabled**.''', inline=False)
+        await interaction.response.send_message(embed=repeat_embed)
+
     # Replay the current track in the queue
     @app_commands.command(name="replay", description="Replay the current track from the beginning")
     async def replay(self, interaction: Interaction):
         guild_id = interaction.guild.id
+        self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
         replay_embed = discord.Embed(title="", color=interaction.user.colour)
-        self.current_music_queue_index[guild_id] -= 1
+        if self.vc[guild_id] is None:
+            replay_embed.add_field(name="", value="I'm not in a voice channel!", inline=False)
+            return await interaction.response.send_message(embed=replay_embed)
+        if not self.is_playing[guild_id]:
+            replay_embed.add_field(name="", value="No tracks were playing in voice channel.", inline=False)
+            return await interaction.response.send_message(embed=replay_embed)
+        # Disable "repeat one" temporarily as it would affecting the entire process
+        repeat_one = self.repeat_one[guild_id]
+        self.repeat_one[guild_id] = False
         self.vc[guild_id].stop()
+        self.current_music_queue_index[guild_id] -= 1
+        if repeat_one:
+            # Enable "repeat one" if it was enabled intentionally
+            await asyncio.sleep(2)
+            self.repeat_one[guild_id] = True
         replay_embed.add_field(name="", value=f"Replaying the current track...", inline=False)
         await interaction.response.send_message(embed=replay_embed)
 
@@ -468,11 +547,11 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 else:
                     # Custom file
                     queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['filename']}", inline=False)
-                queue_embed.add_field(name="Upcoming tracks:", value=retval, inline=False)
+                queue_embed.add_field(name="Upcoming Tracks:", value=retval, inline=False)
             elif self.current_music_queue_index[guild_id] == len(self.music_queue[guild_id]):
                 # Returns nothing if the queue has been ended
                 queue_embed.add_field(name="Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
-                queue_embed.add_field(name="Upcoming tracks:", value="There are no upcoming tracks will be played", inline=False)
+                queue_embed.add_field(name="Upcoming Tracks:", value="There are no upcoming tracks will be played", inline=False)
             else:
                 # Return the track that currently playing if that track was the last track in the queue
                 if self.music_queue[guild_id][self.current_music_queue_index[guild_id]][1] == "yt":
@@ -481,10 +560,16 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 else:
                     # Custom file
                     queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{self.current_music_queue_index[guild_id] + 1}** - {self.music_queue[guild_id][self.current_music_queue_index[guild_id]][0]['filename']}", inline=False)
-                queue_embed.add_field(name="Upcoming tracks:", value="There are no upcoming tracks will be played", inline=False)
+                queue_embed.add_field(name="Upcoming Tracks:", value="There are no upcoming tracks will be played", inline=False)
         else:
             # Returns nothing if the queue was empty
             queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
+        if self.repeat_one[guild_id]:
+            queue_embed.add_field(name='\u200b', value="", inline=False)
+            queue_embed.add_field(name='''"Repeat one" has been enabled.''', value="", inline=False)
+        if self.repeat_all[guild_id]:
+            queue_embed.add_field(name='\u200b', value="", inline=False)
+            queue_embed.add_field(name='''"Repeat all" has been enabled.''', value="", inline=False)
         await interaction.response.send_message(embed=queue_embed)
 
     # Stops the track currently playing and clears the queue
