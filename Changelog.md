@@ -611,7 +611,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 #
 
-# 20240608
+# 20240608 (morning)
 
 **"root/general/VoiceChannel.py"**
 
@@ -621,4 +621,14 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and bug fixes
 
+#
 
+# 20240608 (night)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added repeat one or all tracks function
+
+(-/+) Rewrited the entire player logic due to above implementation
+
+(+) Minior improvements and bug fixes
