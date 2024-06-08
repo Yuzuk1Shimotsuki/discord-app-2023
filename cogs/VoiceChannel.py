@@ -91,7 +91,7 @@ class VoiceChannel(commands.Cog):
             self.music_queue[guild_id] = []
             self.player_volume[guild_id] = 100  # 0 - 200%
             self.repeat_one[guild_id] = False
-            self.repeat_all[guild] = False
+            self.repeat_all[guild_id] = False
             self.vc[guild_id] = None
             self.recording_vc[guild_id] = None
 
@@ -128,7 +128,7 @@ class VoiceChannel(commands.Cog):
             self.music_queue[guild_id] = []
             self.player_volume[guild_id] = 100  # 0 - 200%
             self.repeat_one[guild_id] = False
-            self.repeat_all[guild] = False
+            self.repeat_all[guild_id] = False
             self.vc[guild_id] = None
             self.recording_vc[guild_id] = None
             guild_custom_dir = f"plugins/custom_audio/guild/{guild_id}"
