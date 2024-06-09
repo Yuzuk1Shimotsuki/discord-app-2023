@@ -318,7 +318,7 @@ class VoiceChannel(commands.Cog):
                 source = track_queue[guild_id][current_track_queue_index[guild_id]][0]["audio_path"]
                 before_options = options = None
             # Loop 
-            self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, executable="C:\\FFmpeg\\ffmpeg.exe", before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         # Executed after the player gone through all the taracks
         # Normally the player will be stopped, except "repeat all" was set to True.
         elif repeat_all[guild_id]:
@@ -350,7 +350,7 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = await interaction.user.voice.channel.connect()
             self.fallback_channel[guild_id] = interaction.channel
         # Plays the track. After the track is played, it will be checked in coroutine "auto_play_next" for further operation.
-        self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, executable="C:\\FFmpeg\\ffmpeg.exe", before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+        self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
 
     # Discord Autocomplete for YouTube search, rewrited for discord.py
     async def yt_autocomplete(self,
