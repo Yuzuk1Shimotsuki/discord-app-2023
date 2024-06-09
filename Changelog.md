@@ -632,3 +632,23 @@ A blank line will now shown and deletes immediately when the command are all fin
 (-/+) Rewrited the entire player logic due to above implementation
 
 (+) Minior improvements and bug fixes
+
+#
+
+# 20240609
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added track paging function with dropdown menu
+
+(-/+) Renamed varibale **"music_queue"** as **"track_queue"** and **"current_music_queue_index"** as **"current_track_queue_index"**.
+
+(-/+) Some queue variables and repeat are now redefined as global due to above implementation
+
+(+) Defined scalable variable **"tracks_per_page"** due to above implementation
+
+(-/+) Rewrited the entire queue system due to above implementation
+
+(+) Fixed track skipping not functional when attempting to skip to the last track in the queue.
+
+(+) Minior code improvements and futher bug fixes
