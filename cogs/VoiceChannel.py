@@ -78,7 +78,9 @@ class MySelect(Select):
             for i in range(2, total_page + 1):
                 start = 1 + end
                 end = start + tracks_per_page
-                if end > len(track_queue[guild_id]):
+                if start >= len(track_queue[guild_id]) + 1:
+                    break
+                elif end > len(track_queue[guild_id]):
                     global_selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_queue[guild_id])}"))
                 else:
                     global_selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {end}"))
@@ -683,8 +685,13 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                     # 2nd page and so on
                     start = 1 + end
                     end = start + tracks_per_page
-                    if end > len(track_queue[guild_id]):
-                        selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_queue[guild_id])}"))
+                    if start >= len(track_queue[guild_id]) + 1:
+                        break
+                    elif end >= len(track_queue[guild_id]):
+                        if start > len(track_queue[guild_id]) - 1:
+                            selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{len(track_queue[guild_id])}"))
+                        else:
+                            selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_queue[guild_id])}"))
                     else:
                         selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {end}"))
             # Retrieving tracks
