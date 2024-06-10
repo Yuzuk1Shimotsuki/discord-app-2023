@@ -506,7 +506,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 skip_embed.add_field(name="", value="The amount of tracks you tried to skip exceeded the total number of available tracks can be skipped in the queue. Automatically skipping to the last track in the queue...", inline=False)
             elif amount == len(track_queue[guild_id]) - (current_track_queue_index[guild_id]):
                 # The author just skipped the final track
-                skip_embed.add_field(name="", value=f"Skipped the final track. There are no upcoming tracks will be played.", inline=False)
+                skip_embed.add_field(name="", value=f'''Skipped the final track. There are no upcoming tracks will be played unless **"Repeat all"** was **enabled**.''', inline=False)
                 current_track_queue_index[guild_id] += amount - 1
             else:
                 # Skip the required amount of tracks

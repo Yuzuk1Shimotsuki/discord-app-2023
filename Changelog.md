@@ -669,3 +669,4 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Fixed last track not displaying correctly in the queue.
 
+(+) Minior code improvement
