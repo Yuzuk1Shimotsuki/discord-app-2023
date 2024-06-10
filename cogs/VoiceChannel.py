@@ -666,7 +666,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 queue_embed.add_field(name=f"Now Playing :notes: ({current_track_queue_index[guild_id] + 1}/{len(track_queue[guild_id])}) :", value=f"**#{current_track_queue_index[guild_id] + 1}** - {track_queue[guild_id][current_track_queue_index[guild_id]][0]['title']}", inline=False)
             else:
                 # Custom file
-                queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{current_track_queue_index[guild_id] + 1}** - {track_queue[guild_id][current_track_queue_index[guild_id]][0]['filename']}", inline=False)
+                queue_embed.add_field(name=f"Now Playing :notes: ({current_track_queue_index[guild_id] + 1}/{len(track_queue[guild_id])}) :", value=f"**#{current_track_queue_index[guild_id] + 1}** - {track_queue[guild_id][current_track_queue_index[guild_id]][0]['filename']}", inline=False)
             queue_embed.add_field(name="Upcoming Tracks:", value="There are no upcoming tracks will be played", inline=False)
             view = None
         else:
