@@ -652,3 +652,12 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Fixed track skipping not functional when attempting to skip to the last track in the queue.
 
 (+) Minior code improvements and futher bug fixes
+
+#
+
+# 20240609 (night)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Fixed queue not displaying correctly when there are more than 15 tracks in the queue.
+
