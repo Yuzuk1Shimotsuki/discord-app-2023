@@ -1,5 +1,6 @@
 import discord
 import os
+import math
 import shutil
 import asyncio
 from discord import app_commands, Interaction, FFmpegPCMAudio, PCMVolumeTransformer, SelectOption
@@ -64,7 +65,7 @@ class MySelect(Select):
         page = int(self.values[0])
         # Refresh page
         # 1st page
-        total_page = int(round((len(track_queue[guild_id]) - current_track_queue_index[guild_id]) / tracks_per_page, 0))
+        total_page = math.ceil(float((len(track_queue[guild_id]) - current_track_queue_index[guild_id]) / tracks_per_page))
         start = current_track_queue_index[guild_id] + 1
         if len(track_queue[guild_id]) - current_track_queue_index[guild_id] - 1 > tracks_per_page:
             end = current_track_queue_index[guild_id] + 1 + tracks_per_page
@@ -669,7 +670,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         else:
             # Refreshing page
             # 1st page
-            total_page = int(round((len(track_queue[guild_id]) - current_track_queue_index[guild_id]) / tracks_per_page, 0))
+            total_page = math.ceil(float((len(track_queue[guild_id]) - current_track_queue_index[guild_id]) / tracks_per_page))
             start = current_track_queue_index[guild_id] + 1
             if len(track_queue[guild_id]) - current_track_queue_index[guild_id] - 1 > tracks_per_page:
                 end = current_track_queue_index[guild_id] + 1 + tracks_per_page
