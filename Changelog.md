@@ -677,7 +677,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Added missing error handling for command **"vkick()"** in **"root/general/VoiceChannel.py"**
 
-(+) Optimized all fallback messages regarding moderation
+(+) Optimized all fallback messages for moderation section
 
 (+) Minior code improvement
 
