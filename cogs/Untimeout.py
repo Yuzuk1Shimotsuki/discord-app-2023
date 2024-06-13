@@ -19,15 +19,15 @@ class Untimeout(commands.Cog):
     async def untimeout(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         if reason == None:
             await member.timeout(None)
-            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.user.id}>.")
+            await interaction.response.send_message(f"<@{member.id}> has been **untimed out**.")
         else:
             await member.timeout(None, reason=reason)
-            await interaction.response.send_message(f"<@{member.id}> has been untimed out by <@{interaction.user.id}>. Reason: {reason}.")
+            await interaction.response.send_message(f"<@{member.id}> has been **untimed out**. Reason: **{reason}**.")
 
     @untimeout.error
     async def untimeout_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("You cannot do this without moderate members permissions!")
+            await interaction.response.send_message("You cannot do this **without moderate members permissions**!")
         else:
             raise error
 

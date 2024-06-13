@@ -21,20 +21,20 @@ class Unmute(commands.Cog):
     async def unmute_text(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         muted = discord.utils.get(interaction.guild.roles, name="Muted")
         if muted not in member.roles:
-            await interaction.response.send_message(f"<@{member.id}> has not been muted!", ephemeral=True)
+            await interaction.response.send_message(f"<@{member.id}> has **not been muted** currently.", ephemeral=True)
             return
         else:
             if reason is None:
                 await member.remove_roles(muted)
-                await interaction.response.send_message(f"<@{member.id}> has been unmuted from text by <@{interaction.user.id}>.")
+                await interaction.response.send_message(f"<@{member.id}> has been **unmuted from text**.")
             else:
                 await member.remove_roles(muted, reason=reason)
-                await interaction.response.send_message(f"<@{member.id}> has been unmuted from text by <@{interaction.user.id}>. Reason: {reason}.")
+                await interaction.response.send_message(f"<@{member.id}> has been **unmuted from text**. Reason: **{reason}**.")
 
     @unmute_text.error
     async def unmute_text_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("You cannot do this without moderate members permissions!")
+            await interaction.response.send_message("You cannot do this **without moderate members permissions**!")
         else:
             raise error
 
@@ -46,15 +46,15 @@ class Unmute(commands.Cog):
     async def unmute_voice(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         if reason is None:
             await member.edit(mute=False)
-            await interaction.response.send_message(f"<@{member.id}> has been unmuted from voice by <@{interaction.user.id}>.")
+            await interaction.response.send_message(f"<@{member.id}> has been **unmuted from voice**.")
         else:
             await member.edit(mute=False, reason=reason)
-            await interaction.response.send_message(f"<@{member.id}> has been unmuted from voice by <@{interaction.user.id}>. Reason: {reason}.")
+            await interaction.response.send_message(f"<@{member.id}> has been **unmuted from voice**. Reason: **{reason}**.")
 
     @unmute_voice.error
     async def unmute_voice_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("You cannot do this without moderate members permissions!")
+            await interaction.response.send_message("You cannot do this **without moderate members permissions**!")
         else:
             raise error
 
