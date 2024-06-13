@@ -20,17 +20,17 @@ class Unban(commands.Cog):
         try:
             await interaction.guild.unban(user)
             if reason is None:
-                await interaction.response.send_message(f"{user.mention} has been unbanned.")
+                await interaction.response.send_message(f"{user.mention} has been **unbanned**.")
             else:
-                await interaction.response.send_message(f"{user.mention} has been unbanned. Reason: {reason}")
+                await interaction.response.send_message(f"{user.mention} has been **unbanned**. Reason: **{reason}**")
         except discord.errors.NotFound:
-            await interaction.response.send_message(f"{user.mention} is not banned currently.")
+            await interaction.response.send_message(f"{user.mention} is **not banned** currently.")
 
     # Handle errors while unbanning a user
     @unban.error
     async def unban_error(self, interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to unban users!")
+            await interaction.response.send_message("It seems that you **don't have permission** to **unban users**!")
         else:
             raise error
 

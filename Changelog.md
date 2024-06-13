@@ -670,3 +670,15 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Fixed last track not displaying correctly in the queue.
 
 (+) Minior code improvement
+
+#
+
+# 20240614 (midnight)
+
+(+) Added missing error handling for command **"vkick()"** in **"root/general/VoiceChannel.py"**
+
+(+) Optimized all fallback messages regarding moderation
+
+(+) Minior code improvement
+
+
