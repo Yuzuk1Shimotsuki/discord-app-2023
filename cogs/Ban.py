@@ -57,7 +57,7 @@ class Ban(commands.Cog):
             else:
                 await self.bans_user(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
         else:
-            await interaction.response.send_message(f"<@{user.id}> is **not in the server** currently.\nTo **ban them from the server**, use the command </ban guild:1168049069969637456> instead. :wink:")
+            await interaction.response.send_message(f"<@{user.id}> is **not in the server** currently.\nTo **ban them from the server**, use the command </ban guild:1187832408888840205> instead. :wink:")
 
     # Ban users who is in the guild or not with user_id
     @ban.command(name="guild", description="Bans a user or member with the corresponding user_id")
@@ -72,7 +72,7 @@ class Ban(commands.Cog):
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.describe(member="Member to ban")
     @app_commands.describe(reason="Reason for ban")
-    async def ban_member(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
+    async def ban_member(self, interaction: Interaction, member: discord.User, reason: Optional[str] = None):
         await self.ban_check(interaction=interaction, user=member, reason=reason, ban_from_guild=False)
 
     @ban_member.error
