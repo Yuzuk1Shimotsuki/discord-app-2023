@@ -19,7 +19,7 @@ class Ban(commands.Cog):
             await user.ban(reason=reason)
         else:
             await interaction.guild.ban(user, reason=reason)
-        await interaction.response.send_message(f"<@{user.id}> has been banned. Reason: {reason}")
+        await interaction.response.send_message(f"<@{user.id}> has been **banned**. Reason: **{reason}**")
 
     # Check if the user is already banned or not
     async def banned_list_lookup(self, interaction, user):
@@ -34,13 +34,13 @@ class Ban(commands.Cog):
     async def ban_check(self, interaction, user, reason, ban_from_guild):
         if user.id == interaction.user.id:
             # checks to see if they're the same
-            await interaction.response.send_message("BRUH! You can't ban yourself!")
+            await interaction.response.send_message("BRUH! You can't **ban yourself**!")
         elif user.id == self.bot.application_id:
             # To prevent the bot bans itself from the server by accident
-            await interaction.response.send_message(f"i cannot just ban myself from the server ^u^")
+            await interaction.response.send_message(f"i cannot just **ban myself** from the server ^u^")
         # Checks to see if the user is banned from the server
         elif await self.banned_list_lookup(interaction, user):
-            await interaction.response.send_message(f"<@{user.id}> is already banned!")
+            await interaction.response.send_message(f"<@{user.id}> has been **already banned**!")
         # Checks to see if ban from guild or ban members is used
         elif ban_from_guild:
             await self.bans_user(interaction, user, reason, ban_from_guild=True)
@@ -53,11 +53,11 @@ class Ban(commands.Cog):
                     await self.bans_user(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
                 else:
                     # The author is not the server owner
-                    await interaction.response.send_message("Stop trying to ban an admin! :rolling_eyes:")
+                    await interaction.response.send_message("Stop trying to **ban an admin**! :rolling_eyes:")
             else:
                 await self.bans_user(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
         else:
-            await interaction.response.send_message(f"<@{user.id}> is not in the server currently.\nTo ban them from the server, use the command </ban guild:1168049069969637456> instead. :wink:")
+            await interaction.response.send_message(f"<@{user.id}> is **not in the server** currently.\nTo **ban them from the server**, use the command </ban guild:1168049069969637456> instead. :wink:")
 
     # Ban users who is in the guild or not with user_id
     @ban.command(name="guild", description="Bans a user or member with the corresponding user_id")
@@ -78,14 +78,14 @@ class Ban(commands.Cog):
     @ban_member.error
     async def on_ban_member_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to ban users!")
+            await interaction.response.send_message("It seems that you **don't have permission** to **ban members**!")
         else:
             raise error
 
     @ban_guild.error
     async def on_ban_guild_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to ban users!")
+            await interaction.response.send_message("It seems that you **don't have permission** to **ban users**!")
         else:
             raise error
 
