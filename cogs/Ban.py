@@ -13,12 +13,24 @@ class Ban(commands.Cog):
 
     # ----------<Ban users or members>----------
 
-    # Function for banning a user or member
-    async def bans_user(self, interaction: Interaction, user, reason, ban_from_guild):
-        if not ban_from_guild:
-            await user.ban(reason=reason)
+    # Main part to ban a user
+    async def ban_users(self, interaction: Interaction, user: discord.User, reason, ban_from_guild: bool):
+        # Only server owner has privilege to ban an admin. Admins are not allowed to ban another admins
+        if ban_from_guild:
+            if reason is None:
+                await interaction.guild.ban(user)
+            else:
+                await interaction.guild.ban(user, reason=reason)
+        elif user.guild_permissions.administrator and interaction.user.id != interaction.guild.owner.id:
+            # The author is not the server owner
+            return await interaction.response.send_message("Stop trying to **ban an admin**! :rolling_eyes:")
         else:
-            await interaction.guild.ban(user, reason=reason)
+            if reason is None:
+                await user.ban()
+            else:
+                await user.ban(reason=reason)
+        if reason is None:
+            return await interaction.response.send_message(f"<@{user.id}> has been **banned**.")
         await interaction.response.send_message(f"<@{user.id}> has been **banned**. Reason: **{reason}**")
 
     # Check if the user is already banned or not
@@ -43,20 +55,12 @@ class Ban(commands.Cog):
             await interaction.response.send_message(f"<@{user.id}> has been **already banned**!")
         # Checks to see if ban from guild or ban members is used
         elif ban_from_guild:
-            await self.bans_user(interaction, user, reason, ban_from_guild=True)
+            await self.ban_users(interaction, user, reason, ban_from_guild=True)
         # Executes the following if the user currently in the server
         elif interaction.guild.get_member(user.id) is not None:
-            if user.guild_permissions.administrator:
-                # Only server owner has privilege to ban an admin. Admins are not alowed to ban another admins
-                if interaction.user.id == interaction.guild.owner.id:
-                    # The author is the server owner
-                    await self.bans_user(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
-                else:
-                    # The author is not the server owner
-                    await interaction.response.send_message("Stop trying to **ban an admin**! :rolling_eyes:")
-            else:
-                await self.bans_user(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
+            await self.ban_users(interaction=interaction, user=user, reason=reason, ban_from_guild=False)
         else:
+            # The author used /ban mmeber, but tried to ban a user who was not in the server. 
             await interaction.response.send_message(f"<@{user.id}> is **not in the server** currently.\nTo **ban them from the server**, use the command </ban guild:1187832408888840205> instead. :wink:")
 
     # Ban users who is in the guild or not with user_id

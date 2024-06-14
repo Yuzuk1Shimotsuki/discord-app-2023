@@ -682,3 +682,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Minior code improvement
 
 
+#
+
+# 20240614 (night)
+
+**"root/general/Ban.py"**
+
+(-/+) Rewrited the user or guild ban logic mostly
+
+(+) Fixed guild ban cannot be functioned properly
+
