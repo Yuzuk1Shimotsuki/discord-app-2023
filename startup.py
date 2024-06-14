@@ -13,7 +13,6 @@ from datetime import datetime
 from quart import Quart
 from dotenv import load_dotenv
 
-
 load_dotenv()
 nest_asyncio.apply()
 app = Quart("DiscordBot")
@@ -22,7 +21,6 @@ logger = logging.getLogger(__name__)
 ConsoleOutputHandler = logging.StreamHandler()
 logger.addHandler(ConsoleOutputHandler)
 logging.basicConfig(filename='bot.log', level=logging.INFO)
-
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -32,7 +30,7 @@ class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
             intents=intents, 
-            command_prefix="?",
+            command_prefix="!",
             self_bot=False, strip_after_prefix = True
         )
 
@@ -86,7 +84,7 @@ async def sync(ctx):
         await msg.delete()
         await ctx.message.delete()
     else:
-        await ctx.reply(NotBotOwnerError)
+        await ctx.reply(NotBotOwnerError())
 
 # Load cogs manually
 @bot.command()
@@ -193,6 +191,17 @@ async def systeminfo(ctx):
     else:
         await ctx.reply(NotBotOwnerError())
 
+# Restart the bot (Use it only as a LAST RESORT)
+@bot.command()
+async def restart(ctx):
+    if await bot.is_owner(ctx.author):
+        bot.clear()
+        await bot.close()
+        # Restart
+        subprocess.Popen([sys.executable, *sys.argv])
+    else:
+        await ctx.reply(NotBotOwnerError())
+
 # Shut down the bot (SELF DESTRUCT)
 @bot.command()
 async def shutdown(ctx):
@@ -220,9 +229,8 @@ async def before_serving():
         if token == "":
             logger.error("No vaild tokens were found in the environment variable. Please add your token to the Secrets pane.")
             exit(1)
-        await bot.login(token)
-        loop.create_task(bot.connect())
         asyncio.run(load_extensions())
+        await bot.run(token)
     except discord.HTTPException as http_error:
         if http_error.status == 429:
             logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
@@ -257,4 +265,3 @@ async def my_shutdown():
 # Runs the whole application (Bot + Quart)
 if __name__ == "__main__":
     app.run(debug=False, port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
-    
