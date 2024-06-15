@@ -49,7 +49,7 @@
 
 **------**
 
-**"general/DisplayUserInfo.py" in line 40 and 41**
+**"root/general/DisplayUserInfo.py" in line 40 and 41**
 
 (+) Changed the command **user()** as the follows:
 
@@ -59,7 +59,7 @@
 
 #
 
-**"administration/GetBannedList.py" in line 29 and 32**
+**"root/moderation/GetBannedList.py" in line 29 and 32**
 
 (+) Changed the command **banned_list()** as follows
 
@@ -71,7 +71,7 @@
 
 **-----**
 
-**"general/VoiceChannel.py" in line 46 and 172**
+**"root/general/VoiceChannel.py" in line 46 and 172**
 
 (+) Fixed some grammatical errors in command **join()** and **move_all()** respectively
 
@@ -91,7 +91,7 @@
 # 
 
 # 20231105:
-(+) Added **"LockChannel.py"** in **"root/administration"** folder
+(+) Added **"LockChannel.py"** in **"root/moderation"** folder
 
 # 
 
@@ -99,7 +99,7 @@
 
 **-----**
 
-**"root/administration/LockChannel.py"**
+**"root/moderation/LockChannel.py"**
 
 (+) Fixed slow responding issue while handling lockdowns for multiple text channels
 
@@ -400,7 +400,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240123
 
-(-/+) Rewrited **"root/cogs/Poll.py"** for mutiple global server support
+(-/+) Rewrited **"root/general/Poll.py"** for mutiple global server support
 
 (+) Futher debugging
 
@@ -496,9 +496,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240309
 
-(+) Fixed errors when using default avatars for **"root/cogs/DisplayUserInfo.py"**
+(+) Fixed errors when using default avatars for **"root/general/DisplayUserInfo.py"**
 
-(+) Optimized the code sturcture in **"root/cogs/ReactingMessages.py"**
+(+) Optimized the code sturcture in **"root/general/ReactingMessages.py"**
 
 (+) Minor bug fixes and improvement
 
@@ -514,7 +514,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Bot owner can now shutdown the bot by entering "`command_prefix`shutdown" for maintenance on every server the bot in or DM. Other users attempting to do this will return **"NotBotOwnerError()"**.
 
-(+) Optimized error handling in **"root/cogs/ChatGPT.py"**
+(+) Optimized error handling in **"root/general/ChatGPT.py"**
 
 
 .
@@ -692,3 +692,16 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Fixed guild ban cannot be functioned properly
 
+#
+
+# 20240616 (midnight)
+
+(-/+) Seperated all cogs by its category again
+
+(-/+) Renamed **"cogs"** to **"general"**
+
+**"root/startup.py"**
+
+(-/+) Rewrited the logic for getting extensions
+
+(+) Minior code improvements and bug fixes
