@@ -17,7 +17,7 @@ load_dotenv()
 nest_asyncio.apply()
 app = Quart("DiscordBot")
 extensions = []
-extensions_folders = ['cogs', 'moderation']
+extensions_folders = ['general', 'moderation']
 
 logger = logging.getLogger(__name__)
 ConsoleOutputHandler = logging.StreamHandler()
