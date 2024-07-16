@@ -49,13 +49,13 @@ class ChatGPT(commands.Cog):
         return True
 
     # Clear chat history in ChatGPT
-    @commands.command(name="resetgpt", description="Clear chat history in ChatGPT")
+    @app_commands.command(name="resetgpt", description="Clear chat history in ChatGPT")
     async def chatgpt_reset(self, interaction: Interaction):
         if await self.reset_gpt():
             await interaction.response.send_message("Chat history has been cleared.", ephemeral=True, delete_after=1)
 
     # Chat with ChatGPT
-    @commands.command(name="chatgpt", description="Chat with ChatGPT")
+    @app_commands.command(name="chatgpt", description="Chat with ChatGPT")
     @app_commands.describe(prompt="Anything you would like to ask")
     async def chatgpt(self, interaction: Interaction, prompt: str):
         await interaction.response.defer()
