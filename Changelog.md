@@ -705,3 +705,14 @@ A blank line will now shown and deletes immediately when the command are all fin
 (-/+) Rewrited the logic for getting extensions
 
 (+) Minior code improvements and bug fixes
+
+#
+
+# 20240614 (night)
+
+**"root/general/ChatGPT.py"**
+
+(-/+) "Fixed" ChatGPT issue
+
+
+

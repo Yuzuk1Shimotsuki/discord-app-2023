@@ -3,28 +3,43 @@ import openai
 import os
 import ast
 import math
+from openai import OpenAI
 from discord import app_commands, Interaction
 from discord.ext import commands
 from langdetect import detect, DetectorFactory
 from datetime import datetime
 
+# Connects the bot to the OpenAI API
+api_key=os.environ.get("OPENAI_API_KEY")
+if api_key == "":
+    raise Exception(
+        "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.\nPlease add your OpenAI Key to the Secrets pane.")
+
+client = OpenAI(
+    api_key=api_key,
+    base_url="https://api.chatanywhere.cn/v1"
+)
 
 class ChatGPT(commands.Cog):
     def __init__(self, bot):
+        global client
         self.bot = bot
         # Default values for GPT model
-        self.chat_messages = []
-        self.chat_history = []
-        self.default_model_prompt_engine = "gpt-3.5-turbo-1106"
-        self.default_temperature = 0.8
-        self.default_max_tokens = 3840
-        self.default_top_p = 1.00
-        self.default_frequency_penalty = 0.00
-        self.default_presence_penalty = 0.00
+        self.chat_messages: list = []
+        self.chat_history: list = []
+        self.default_model_prompt_engine: str = "gpt-3.5-turbo-1106"
+        self.default_temperature: float = 0.8
+        self.default_max_tokens: int = 3840
+        self.default_top_p: float = 1.00
+        self.default_frequency_penalty: float = 0.00
+        self.default_presence_penalty: float = 0.00
         # This will be futher edited
-        self.default_instruction = f"You are ChatGPT, a large language model transformer AI product by OpenAI, and you are purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired."
-
-    chatgpt = app_commands.Group(name="chatgpt", description="Commands in ChatGPT")
+        self.default_instruction: str = f'''You are ChatGPT, a large language model transformer AI product by OpenAI, and you are 
+        purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing 
+        quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would 
+        want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires
+        and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html,
+        LaTeX formulas, or other output format or structure is desired.'''
 
     # ----------<ChatGPT>----------
 
@@ -34,15 +49,15 @@ class ChatGPT(commands.Cog):
         return True
 
     # Clear chat history in ChatGPT
-    @chatgpt.command(name="reset", description="Clear chat history in ChatGPT")
+    @commands.command(name="resetgpt", description="Clear chat history in ChatGPT")
     async def chatgpt_reset(self, interaction: Interaction):
         if await self.reset_gpt():
             await interaction.response.send_message("Chat history has been cleared.", ephemeral=True, delete_after=1)
 
     # Chat with ChatGPT
-    @chatgpt.command(name="prompt", description="Chat with ChatGPT")
+    @commands.command(name="chatgpt", description="Chat with ChatGPT")
     @app_commands.describe(prompt="Anything you would like to ask")
-    async def chatgpt_prompt(self, interaction: Interaction, prompt: str):
+    async def chatgpt(self, interaction: Interaction, prompt: str):
         await interaction.response.defer()
         # Main ChatGPT function
         try:
@@ -50,7 +65,7 @@ class ChatGPT(commands.Cog):
                 await self.reset_gpt()
             self.chat_messages.append({"role": "system", "content": self.default_instruction})
             self.chat_messages.append({"role": "user", "content": prompt})
-            response = openai.chat.completions.create(
+            response = client.chat.completions.create(
                 model=self.default_model_prompt_engine,
                 messages=self.chat_messages,
                 temperature=self.default_temperature,
@@ -65,7 +80,7 @@ class ChatGPT(commands.Cog):
             # Adding the response to the chat history. Chat history can be store a maximum of the most recent 15 conversations.
             self.chat_history.append({"role": "assistant", "content": gpt_response})
             # Returning the response to the author
-            quote = f"> <@{interaction.author.id}>: **{prompt}**"
+            quote = f"> <@{interaction.user.id}>: **{prompt}**"
             final_response = f"{quote}\n{discord.utils.escape_markdown(' ')}\n{gpt_response}"
             # Since Discord has a maximum limit of 2000 charaters for each single message, the response needs to be checked in advance and decide wherether it needs to trucate into mutiple messages or not
             over_max_limit_times = math.trunc(len(final_response) / 2000)
@@ -145,12 +160,6 @@ class ChatGPT(commands.Cog):
             error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
             await interaction.followup.send(embed=error_embed)
             pass
-
-    # Connects the bot to the OpenAI API
-    openai.api_key = os.environ.get("OPENAI_API_KEY") or ""
-    if openai.api_key == "":
-        raise Exception(
-            "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.\nPlease add your OpenAI Key to the Secrets pane.")
 
 # ----------</ChatGPT>----------
 
