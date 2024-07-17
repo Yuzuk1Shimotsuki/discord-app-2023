@@ -708,11 +708,20 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 #
 
-# 20240614 (night)
+# 20240716 (night)
 
 **"root/general/ChatGPT.py"**
 
 (-/+) "Fixed" ChatGPT issue
 
+#
+
+# 20240718 (midnight)
+
+**"root/general/ChatGPT.py"**
+
+(+) Improved prompting
+
+(+) Command **"resetgpt()"** is now for bot owner only
 
 
