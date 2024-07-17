@@ -20,54 +20,83 @@ client = OpenAI(
     base_url="https://api.chatanywhere.cn/v1"
 )
 
+class NotBotOwnerError:
+    def __repr__(self) -> str:
+        return "Sorry, only the bot owner can perform this command."
+
 class ChatGPT(commands.Cog):
     def __init__(self, bot):
         global client
         self.bot = bot
         # Default values for GPT model
-        self.chat_messages: list = []
-        self.chat_history: list = []
+        self.chat_messages: dict = {}
+        self.chat_history: dict = {}
         self.default_model_prompt_engine: str = "gpt-3.5-turbo-1106"
         self.default_temperature: float = 0.8
-        self.default_max_tokens: int = 3840
-        self.default_top_p: float = 1.00
-        self.default_frequency_penalty: float = 0.00
-        self.default_presence_penalty: float = 0.00
+        self.default_max_tokens: int = 4000
+        self.default_top_p: float = 0.90
+        self.default_frequency_penalty: float = 0.50
+        self.default_presence_penalty: float = 0.50
         # This will be futher edited
         self.default_instruction: str = f'''You are ChatGPT, a large language model transformer AI product by OpenAI, and you are 
         purposed with satisfying user requests and questions with very verbose and fulfilling answers beyond user expectations in writing 
-        quality. Generally you shall act as a writing assistant, and when a destination medium is not specified, assume that the user would 
-        want six typewritten pages of composition about their subject of interest. Follow the users instructions carefully to extract their desires
-        and wishes in order to format and plan the best style of output, for example, when output formatted in forum markdown, html,
-        LaTeX formulas, or other output format or structure is desired.'''
+        quality, even provide some alternatives based on the topic. For example, if the user asking 'is md5 a encryption method?', you should answer directly first then provide
+        some reasons to support your evidence, and provide some alternative encryption method if you think md5 is not suitable for it since the user may looking for
+        them. When a destination medium is not specified, assume that the user would want six typewritten pages of composition about their subject of interest. Follow
+        the users instructions carefully to extract their desires and wishes in order to format and plan the best style of output, no need to summarize your content unless
+        other specified by user. For example, when output formatted in forum markdown, html, LaTeX formulas, or other output format or structure is desired.'''
 
     # ----------<ChatGPT>----------
 
-    async def reset_gpt(self):
-        self.chat_history = []
-        self.chat_messages = []
+    async def on_ready(self):
+        for guild in self.bot.guilds:
+            guild_id = int(guild.id)
+            self.chat_messages[guild_id] = []
+            self.chat_history[guild_id] = []
+
+    def reset_gpt(self, guild_id=None, reset_all=False):
+        if reset_all and guild_id is None:
+            for guild in self.bot.guilds:
+                guild_id = int(guild.id)
+                self.chat_history[guild_id] = []
+                self.chat_messages[guild_id] = []
+        else:
+            self.chat_history[guild_id] = []
+            self.chat_messages[guild_id] = []
         return True
 
     # Clear chat history in ChatGPT
     @app_commands.command(name="resetgpt", description="Clear chat history in ChatGPT")
-    async def chatgpt_reset(self, interaction: Interaction):
-        if await self.reset_gpt():
-            await interaction.response.send_message("Chat history has been cleared.", ephemeral=True, delete_after=1)
+    @app_commands.describe(type="Reset option")
+    @app_commands.choices(type=[app_commands.Choice(name="Reset for the current server", value="reset_current"),
+                                 app_commands.Choice(name="Reset for all servers", value="reset_all")
+                                 ])
+    async def resetgpt(self, interaction: Interaction, type: app_commands.Choice[str]):
+        guild_id = interaction.guild.id
+        if not await self.bot.is_owner(interaction.user):
+            return await interaction.response.send_message(NotBotOwnerError())
+        if type.value == "reset_current":
+            if self.reset_gpt(guild_id=guild_id, reset_all=False):
+                return await interaction.response.send_message("Chat history has been cleared.", ephemeral=True, delete_after=1)
+        else:   # reset_all
+            if self.reset_gpt(None, reset_all=True): 
+                return await interaction.response.send_message("Chat history has been cleared for all servers.", ephemeral=True, delete_after=1)
 
     # Chat with ChatGPT
     @app_commands.command(name="chatgpt", description="Chat with ChatGPT")
     @app_commands.describe(prompt="Anything you would like to ask")
     async def chatgpt(self, interaction: Interaction, prompt: str):
+        guild_id = interaction.guild.id
         await interaction.response.defer()
         # Main ChatGPT function
         try:
-            if len(self.chat_history) > 15:
+            if len(self.chat_history[guild_id]) > 15:
                 await self.reset_gpt()
-            self.chat_messages.append({"role": "system", "content": self.default_instruction})
-            self.chat_messages.append({"role": "user", "content": prompt})
+            self.chat_messages[guild_id].append({"role": "system", "content": self.default_instruction})
+            self.chat_messages[guild_id].append({"role": "user", "content": prompt})
             response = client.chat.completions.create(
                 model=self.default_model_prompt_engine,
-                messages=self.chat_messages,
+                messages=self.chat_messages[guild_id],
                 temperature=self.default_temperature,
                 max_tokens=self.default_max_tokens,
                 top_p=self.default_top_p,
@@ -76,9 +105,9 @@ class ChatGPT(commands.Cog):
             # Retriving the response from the GPT model
             # Starting from version 1.0.0, response objects are in pydantic models and no longer conform to the dictionary shape.
             gpt_response = response.choices[0].message.content
-            self.chat_messages.append({"role": "assistant", "content": gpt_response})
+            self.chat_messages[guild_id].append({"role": "assistant", "content": gpt_response})
             # Adding the response to the chat history. Chat history can be store a maximum of the most recent 15 conversations.
-            self.chat_history.append({"role": "assistant", "content": gpt_response})
+            self.chat_history[guild_id].append({"role": "assistant", "content": gpt_response})
             # Returning the response to the author
             quote = f"> <@{interaction.user.id}>: **{prompt}**"
             final_response = f"{quote}\n{discord.utils.escape_markdown(' ')}\n{gpt_response}"
