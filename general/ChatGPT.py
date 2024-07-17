@@ -48,6 +48,8 @@ class ChatGPT(commands.Cog):
 
     # ----------<ChatGPT>----------
 
+    # Startup
+    @commands.Cog.listener()
     async def on_ready(self):
         for guild in self.bot.guilds:
             guild_id = int(guild.id)
@@ -91,7 +93,7 @@ class ChatGPT(commands.Cog):
         # Main ChatGPT function
         try:
             if len(self.chat_history[guild_id]) > 15:
-                await self.reset_gpt()
+                self.reset_gpt(guild_id=guild_id, reset_all=False)
             self.chat_messages[guild_id].append({"role": "system", "content": self.default_instruction})
             self.chat_messages[guild_id].append({"role": "user", "content": prompt})
             response = client.chat.completions.create(
