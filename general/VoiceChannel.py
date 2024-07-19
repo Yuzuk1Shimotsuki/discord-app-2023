@@ -11,6 +11,7 @@ from youtubesearchpython import VideosSearch
 from yt_dlp import YoutubeDL
 from tinytag import TinyTag
 from typing import Optional, List
+from ErrorHandling import *
 
 selectlist = []
 tracks_per_page = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
@@ -20,31 +21,6 @@ current_track_queue_index = {}
 track_queue = {}
 repeat_one = {}
 repeat_all = {}
-
-# Custom Errors
-class AuthorNotInVoiceError():
-    def __init__(self, interaction: Interaction, user: discord.User):
-        self.user = user
-        self.interaction = interaction
-    def return_embed(self):
-        embed = discord.Embed(title="", color=self.interaction.user.colour)
-        embed.add_field(name="", value=f"<@{self.user.id}> Join a voice channel plz :pleading_face:  I don't think I can stay there without u :pensive: ...", inline=False)
-        return embed
-
-class BotAlreadyInVoiceError():
-    def __init__(self, bot_vc, user_vc):
-        self.bot_vc = bot_vc
-        self.user_vc = user_vc
-    def notauthor(self):
-        return f'''I've already joined the voice channel :D , but not where you are ~
-**I'm currently in:** <#{self.bot_vc.id}>
-**You're currently in:** <#{self.user_vc.id}>'''
-    def notrequired(self):
-        return f'''I've already joined the voice channel :D , but not the one you wanted me to join ~
-**I'm currently in:** <#{self.bot_vc.id}>
-**The channel you wanted me to join:** <#{self.user_vc.id}>'''
-    def same(self):
-        return f"Can u found me in the voice channel？ I have connected to  <#{self.user_vc.id}> already :>"
 
 # Page select for track queue
 class MySelect(Select):
@@ -80,7 +56,7 @@ class MySelect(Select):
                 end = start + tracks_per_page
                 if start >= len(track_queue[guild_id]) + 1:
                     break
-                elif end > len(track_queue[guild_id]):
+                if end > len(track_queue[guild_id]):
                     global_selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_queue[guild_id])}"))
                 else:
                     global_selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {end}"))
@@ -321,7 +297,7 @@ class VoiceChannel(commands.Cog):
                 source = track_queue[guild_id][current_track_queue_index[guild_id]][0]["audio_path"]
                 before_options = options = None
             # Loop 
-            self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+            self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, executable="C:\\FFmpeg\\ffmpeg.exe", before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
         # Executed after the player gone through all the taracks
         # Normally the player will be stopped, except "repeat all" was set to True.
         elif repeat_all[guild_id]:
@@ -353,7 +329,7 @@ class VoiceChannel(commands.Cog):
             self.vc[guild_id] = await interaction.user.voice.channel.connect()
             self.fallback_channel[guild_id] = interaction.channel
         # Plays the track. After the track is played, it will be checked in coroutine "auto_play_next" for further operation.
-        self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
+        self.vc[guild_id].play(PCMVolumeTransformer(FFmpegPCMAudio(source, executable="C:\\FFmpeg\\ffmpeg.exe", before_options=before_options, options=options), volume=self.player_volume[guild_id] / 100), after=lambda e: asyncio.run_coroutine_threadsafe(self.auto_play_next(interaction), self.bot.loop))
 
     # Discord Autocomplete for YouTube search, rewrited for discord.py
     async def yt_autocomplete(self,
@@ -433,7 +409,8 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                     return await interaction.followup.send(embed=play_embed)
                 track_title = track["filename"]
             # Append the audio to the queue
-            track_queue[guild_id].append([track, source.value])
+            for x in range(33):
+                track_queue[guild_id].append([track, source.value])
             if len(track_queue[guild_id]) - 1 > 0:
                 # The queue contains more than 1 audio
                 play_embed.add_field(name="", value=f"**#{len(track_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
@@ -666,7 +643,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 queue_embed.add_field(name=f"Now Playing :notes: ({current_track_queue_index[guild_id] + 1}/{len(track_queue[guild_id])}) :", value=f"**#{current_track_queue_index[guild_id] + 1}** - {track_queue[guild_id][current_track_queue_index[guild_id]][0]['title']}", inline=False)
             else:
                 # Custom file
-                queue_embed.add_field(name=f"Now Playing :notes: ({current_track_queue_index[guild_id] + 1}/{len(track_queue[guild_id])}) :", value=f"**#{current_track_queue_index[guild_id] + 1}** - {track_queue[guild_id][current_track_queue_index[guild_id]][0]['filename']}", inline=False)
+                queue_embed.add_field(name="Now Playing :notes: :", value=f"**#{current_track_queue_index[guild_id] + 1}** - {track_queue[guild_id][current_track_queue_index[guild_id]][0]['filename']}", inline=False)
             queue_embed.add_field(name="Upcoming Tracks:", value="There are no upcoming tracks will be played", inline=False)
             view = None
         else:
@@ -680,7 +657,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                 end = len(track_queue[guild_id])
             selectlist = []
             selectlist.append(discord.SelectOption(label=f"1", value=f"1", description=f"{start} - {end}"))
-            if len(track_queue[guild_id]) - current_track_queue_index[guild_id] - 1 > tracks_per_page:
+            if len(track_queue[guild_id]) - current_track_queue_index[guild_id] > tracks_per_page:
                 for i in range(2, total_page + 1):
                     # 2nd page and so on
                     start = 1 + end

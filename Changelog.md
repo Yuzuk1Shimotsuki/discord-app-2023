@@ -724,4 +724,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Command **"resetgpt()"** is now for bot owner only
 
+#
+
+# 20240720 (midnight)
+
+**Added "root/ErrorHandling.py"**
+
+(+) Moved all custom errors into **"root/general/ErrorHandling.py"**
 

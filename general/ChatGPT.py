@@ -8,6 +8,7 @@ from discord import app_commands, Interaction
 from discord.ext import commands
 from langdetect import detect, DetectorFactory
 from datetime import datetime
+from ErrorHandling import *
 
 # Connects the bot to the OpenAI API
 api_key=os.environ.get("OPENAI_API_KEY")
@@ -19,10 +20,6 @@ client = OpenAI(
     api_key=api_key,
     base_url="https://api.chatanywhere.cn/v1"
 )
-
-class NotBotOwnerError:
-    def __repr__(self) -> str:
-        return "Sorry, only the bot owner can perform this command."
 
 class ChatGPT(commands.Cog):
     def __init__(self, bot):

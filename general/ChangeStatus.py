@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands, Interaction, Activity, Game, Streaming
 from discord.ext import commands
-from typing import Optional
+from ErrorHandling import *
 
 class ChangeStatus(commands.Cog):
     def __init__(self, bot):
@@ -54,8 +54,10 @@ class ChangeStatus(commands.Cog):
         app_commands.Choice(name="Custom", value="custom"),
         app_commands.Choice(name="(Ignore)", value="ignore")
         ])
-    async def change_status(self, interation: Interaction, status: app_commands.Choice[str], activity_type: app_commands.Choice[str], activity_name: Optional[str] = None, url: Optional[str] = None):
-        await interation.response.send_message("Changing status...", ephemeral=True, delete_after=0)
+    async def change_status(self, interaction: Interaction, status: app_commands.Choice[str], activity_type: app_commands.Choice[str], activity_name: Optional[str] = None, url: Optional[str] = None):
+        if not await self.bot.is_owner(interaction.user):
+            return await interaction.response.send_message(NotBotOwnerError())
+        await interaction.response.send_message("Changing status...", ephemeral=True, delete_after=0)
         # Set the status to the selected option. If none of any valid option from the list was selected, set the status to online by default.
         if status.value == "idle":
             # Set the status to idle

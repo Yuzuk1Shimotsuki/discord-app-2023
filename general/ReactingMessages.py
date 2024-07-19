@@ -1,17 +1,7 @@
 import discord
 from discord import app_commands, Interaction
 from discord.ext import commands
-
-
-# Custom errors
-class InvaildTypeError():
-    def __repr__(self) -> str:
-        return "Looks like the type of message u provided it's not a valid type :thinking:..."
-    
-class MessageNotFoundError():
-    def __repr__(self) -> str:
-        return f'''I couldn't found the message from the given ID or URL :(
-Have you entered a vaild ID or URL in the `message_id` field？'''
+from ErrorHandling import *
 
 # Main cog
 class ReactingMessages(commands.Cog):
