@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands, Interaction, Activity, Game, Streaming
 from discord.ext import commands
+from typing import Optional
 from ErrorHandling import *
 
 class ChangeStatus(commands.Cog):
