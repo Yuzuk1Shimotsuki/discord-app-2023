@@ -12,6 +12,7 @@ from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoE
 from datetime import datetime
 from quart import Quart
 from dotenv import load_dotenv
+from ErrorHandling import *
 
 load_dotenv()
 nest_asyncio.apply()
@@ -57,33 +58,6 @@ def get_extensions():
             if filename.endswith('.py'):
                 extensions.append(f'{folder}.{filename[:-3]}')
     return extensions
-
-# Custom errors
-class NotBotOwnerError:
-    def __repr__(self) -> str:
-        return "Sorry, only the bot owner can perform this command."
-
-class ExtensionNotFoundError:
-    def __init__(self, cog: str) -> None:
-        self.cog = cog
-
-    def __repr__(self) -> str:
-        return f"I can't found the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？"
-
-class ReturnNoEntryPointError:
-    def __init__(self, cog: str) -> None:
-        self.cog = cog
-
-    def __repr__(self) -> str:
-        return f"I can't found the `async def setup()` function in cog `{self.cog}` :pensive_face: ... Perhaps check the cog and try again :thinking: ？"
-
-class ExtensionFailedError:
-    def __init__(self, cog: str) -> None:
-        self.cog = cog
-
-    def __repr__(self) -> str:
-        return f"Some unexpected stuff happened while executing `{self.cog}`."
-
 
 # Startup info
 @bot.event
