@@ -409,8 +409,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
                     return await interaction.followup.send(embed=play_embed)
                 track_title = track["filename"]
             # Append the audio to the queue
-            for x in range(33):
-                track_queue[guild_id].append([track, source.value])
+            track_queue[guild_id].append([track, source.value])
             if len(track_queue[guild_id]) - 1 > 0:
                 # The queue contains more than 1 audio
                 play_embed.add_field(name="", value=f"**#{len(track_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
