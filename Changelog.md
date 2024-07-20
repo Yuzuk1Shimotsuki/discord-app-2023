@@ -732,3 +732,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Moved all custom errors into **"root/general/ErrorHandling.py"**
 
+
+#
+
+# 20240721 (midnight)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Fixed adding multiple tracks to "track_queue"
+
+
