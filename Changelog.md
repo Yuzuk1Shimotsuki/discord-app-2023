@@ -742,3 +742,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Fixed adding multiple tracks to "track_queue"
 
 
+# 20240730 (morning)
+
+**"root/general/ChatGPT.py"**
+
+(+) Added support for new User-Installed applications
+
+(+) Rewrited the entire file due to the above implement
+
