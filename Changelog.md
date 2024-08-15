@@ -750,3 +750,10 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Rewrited the entire file due to the above implement
 
+
+# 20240816 (morning)
+
+(+) Implemented new poll system 
+
+(+) Bot verified
+
