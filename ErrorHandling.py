@@ -5,7 +5,7 @@ from discord.ext import commands
 # Custom errors
 class NotBotOwnerError:
     def __repr__(self) -> str:
-        return f"Sorry, you have no permission to perform this command.\n-# <:EyeNormal:1274033692356116522> This command is only permitted to bot owner, team owner, team admins & developers • [Learn more](<https://discord.com/developers/docs/topics/teams#team-member-roles>)"
+        return f"Sorry, you have no permissions to perform this command.\n-# <:EyeNormal:1274033692356116522> This command is only permitted to bot owner, team owner, team admins & developers • [Learn more](<https://discord.com/developers/docs/topics/teams#team-member-roles>)"
 
 class ExtensionNotFoundError:
     def __init__(self, cog: str) -> None:
