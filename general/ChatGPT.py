@@ -224,7 +224,7 @@ class ChatGPT(commands.Cog):
             gpt_response = response.choices[0].message.content
             return gpt_response
         except openai.APITimeoutError as e:
-            error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646>  OpenAI API request timed out", timestamp=datetime.now(), color=discord.Colour.red())
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  OpenAI API request timed out", timestamp=datetime.now(), color=discord.Colour.red())
             error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
             error_embed.add_field(name='\u200b', value=f"OpenAI API request timed out. This may due to the GPT model currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
@@ -232,7 +232,7 @@ class ChatGPT(commands.Cog):
             await interaction.followup.send(embed=error_embed)
             pass
         except openai.APIConnectionError as e:
-            error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646>  Failed to connect OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Failed to connect OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
             error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
             error_embed.add_field(name='\u200b', value=f"Failed to connect OpenAI API. The GPT model may currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
@@ -240,7 +240,7 @@ class ChatGPT(commands.Cog):
             await interaction.followup.send(embed=error_embed)
             pass
         except openai.RateLimitError as e:
-            error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646>  OpenAI API request rate limit exceeded", timestamp=datetime.now(), color=discord.Colour.red())
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  OpenAI API request rate limit exceeded", timestamp=datetime.now(), color=discord.Colour.red())
             error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
@@ -248,7 +248,7 @@ class ChatGPT(commands.Cog):
             await interaction.followup.send(embed=error_embed)
             pass
         except openai.BadRequestError as e:
-            error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646>  Invalid request to OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Invalid request to OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
             error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
@@ -256,7 +256,7 @@ class ChatGPT(commands.Cog):
             await interaction.followup.send(embed=error_embed)
             pass
         except openai.AuthenticationError as e:
-            error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646>  Authentication error with OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Authentication error with OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
             error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
@@ -264,7 +264,7 @@ class ChatGPT(commands.Cog):
             await interaction.followup.send(embed=error_embed)
             pass
         except openai.APIError as e:
-            error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646>  An error returned from OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  An error returned from OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
             error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
