@@ -764,3 +764,4 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Optimized error response for **"NotBotOwnerError()"**
 
+(+) Updated emojis
