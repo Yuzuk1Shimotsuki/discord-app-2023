@@ -755,5 +755,12 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Implemented new poll system 
 
-(+) Bot verified
+(+) Bot verified and transfered to a team
+
+
+# 20240816 (night)
+
+(+) Fine-tuned ChatGPT prompt
+
+(+) Optimized error response for **"NotBotOwnerError()"**
 
