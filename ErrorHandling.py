@@ -5,21 +5,21 @@ from discord.ext import commands
 # Custom errors
 class NotBotOwnerError:
     def __repr__(self) -> str:
-        return "Sorry, only the bot owner can perform this command."
+        return f"Sorry, you have no permission to perform this command.\n-# <:eye2:1273644542926651485> This command is only permitted to bot owner, team owner, team admins & developers • [Learn more](<https://discord.com/developers/docs/topics/teams#team-member-roles>)"
 
 class ExtensionNotFoundError:
     def __init__(self, cog: str) -> None:
         self.cog = cog
 
     def __repr__(self) -> str:
-        return f"I can't found the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？"
+        return f"I couldn't find the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？"
 
 class ReturnNoEntryPointError:
     def __init__(self, cog: str) -> None:
         self.cog = cog
 
     def __repr__(self) -> str:
-        return f"I can't found the `async def setup()` function in cog `{self.cog}` :pensive_face: ... Perhaps check the cog and try again :thinking: ？"
+        return f"I couldn't find the `async def setup()` function in cog `{self.cog}` :pensive_face: ... Perhaps check the cog and try again :thinking: ？"
 
 class ExtensionFailedError:
     def __init__(self, cog: str) -> None:
