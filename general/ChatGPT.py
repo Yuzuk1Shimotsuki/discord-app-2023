@@ -3,22 +3,23 @@ import openai
 import os
 import ast
 import math
-from openai import OpenAI
+from openai import AzureOpenAI
 from discord import app_commands, Interaction
 from discord.ext import commands
 from langdetect import detect, DetectorFactory
 from datetime import datetime
 from ErrorHandling import *
 
-# Connects the bot to the OpenAI API
-api_key=os.environ.get("OPENAI_API_KEY")
+# Connects the bot to the AzureOpenAI API
+api_key=os.environ.get("AZURE_OPENAI_API_KEY")
 if api_key == "":
     raise Exception(
         "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.\nPlease add your OpenAI Key to the Secrets pane.")
 
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://api.chatanywhere.cn/v1"
+client = AzureOpenAI(
+    api_key=os.environ["AZURE_OPENAI_API_KEY"],  
+    api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"]
 )
 
 # Defining message and history storage
@@ -38,9 +39,9 @@ class ChatGPT(commands.Cog):
         global chat_history
         self.bot = bot
         # Default values for GPT model
-        self.default_model_prompt_engine: str = "gpt-3.5-turbo-1106"
+        self.default_model_prompt_engine: str = "gpt4o"
         self.default_temperature: float = 0.8
-        self.default_max_tokens: int = 4000
+        self.default_max_tokens: int = 4096
         self.default_top_p: float = 0.90
         self.default_frequency_penalty: float = 0.50
         self.default_presence_penalty: float = 0.50

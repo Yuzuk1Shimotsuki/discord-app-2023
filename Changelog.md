@@ -765,3 +765,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Optimized error response for **"NotBotOwnerError()"**
 
 (+) Updated emojis
+
+
+# 20240906 (night)
+
+(+) Switched to AzureOpenAI service for GPT-4o support
+
+(+) Updated **"OPENAI_API_KEY"** to **"AZUREOPENAI_API_KEY"**
+
