@@ -3,6 +3,7 @@ import openai
 import os
 import ast
 import math
+from dotenv import load_dotenv
 from openai import AzureOpenAI
 from discord import app_commands, Interaction
 from discord.ext import commands
@@ -10,16 +11,21 @@ from langdetect import detect, DetectorFactory
 from datetime import datetime
 from ErrorHandling import *
 
-# Connects the bot to the AzureOpenAI API
-api_key=os.environ.get("AZURE_OPENAI_API_KEY")
-if api_key == "":
+load_dotenv()
+
+# Connects the bot to the Azure OpenAI API
+azure_api_key=os.environ.get("AZURE_OPENAI_API_KEY")
+azure_api_version=os.environ.get("AZURE_OPENAI_API_VERSION")
+azure_api_endpoint=f"{os.environ.get('AZURE_OPENAI_ENDPOINT')}?api-version={azure_api_version}"
+
+if azure_api_key == "":
     raise Exception(
-        "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.\nPlease add your OpenAI Key to the Secrets pane.")
+        "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.\nPlease add your Azure OpenAI Key to the Secrets pane.")
 
 client = AzureOpenAI(
-    api_key=os.environ["AZURE_OPENAI_API_KEY"],  
-    api_version=os.environ["AZURE_OPENAI_API_VERSION"],
-    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"]
+    api_key=azure_api_key,
+    api_version=azure_api_version,
+    azure_endpoint=azure_api_endpoint
 )
 
 # Defining message and history storage
@@ -126,7 +132,7 @@ class ChatGPT(commands.Cog):
             return await interaction.response.send_message(f"No chat history for current server.")
         else:
             return await interaction.response.send_message(f"Chat history has been reset for all server(s) and channel(s).")
-    
+
     # Since Discord has a maximum limit of 2000 charaters for each single message, the response needs to be checked in advance and decide wherether it needs to trucate into mutiple messages or not
     def truncate_message(self, message: str):
         edited_message = []
@@ -195,13 +201,15 @@ class ChatGPT(commands.Cog):
             history_list: list = chat_history["Guild"][guild_id][channel_id]
         await interaction.response.defer()
         # Main ChatGPT function
-        if len(history_list) > 15:
+        if len(history_list) > 60:
             self.reset_gpt(interaction, type="reset_current_channel", channel_id=channel_id, guild_id=guild_id or None)
         message_list.append({"role": "system", "content": self.default_instruction})
         message_list.append({"role": "user", "content": prompt})
         gpt_response = await self.get_from_gpt(interaction, prompt_list=message_list)
+        if gpt_response is None:
+            return
         message_list.append({"role": "assistant", "content": gpt_response})
-        # Adding the response to the chat history. Chat history can be store a maximum of the most recent 15 conversations.
+        # Adding the response to the chat history. Chat history can be store a maximum of the most recent 60 conversations.
         history_list.append({"role": "assistant", "content": gpt_response})
         quote = f"> <@{interaction.user.id}>: **{prompt}**"
         edited_response = f"{quote}\n{discord.utils.escape_markdown(' ')}\n{gpt_response}"
@@ -209,7 +217,7 @@ class ChatGPT(commands.Cog):
         for response in final_response:
             await interaction.followup.send(response)
 
-    # Retriving response from OpenAI API
+    # Retriving response from Azure OpenAI API
     async def get_from_gpt(self, interaction: Interaction, prompt_list: list):
         try:
             response = client.chat.completions.create(
@@ -225,55 +233,57 @@ class ChatGPT(commands.Cog):
             gpt_response = response.choices[0].message.content
             return gpt_response
         except openai.APITimeoutError as e:
-            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  OpenAI API request timed out", timestamp=datetime.now(), color=discord.Colour.red())
-            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
-            error_embed.add_field(name='\u200b', value=f"OpenAI API request timed out. This may due to the GPT model currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Azure OpenAI API request timed out", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["message"]
+            error_embed.add_field(name='\u200b', value=f"Azure OpenAI API request timed out. This may due to the GPT model currently unavailable or overloaded, or the Azure OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
             error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
             await interaction.followup.send(embed=error_embed)
-            pass
+            return None
         except openai.APIConnectionError as e:
-            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Failed to connect OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
-            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
-            error_embed.add_field(name='\u200b', value=f"Failed to connect OpenAI API. The GPT model may currently unavailable or overloaded, or the OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Failed to connect Azure OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["message"]
+            error_embed.add_field(name='\u200b', value=f"Failed to connect Azure OpenAI API. The GPT model may currently unavailable or overloaded, or the Azure OpenAI service has been blocked from your current network. Please try again later or connect to another network to see if the error could be resolved.\nError message: {error_message}", inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
             error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
             await interaction.followup.send(embed=error_embed)
-            pass
+            return None
         except openai.RateLimitError as e:
-            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  OpenAI API request rate limit exceeded", timestamp=datetime.now(), color=discord.Colour.red())
-            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Azure OpenAI API request rate limit exceeded", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
             error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
             await interaction.followup.send(embed=error_embed)
-            pass
+            return None
         except openai.BadRequestError as e:
-            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Invalid request to OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
-            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Invalid request to Azure OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
             error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
             await interaction.followup.send(embed=error_embed)
-            pass
+            return None
         except openai.AuthenticationError as e:
-            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Authentication error with OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
-            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  Authentication error with Azure OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
             error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
             await interaction.followup.send(embed=error_embed)
-            pass
+            return None
         except openai.APIError as e:
-            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  An error returned from OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
-            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["error"]["message"]
+            error_embed = discord.Embed(title="<:CrossRed:1274034371724312646>  An error returned from Azure OpenAI API", timestamp=datetime.now(), color=discord.Colour.red())
+            error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["message"]
             error_embed.add_field(name='\u200b', value=error_message, inline=False)
             error_embed.add_field(name='\u200b', value=f"", inline=False)
             error_embed.add_field(name="Error details:", value=f"Status code: {e.status_code}\nType: {e.type}\nParam: {e.param}\nCode: {e.code}", inline=False)
             await interaction.followup.send(embed=error_embed)
-            
+            return None
 
 # ----------</ChatGPT>----------
 
 async def setup(bot):
     await bot.add_cog(ChatGPT(bot))
+
+

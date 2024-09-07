@@ -732,7 +732,6 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Moved all custom errors into **"root/general/ErrorHandling.py"**
 
-
 #
 
 # 20240721 (midnight)
@@ -741,6 +740,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Fixed adding multiple tracks to "track_queue"
 
+#
 
 # 20240730 (morning)
 
@@ -750,15 +750,23 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Rewrited the entire file due to the above implement
 
+#
 
 # 20240816 (morning)
 
+# Created **"root/general/Poll.py"**
+
 (+) Implemented new poll system 
+
+(+/-) Renamed old poll system to **"root/general/Vote.py"**
 
 (+) Bot verified and transfered to a team
 
+#
 
 # 20240816 (night)
+
+**"root/general/ChatGPT.py"**
 
 (+) Fine-tuned ChatGPT prompt
 
@@ -766,10 +774,26 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Updated emojis
 
+#
 
 # 20240906 (night)
 
-(+) Switched to AzureOpenAI service for GPT-4o support
+**"root/general/ChatGPT.py"**
+
+(+) Switched to Azure OpenAI from OpenAI for better GPT-4o support
 
 (+) Updated **"OPENAI_API_KEY"** to **"AZUREOPENAI_API_KEY"**
+
+#
+
+# 20240907 (afternoon)
+
+**"root/general/ChatGPT.py"**
+
+(+) Rewrited and improved error handling for Azure Open AI migration purpose
+
+(+) Optimized changelog
+
+
+
 
