@@ -371,7 +371,7 @@ class VoiceChannel(commands.Cog):
                                  app_commands.Choice(name="Custom files", value="custom")
                                  ])
     @app_commands.autocomplete(query=yt_autocomplete)
-    async def play(self, interaction:Interaction, source: app_commands.Choice[str], query: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
+    async def play1(self, interaction:Interaction, source: app_commands.Choice[str], query: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
         guild_id = interaction.guild.id
         play_embed = discord.Embed(title="", color=interaction.user.colour)
         try:
@@ -428,7 +428,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
             await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
 
     # Pauses the current track
-    @app_commands.command(name="pause", description="Pauses the current track being played in voice channel")
+    @app_commands.command(name="pause1", description="Pauses the current track being played in voice channel")
     async def pause(self, interaction: Interaction):
         guild_id = interaction.guild.id
         pause_embed = discord.Embed(title="", color=interaction.user.colour)
@@ -447,7 +447,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=pause_embed)
 
     # Resume a paused track
-    @app_commands.command(name = "resume", description="Resume a paused track in voice channel")
+    @app_commands.command(name = "resume1", description="Resume a paused track in voice channel")
     async def resume(self, interaction: Interaction):
         guild_id = interaction.guild.id
         resume_embed = discord.Embed(title="", color=interaction.user.colour)
@@ -464,7 +464,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=resume_embed)
     
     # Skipping tracks
-    @app_commands.command(name="skip", description="Skips the current track being played in voice channel")
+    @app_commands.command(name="skip1", description="Skips the current track being played in voice channel")
     @app_commands.describe(amount="Number of track to skip. Leave this blank if you want to skip the current track only.")
     async def skip(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
         guild_id = interaction.guild.id
@@ -501,7 +501,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=skip_embed)
 
     # Playing previous track or rolling back multiple tracks
-    @app_commands.command(name="previous", description="Plays the previous track in the queue")
+    @app_commands.command(name="previous1", description="Plays the previous track in the queue")
     @app_commands.describe(amount="Number of tracks to be rollback. Leave this blank if you want to play the previous track only.")
     async def previous(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
         guild_id = interaction.guild.id
@@ -529,7 +529,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=prev_embed)
 
     # Looping the current track or all tracks in the list
-    @app_commands.command(name="repeat", description="Looping the current track or all tracks in the list")
+    @app_commands.command(name="repeat1", description="Looping the current track or all tracks in the list")
     @app_commands.describe(type="The type to repeat (Can be the current track or all tracks)")
     @app_commands.choices(type=[app_commands.Choice(name="Repeat one", value="repeat_one"),
                                  app_commands.Choice(name="Repeat all", value="repeat_all")
@@ -567,7 +567,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=repeat_embed)
 
     # Replay the current track in the queue
-    @app_commands.command(name="replay", description="Replay the current track from the beginning")
+    @app_commands.command(name="replay1", description="Replay the current track from the beginning")
     async def replay(self, interaction: Interaction):
         guild_id = interaction.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
@@ -591,7 +591,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=replay_embed)
 
     # Change the volume of the music player
-    @app_commands.command(name="volume", description="Change the volume of the music player")
+    @app_commands.command(name="volume1", description="Change the volume of the music player")
     @app_commands.describe(volume="The new volume you want me to set. Leave this blank if you want me to set it as default.")
     async def volume(self, interaction: Interaction, volume: Optional[app_commands.Range[int, 0, 200]] = 100):
         guild_id = interaction.guild.id
@@ -609,7 +609,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=volume_embed)
 
     # Show the volume of the music player
-    @app_commands.command(name="showvolume", description="Show the volume of the music player")
+    @app_commands.command(name="showvolume1", description="Show the volume of the music player")
     async def showvolume(self, interaction: Interaction):
         guild_id = interaction.guild.id
         self.vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
@@ -621,7 +621,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=volume_embed)
 
     # Shows the queue
-    @app_commands.command(name="queue", description="Shows the queue in this server")
+    @app_commands.command(name="queue1", description="Shows the queue in this server")
     async def queue(self, interaction: Interaction):
         global selectlist
         guild_id = interaction.guild.id
@@ -705,7 +705,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
             await interaction.response.send_message(embed=queue_embed, view=view)
 
     # Stops the track currently playing and clears the queue
-    @app_commands.command(name="clear", description="Stops the track currently playing and clears the queue")
+    @app_commands.command(name="clear1", description="Stops the track currently playing and clears the queue")
     async def clear(self, interaction: Interaction):
         guild_id = interaction.guild.id
         clear_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
@@ -729,7 +729,7 @@ Just curious to know, what should I play right now, <@{interaction.user.id}>？'
         await interaction.response.send_message(embed=clear_embed)
 
     # Removes the last or a specified track added to the queue
-    @app_commands.command(name="remove", description="Removes the last or a specified track added to the queue")
+    @app_commands.command(name="remove1", description="Removes the last or a specified track added to the queue")
     @app_commands.describe(position="Postion of track to remove. Leave this blank if you want to remove the last track.")
     async def remove(self, interaction: Interaction, position: Optional[app_commands.Range[int, 1]] = None):
         guild_id = interaction.guild.id
