@@ -3,7 +3,7 @@ name: Push the code as an image to Docker
 on:
   push:
     branches:
-      - 'development'
+      - '======'
   workflow_dispatch:
 
 jobs:
