@@ -1,4 +1,8 @@
+*.env
+*.pyc
+*.temp
+*.log
 .venv/
-.env
-.temp
+.conda/
+__pycache__/
 Test.py
