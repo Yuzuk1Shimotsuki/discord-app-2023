@@ -794,6 +794,16 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Optimized changelog
 
+#
+
+# 20240914 (night)
+
+(+) git implementation for all branches
+
+# 20240915 (morning)
+
+(+) Bumped up python version for docker enviroment to 3.12.6-bookworm
+
 
 
 
