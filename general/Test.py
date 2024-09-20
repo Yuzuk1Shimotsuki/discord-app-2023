@@ -24,13 +24,110 @@ SOFTWARE.
 """
 
 import asyncio
-import logging
-from typing import cast
 import discord
+import logging
+import math
+import shutil
+import asyncio
+from discord import app_commands, Interaction, SelectOption
+from discord.ext import commands
+from discord.ui import Select, View
+from typing import cast
 from discord import app_commands, Interaction
 from typing import Optional, List
 from discord.ext import commands
 import wavelink
+
+track_list = {}
+selectlist = []
+
+tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
+# or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
+
+# Page select for track queue
+class MySelect(Select):
+    def __init__(self):
+        global selectlist
+        global tracks_per_page
+        global current_track_queue_index
+        global track_queue
+        global repeat_one
+        global repeat_all
+        
+        options = selectlist
+        super().__init__(placeholder="Page", min_values=1, max_values=1, options=options)
+
+    # Callback for the page select dropdown
+    async def callback(self, interaction):
+        global selectlist
+        guild_id = interaction.guild.id
+        page = int(self.values[0])
+        player: wavelink.Player
+        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
+        queue_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
+        if player is None:
+            queue_embed.add_field(name="", value="Please invite me to a voice channel first before using this command.")
+            return await interaction.response.send_message(embed=queue_embed)
+        if player.current is None and player.queue.is_empty:
+            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
+        if player.current is None:
+            queue_embed.add_field(name=f"Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
+        else:
+            # Refreshing page
+            # 1st page
+            total_page = math.ceil(float((len(track_list[guild_id]) - self.return_track_index(interaction, player.current)) / tracks_per_page_limit))
+            start = self.return_track_index(interaction, player.current)
+            if len(track_list[guild_id]) - self.return_track_index(interaction, player.current) - 1 > tracks_per_page_limit:
+                end = self.return_track_index(interaction, player.current) + tracks_per_page_limit
+            else:
+                end = len(track_list[guild_id])
+            selectlist = []
+            if start == end:
+                selectlist.append(discord.SelectOption(label=f"1", value=f"1", description=f"{start}"))
+            else:
+                selectlist.append(discord.SelectOption(label=f"1", value=f"1", description=f"{start} - {end}"))
+            if len(track_list[guild_id]) - self.return_track_index(interaction, player.current) > tracks_per_page_limit:
+                for i in range(2, total_page + 1):
+                    # 2nd page and so on
+                    start = 1 + end
+                    end = start + tracks_per_page_limit
+                    if start >= len(track_list[guild_id]) + 1:
+                        break
+                    elif end >= len(track_list[guild_id]):
+                        if start > len(track_list[guild_id]) - 1:
+                            selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{len(track_list[guild_id])}"))
+                        else:
+                            selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_list[guild_id])}"))
+                    else:
+                        selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {end}"))
+            queue_embed.add_field(name=f"Now Playing :notes: ({self.return_track_index(interaction, player.current)}/{len(track_list[guild_id])}) :", value=f"> **#{self.return_track_index(interaction, player.current)}** - {player.current.title}", inline=False)
+            if player.queue.is_empty:
+                queue_embed.add_field(name="Upcoming Tracks:", value="There are no upcoming tracks will be played", inline=False)
+        queue_embed = discord.Embed(title="Queue:", color=interaction.user.color)
+        if page < 2:
+            start = self.return_track_index(interaction, player.current) + tracks_per_page_limit * (page - 1)
+        else:
+            start = self.return_track_index(interaction, player.current) + (page - 1) + tracks_per_page_limit * (page - 1)
+        end = self.return_track_index(interaction, player.current) + page + tracks_per_page_limit * (page)
+        # Retrieving tracks
+        # Get all tracks upcoming to play
+        if len(track_list[guild_id]) - self.return_track_index(interaction, player.current) - 1 > tracks_per_page_limit:
+            end = 1 + self.return_track_index(interaction, player.current) + tracks_per_page_limit
+        else:
+            end = len(track_list[guild_id])
+        for upcoming_tracks in track_list[guild_id][start:end]:
+            queue_embed.add_field(name="", value=f"> **#{self.return_track_index(interaction, upcoming_tracks)}** - {upcoming_tracks.title}", inline=False)
+        view = DropdownView()
+        await interaction.response.send_message(embed=queue_embed, view=view)
+        if view is None:
+            await interaction.response.edit_message(embed=queue_embed)
+        else:
+            await interaction.response.edit_message(embed=queue_embed, view=view)
+
+class DropdownView(View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(MySelect())
 
 class Test(commands.Cog):
     def __init__(self, bot) -> None:
@@ -95,7 +192,7 @@ class Test(commands.Cog):
         # Turn on AutoPlay to enabled mode.
         # enabled = AutoPlay will play songs for us and fetch recommendations...
         # partial = AutoPlay will play songs for us, but WILL NOT fetch recommendations...
-        # disabled = AutoPlay will do nothing...
+        # disabled = AutoPlay will do nothing... so it is NOT RECOMMEND to choose this option.
         #player.autoplay = wavelink.AutoPlayMode.enabled
         player.autoplay = wavelink.AutoPlayMode.partial
 
@@ -120,6 +217,7 @@ class Test(commands.Cog):
         if isinstance(tracks, wavelink.Playlist):
             # tracks is a playlist...
             added: int = await player.queue.put_wait(tracks)
+            
             await ctx.send(f"Added the playlist **`{tracks.name}`** ({added} songs) to the queue.")
         else:
             track: wavelink.Playable = tracks[0]
@@ -191,7 +289,7 @@ class Test(commands.Cog):
         await interaction.response.send_message(embed=replay_embed)
 
     # Plays the previous track in history
-    @app_commands.command(name="previous", description="Plays the previous track in history")
+    @app_commands.command(name="prevhistory", description="Plays the previous track in history")
     async def previous(self, interaction: Interaction):
         player = cast(wavelink.Player, interaction.guild.voice_client)
         prev_embed = discord.Embed(title="", color=interaction.user.colour)
@@ -202,8 +300,33 @@ class Test(commands.Cog):
             prev_embed.add_field(name="", value="There is no previous track in history.", inline=False)
         else:
             prev_track = player.queue.history[-2]  # Get the last song in the history
-            await player.play(prev_track)
+            await player.queue.put_at(0, prev_track)
+            await player.play(player.queue.get())
             prev_embed.add_field(name="", value="Playing previous track in history...", inline=False)
+        await interaction.response.send_message(embed=prev_embed)
+
+    # Plays the previous track in history
+    @app_commands.command(name="previous", description="Plays the previous track in the queue")
+    async def previous(self, interaction: Interaction):
+        guild_id = interaction.guild.id
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        prev_embed = discord.Embed(title="", color=interaction.user.colour)
+        previous_index = self.return_track_index(interaction, player.current) - 2
+        if player is None:
+            prev_embed.add_field(name="", value="There is no previous track in history. I'm not even in a voice channel.", inline=False)
+            return await interaction.response.send_message(embed=prev_embed)
+        elif player and len(player.queue.history) == 0 or previous_index == -1:
+            prev_embed.add_field(name="", value="There is no previous track in history.", inline=False)
+            return await interaction.response.send_message(embed=prev_embed)
+        elif previous_index < -1:
+            previous_index = 0
+            prev_embed.add_field(name="", value="The amount of tracks you tried to rollback exceeded the total number of available tracks can be rollback in the queue. Automatically rollback to the first track in the queue...", inline=False)
+        else:
+            prev_embed.add_field(name="", value="Playing previous track in history...", inline=False)
+        # Getting previous track and replaces all upcoming tracks from the queue
+        player.queue.clear
+        await player.queue.put_wait(track_list[guild_id][previous_index:])
+        await player.play(player.queue.get())
         await interaction.response.send_message(embed=prev_embed)
 
 
@@ -219,6 +342,13 @@ class Test(commands.Cog):
         await player.set_filters(filters)
 
         await ctx.message.add_reaction("\u2705")
+
+    # Wavelink does not support directly return index...
+    def return_track_index(self, interaction: Interaction, track) -> int:
+        guild_id = interaction.guild.id
+        if track in track_list[guild_id]:
+            return 1 + track_list[guild_id].index(track)
+        return None
 
     @commands.command()
     async def volume(self, ctx: commands.Context, value: int) -> None:
@@ -284,6 +414,8 @@ class Test(commands.Cog):
     @app_commands.autocomplete(query=web_serach_autocomplete)
     async def play(self, interaction:Interaction, source: app_commands.Choice[str], query: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
         guild_id = interaction.guild.id
+        if guild_id not in track_list:
+            track_list[interaction.guild.id] = []
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
         if not player:
@@ -315,9 +447,13 @@ class Test(commands.Cog):
         if isinstance(tracks, wavelink.Playlist):
             # tracks is a playlist...
             added: int = await player.queue.put_wait(tracks)
+            # Copy the entire list for self checking
+            track_list[guild_id].append(tracks.tracks)
             await interaction.response.send_message(f"Added the playlist **`{tracks.name}`** ({added} songs) to the queue.")
         else:
             track: wavelink.Playable = tracks[0]
+            # Copy the entire list for self checking
+            track_list[guild_id].append(track)
             await player.queue.put_wait(track)
             await interaction.response.send_message(f"Added **`{track}`** to the queue.")
 
@@ -361,6 +497,8 @@ class Test(commands.Cog):
     # Shows the queue
     @app_commands.command(name="queue", description="Shows the queue in this server")
     async def queue(self, interaction: Interaction):
+        global selectlist
+        guild_id = interaction.guild.id
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
         queue_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
@@ -372,13 +510,45 @@ class Test(commands.Cog):
         if player.current is None:
             queue_embed.add_field(name=f"Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
         else:
-            queue_embed.add_field(name=f"Now Playing :notes: :", value=f"> {player.current.title}", inline=False)
+            # Refreshing page
+            # 1st page
+            total_page = math.ceil(float((len(track_list[guild_id]) - self.return_track_index(interaction, player.current)) / tracks_per_page_limit))
+            start = self.return_track_index(interaction, player.current)
+            if len(track_list[guild_id]) - self.return_track_index(interaction, player.current) - 1 > tracks_per_page_limit:
+                end = self.return_track_index(interaction, player.current) + tracks_per_page_limit
+            else:
+                end = len(track_list[guild_id])
+            selectlist = []
+            if start == end:
+                selectlist.append(discord.SelectOption(label=f"1", value=f"1", description=f"{start}"))
+            else:
+                selectlist.append(discord.SelectOption(label=f"1", value=f"1", description=f"{start} - {end}"))
+            if len(track_list[guild_id]) - self.return_track_index(interaction, player.current) > tracks_per_page_limit:
+                for i in range(2, total_page + 1):
+                    # 2nd page and so on
+                    start = 1 + end
+                    end = start + tracks_per_page_limit
+                    if start >= len(track_list[guild_id]) + 1:
+                        break
+                    elif end >= len(track_list[guild_id]):
+                        if start > len(track_list[guild_id]) - 1:
+                            selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{len(track_list[guild_id])}"))
+                        else:
+                            selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_list[guild_id])}"))
+                    else:
+                        selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {end}"))
+            queue_embed.add_field(name=f"Now Playing :notes: ({self.return_track_index(interaction, player.current)}/{len(track_list[guild_id])}) :", value=f"> **#{self.return_track_index(interaction, player.current)}** - {player.current.title}", inline=False)
             if player.queue.is_empty:
                 queue_embed.add_field(name="Upcoming Tracks:", value="There are no upcoming tracks will be played", inline=False)
+            # Retrieving tracks
+            if len(track_list[guild_id]) - self.return_track_index(interaction, player.current) - 1 > tracks_per_page_limit: 
+                end = 1 + self.return_track_index(interaction, player.current) + tracks_per_page_limit
             else:
-                for item in player.queue:
-                    queue_embed.add_field(name="Upcoming Tracks:", value=f"> {item.title}", inline=False)
-        await interaction.response.send_message(embed=queue_embed)
+                end = len(track_list[guild_id])
+            for upcoming_tracks in track_list[guild_id][1 + self.return_track_index(interaction, player.current):end]:
+                queue_embed.add_field(name="", value=f"> **#{self.return_track_index(interaction, upcoming_tracks)}** - {upcoming_tracks.title}", inline=False)
+            view = DropdownView()
+        await interaction.response.send_message(embed=queue_embed, view=view)
         
         
 
