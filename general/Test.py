@@ -181,13 +181,14 @@ class Test(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
+        global current_track_index
         global loading_prev
         player: wavelink.Player | None = payload.player
         guild_id = player.guild.id
         if not player:
             # Handle edge cases...
             return
-        elif player.queue.is_empty() and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
+        elif current_track_index[guild_id] > len(track_list[guild_id]) - 1 and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
             current_track_index[guild_id] = 0
         elif payload.track != None and not loading_prev[guild_id] and player.queue.mode != wavelink.QueueMode.loop:
             current_track_index[guild_id] += 1
