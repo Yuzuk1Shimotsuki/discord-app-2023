@@ -44,7 +44,7 @@ import wavelink
 track_list = {}
 selectlist = []
 current_track_index = {}
-
+loading_prev = {}
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
@@ -140,6 +140,7 @@ class DropdownView(View):
 
 class Test(commands.Cog):
     def __init__(self, bot) -> None:
+        global loading_prev
         self.bot = bot
     discord.utils.setup_logging(level=logging.INFO)
 
@@ -180,13 +181,18 @@ class Test(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
+        global loading_prev
         player: wavelink.Player | None = payload.player
+        guild_id = player.guild.id
         if not player:
             # Handle edge cases...
             return
-        guild_id = player.guild.id
-        if payload.track != None:
+        elif player.queue.is_empty() and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
+            current_track_index[guild_id] = 0
+        elif payload.track != None and not loading_prev[guild_id] and player.queue.mode != wavelink.QueueMode.loop:
             current_track_index[guild_id] += 1
+        
+
         await player.channel.send(current_track_index[guild_id])
 
 
@@ -328,15 +334,19 @@ class Test(commands.Cog):
     # Plays the previous track in history
     @app_commands.command(name="previous", description="Plays the previous track in the queue")
     async def previous(self, interaction: Interaction):
+        global loading_prev
+        global current_track_index
         guild_id = interaction.guild.id
         player = cast(wavelink.Player, interaction.guild.voice_client)
         prev_embed = discord.Embed(title="", color=interaction.user.colour)
         previous_index = current_track_index[guild_id] - 1
         print(previous_index)
+        loading_prev[guild_id] = True
         if player is None:
             prev_embed.add_field(name="", value="There is no previous track in history. I'm not even in a voice channel.", inline=False)
             return await interaction.response.send_message(embed=prev_embed)
-        elif player and len(player.queue.history) == 0 or previous_index == -1:
+        elif player and len(player.queue.history) == 0 or previous_index <= -1:
+            previous_index = 0
             prev_embed.add_field(name="", value="There is no previous track in history.", inline=False)
             return await interaction.response.send_message(embed=prev_embed)
         elif previous_index < -1:
@@ -345,12 +355,13 @@ class Test(commands.Cog):
         else:
             prev_embed.add_field(name="", value="Playing previous track in history...", inline=False)
         # Getting previous track and replaces all upcoming tracks from the queue
-        player.queue.clear
-        print(track_list[guild_id][previous_index:])
+        player.queue.clear()
         await player.queue.put_wait(track_list[guild_id][previous_index:])
         await player.play(player.queue.get())
         current_track_index[guild_id] = previous_index
         await interaction.response.send_message(embed=prev_embed)
+        await asyncio.sleep(1.5)
+        loading_prev[guild_id] = False
 
 
     @commands.command()
@@ -434,6 +445,8 @@ class Test(commands.Cog):
             track_list[guild_id] = []
         if guild_id not in current_track_index:
             current_track_index[guild_id] = 0
+        if guild_id not in loading_prev:
+            loading_prev[guild_id] = False
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
         if not player:
@@ -450,6 +463,7 @@ class Test(commands.Cog):
         # partial = AutoPlay will play songs for us, but WILL NOT fetch recommendations...
         # disabled = AutoPlay will do nothing...
         player.autoplay = wavelink.AutoPlayMode.partial
+        
 
         # Lock the player to this channel...
         if not hasattr(player, "home"):
@@ -484,11 +498,20 @@ class Test(commands.Cog):
     @app_commands.command(name="skip", description="Skips the current track being played in voice channel")
     @app_commands.describe(amount="Number of track to skip. Leave this blank if you want to skip the current track only.")
     async def skip(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
+        global loading_prev
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
+        guild_id = interaction.guild.id
+        loading_prev[guild_id] = False
         skip_embed = discord.Embed(title="", color=interaction.user.colour)
         if player is None:
             skip_embed.add_field(name="", value="I'm not in a voice channel.", inline=False)
+            return await interaction.response.send_message(embed=skip_embed)
+        print(current_track_index[guild_id])
+        print(len(track_list[guild_id]))
+        if current_track_index[guild_id] > len(track_list[guild_id]) - 1:
+            # The author has been already gone through all tracks in the queue
+            skip_embed.add_field(name="", value=f"<@{interaction.user.id}> You have already gone through all tracks in the queue.", inline=False)
             return await interaction.response.send_message(embed=skip_embed)
         if player.current and player.queue.is_empty:
             await player.skip(force=True)
@@ -499,13 +522,9 @@ class Test(commands.Cog):
             await player.play(track=player.queue[-1])
         else:
             # Skip one or multiple tracks
-            current_playing = None
-            current_playing == player.current
             count = amount
             while count > 0:
-                track = await player.skip(force=True)
-                if track != current_playing:
-                    break
+                await player.skip(force=True)
                 count -= 1
             if amount > 1:
                 skip_embed.add_field(name="", value=f"Skipped **{amount}** tracks in the queue", inline=False)
