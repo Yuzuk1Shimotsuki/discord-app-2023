@@ -30,14 +30,18 @@ import asyncio
 import discord
 import logging
 import math
+import os
 import shutil
 import asyncio
+from getpass import getpass
 from discord import app_commands, Interaction, SelectOption
 from discord.ext import commands
 from discord.ui import Select, View
 from typing import cast
+from ftplib import FTP
 from discord import app_commands, Interaction
 from typing import Optional, List
+from tinytag import TinyTag
 from discord.ext import commands
 import wavelink
 
@@ -48,6 +52,13 @@ loading_prev = {}
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
+
+host = "linux20240907.eastus.cloudapp.azure.com"
+username = "azureadmin"
+password = getpass("wrDUHF8b$-#&")
+ftp_server = FTP()
+ftp_server.connect(host=host, port=22)
+ftp_server.login(username=username, password=password)
 
 # Page select for track queue
 class MySelect(Select):
@@ -196,70 +207,6 @@ class Test(commands.Cog):
 
         await player.channel.send(current_track_index[guild_id])
 
-
-    @commands.command()
-    async def play1(self, ctx: commands.Context, *, query: str) -> None:
-        """Play a song with the given query."""
-        if not ctx.guild:
-            return
-
-        player: wavelink.Player
-        player = cast(wavelink.Player, ctx.voice_client)  # type: ignore
-
-        if not player:
-            try:
-                player = await ctx.author.voice.channel.connect(cls=wavelink.Player)  # type: ignore
-            except AttributeError:
-                await ctx.send("Please join a voice channel first before using this command.")
-                return
-            except discord.ClientException:
-                await ctx.send("I was unable to join this voice channel. Please try again.")
-                return
-
-        # Turn on AutoPlay to enabled mode.
-        # enabled = AutoPlay will play songs for us and fetch recommendations...
-        # partial = AutoPlay will play songs for us, but WILL NOT fetch recommendations...
-        # disabled = AutoPlay will do nothing... so it is NOT RECOMMEND to choose this option.
-        #player.autoplay = wavelink.AutoPlayMode.enabled
-        player.autoplay = wavelink.AutoPlayMode.partial
-
-        """"
-        # Lock the player to this channel...
-        if not hasattr(player, "home"):
-            player.home = ctx.channel
-        elif player.home != ctx.channel:
-            await ctx.send(f"You can only play songs in {player.home.mention}, as the player has already started there.")
-            return
-        """
-
-        # This will handle fetching Tracks and Playlists...
-        # Seed the doc strings for more information on this method...
-        # If spotify is enabled via LavaSrc, this will automatically fetch Spotify tracks if you pass a URL...
-        # Defaults to YouTube for non URL based queries...
-        tracks: wavelink.Search = await wavelink.Playable.search(query)
-        if not tracks:
-            await ctx.send(f"{ctx.author.mention} - Could not find any tracks with that query. Please try again.")
-            return
-
-        if isinstance(tracks, wavelink.Playlist):
-            # tracks is a playlist...
-            added: int = await player.queue.put_wait(tracks)
-            
-            await ctx.send(f"Added the playlist **`{tracks.name}`** ({added} songs) to the queue.")
-        else:
-            track: wavelink.Playable = tracks[0]
-            await player.queue.put_wait(track)
-            await ctx.send(f"Added **`{track}`** to the queue.")
-
-        if not player.playing:
-            # Play now since we aren't playing anything...
-            await player.play(player.queue.get(), volume=30)
-
-        # Optionally delete the invokers message...
-        try:
-            await ctx.message.delete()
-        except discord.HTTPException:
-            pass
 
     # Pauses the current track
     @app_commands.command(name="pause", description="Pauses the current track being played in voice channel")
@@ -431,6 +378,43 @@ class Test(commands.Cog):
             # The source is not from YouTube
             return []
 
+
+    # Custom files
+    # Fetching raw data from custom file
+    async def fetch_custom_rawfile(self, interaction: Interaction, attachment: discord.Attachment):
+        try:
+            guild_id = interaction.guild.id
+            print(attachment.content_type)
+            supported_type = {"audio/mpeg": "mp3", "audio/x-wav": "wav", "audio/flac": "flac", "audio/mp4": "m4a"}
+            if attachment.content_type in supported_type:
+                extension = supported_type[attachment.content_type]
+            else:
+                # Unsupportted file
+                return "!error%!unsupportted_file_type%"
+            guild_dir = f"plugins/custom_audio/guild"
+            print(os.getcwd())
+            if os.path.exists(f"{guild_dir}/{guild_id}") is False:
+                path = os.path.join(guild_dir, str(guild_id))
+                os.mkdir(path)
+            audio_path = f"{guild_dir}/{guild_id}/audio{len(track_list[guild_id])}.{extension}"
+            await attachment.save(audio_path, use_cached=False)
+            audiofile = TinyTag.get(audio_path)
+            audio_artist =  audiofile.artist or "<Unknown artist>"
+            audio_title = audiofile.title or "<Unknown title>"
+            year = audiofile.year
+            if audiofile.title is None and audiofile.artist is None:
+                filename = attachment.filename.replace("_", " ")
+            elif year is None:
+                filename = f"{audio_artist} - {audio_title}"
+            else:
+                filename = f"{audio_artist} - {audio_title} ({year})"
+            return {"source": attachment, "filename": filename, "audio_path": audio_path, "title": audiofile.title, "artist": audiofile.artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
+        except discord.errors.HTTPException as e:
+            if e.status == 413:
+                return "!error%!payload_too_large%"
+            else:
+                raise e
+
     # Play selected tracks
     @app_commands.command(description="Adds a selected track to the queue from YouTube link, keywords or a local file")
     @app_commands.describe(source="Source to play the track on")
@@ -448,16 +432,38 @@ class Test(commands.Cog):
             current_track_index[guild_id] = 0
         if guild_id not in loading_prev:
             loading_prev[guild_id] = False
+        play_embed = discord.Embed(title="Player", color=interaction.user.colour)
+        await interaction.response.defer()
+        if query is None and source.value == "web":
+            play_embed.add_field(name="", value=f'''Looks like you've selected searching online for the audio source, but haven't specified the track you would like to play :thinking: ...
+    Just curious to know, what should I play right now, <@{interaction.user.id}>？''', inline=False)
+            return interaction.followup.send(embed=play_embed)
+        if source.value == "custom":
+            if attachment is None:
+                play_embed.add_field(name="", value=f'''Looks like you've selected your custom files as the audio source, but haven't specified the track you would like to play :thinking: ...
+        Just curious to know, what should I play right now, <@{interaction.user.id}>？''', inline=False)
+                return interaction.followup.send(embed=play_embed)
+            track = await self.fetch_custom_rawfile(interaction, attachment)
+            # Return errors if occurs, or proceed to the next step if no errors encountered
+            if track == "!error%!payload_too_large%":
+                play_embed.add_field(name="", value=f"Yooo, The file you uploaded was too large! I can't handle it apparently...", inline=False)
+                return await interaction.followup.send(embed=play_embed)
+            elif track == "!error%!unsupportted_file_type%":
+                play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it？", inline=False)
+                return await interaction.followup.send(embed=play_embed)
+            track_title = track["filename"]
+            track_path = track["audio_path"]
+            print(track_path)
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
         if not player:
             try:
                 player = await interaction.user.voice.channel.connect(cls=wavelink.Player)  # type: ignore
             except AttributeError:
-                await interaction.response.send_message("Please join a voice channel first before using this command.")
+                await interaction.followup.send(content="Please join a voice channel first before using this command.")
                 return
             except discord.ClientException:
-                await interaction.response.send_message("I was unable to join this voice channel. Please try again.")
+                await interaction.followup.send(content="I was unable to join this voice channel. Please try again.")
                 return
         # Turn on AutoPlay to enabled mode.
         # enabled = AutoPlay will play songs for us and fetch recommendations...
@@ -470,11 +476,14 @@ class Test(commands.Cog):
         if not hasattr(player, "home"):
             player.home = interaction.channel
         elif player.home != interaction.channel:
-            await interaction.response.send_message(f"You can only play songs in {player.home.mention}, as the player has already started there.")
+            await interaction.followup.send(content=f"You can only play songs in {player.home.mention}, as the player has already started there.")
             return
-        tracks: wavelink.Search = await wavelink.Playable.search(query)
+        if source.value == "web":
+            tracks: wavelink.Search = await wavelink.Playable.search(query)
+        else:
+            tracks: wavelink.Search = await wavelink.Playable.search(track_path, source=None)
         if not tracks:
-            await interaction.response.send_message(f"{interaction.user.mention} - Could not find any tracks with that query. Please try again.")
+            await interaction.followup.send(content=f"{interaction.user.mention} - Could not find any tracks with that query. Please try again.")
             return
         
         if isinstance(tracks, wavelink.Playlist):
@@ -482,14 +491,14 @@ class Test(commands.Cog):
             added: int = await player.queue.put_wait(tracks)
             # Copy the entire list for self checking
             track_list[guild_id].append(tracks.tracks)
-            await interaction.response.send_message(f"Added the playlist **`{tracks.name}`** ({added} songs) to the queue.")
+            await interaction.followup.send(content=f"Added the playlist **`{tracks.name}`** ({added} songs) to the queue.")
         else:
             track: wavelink.Playable = tracks[0]
             # Copy the entire list for self checking
             for i in range(1):
                 track_list[guild_id].append(track)
                 await player.queue.put_wait(track)
-            await interaction.response.send_message(f"Added **`{track}`** to the queue.")
+            await interaction.followup.send(content=f"Added **`{track}`** to the queue.")
 
         if not player.playing:
             # Play now since we aren't playing anything...
