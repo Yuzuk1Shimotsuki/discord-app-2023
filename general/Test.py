@@ -53,12 +53,6 @@ loading_prev = {}
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
 
-host = "linux20240907.eastus.cloudapp.azure.com"
-username = "azureadmin"
-password = getpass("wrDUHF8b$-#&")
-ftp_server = FTP()
-ftp_server.connect(host=host, port=22)
-ftp_server.login(username=username, password=password)
 
 # Page select for track queue
 class MySelect(Select):
@@ -159,6 +153,10 @@ class Test(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         nodes = [wavelink.Node(uri="http://linux20240907.eastus.cloudapp.azure.com:2333", password="youshallnotpass")]
+        ftp_host = "linux20240907.eastus.cloudapp.azure.com"
+        ftp_port = 22
+        ftp_username = "azureadmin"
+        ftp_pass = "#a+8%32U48at"
         # cache_capacity is EXPERIMENTAL. Turn it off by passing None
         await wavelink.Pool.connect(nodes=nodes, client=self.bot, cache_capacity=100)
 
