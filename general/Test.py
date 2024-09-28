@@ -156,17 +156,6 @@ class Test(commands.Cog):
     async def on_ready(self) -> None:
         global ftp
         nodes = [wavelink.Node(uri="http://linux20240907.eastus.cloudapp.azure.com:2333", password="youshallnotpass")]
-        ftp_host = "linux20240907.eastus.cloudapp.azure.com"
-        ftp_port = 21
-        ftp_username = "johnny"
-        ftp_pass = "#a+8%32U48at"
-        ftp = FTP(ftp_host, user=ftp_username, passwd=ftp_pass)
-        ftp.set_pasv(0)
-        ftp.dir()
-        ftp.cwd("discord/plugins/custom_audio/guild_id")
-        ftp.dir()
-        logging.info("Connected to FTP server and changed directory to 'discord/plugins/custom_audio/guild_id'!")
-
         # cache_capacity is EXPERIMENTAL. Turn it off by passing None
         await wavelink.Pool.connect(nodes=nodes, client=self.bot, cache_capacity=100)
 
@@ -399,16 +388,15 @@ class Test(commands.Cog):
             else:
                 # Unsupportted file
                 return "!error%!unsupportted_file_type%"
-            guild_dir = f"plugins/custom_audio/guild"
-            print(os.getcwd())
-            if os.path.exists(f"{guild_dir}/{guild_id}") is False:
-                path = os.path.join(guild_dir, str(guild_id))
-                os.mkdir(path)
-            audio_path = f"{guild_dir}/{guild_id}/audio{len(track_list[guild_id])}.{extension}"
+            cache_dir = f"plugins/custom_audio/caches"
+            audio_path = f"{cache_dir}/{attachment.id}.{extension}"
+            # Download the attachment to the client, then delete it afterwards.
             await attachment.save(audio_path, use_cached=False)
             audiofile = TinyTag.get(audio_path)
-            audio_artist =  audiofile.artist or "<Unknown artist>"
-            audio_title = audiofile.title or "<Unknown title>"
+            audio_artist =  audiofile.artist
+            audio_title = audiofile.title
+            if audiofile.title is None:
+                audio_title = attachment.filename.replace("_", " ")
             year = audiofile.year
             if audiofile.title is None and audiofile.artist is None:
                 filename = attachment.filename.replace("_", " ")
@@ -416,7 +404,11 @@ class Test(commands.Cog):
                 filename = f"{audio_artist} - {audio_title}"
             else:
                 filename = f"{audio_artist} - {audio_title} ({year})"
-            return {"source": attachment, "filename": filename, "audio_path": audio_path, "title": audiofile.title, "artist": audiofile.artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
+            # Deletes the file to save storage space
+            for file in os.listdir(cache_dir):
+                if not file.endswith(".gitkeep"):
+                    os.remove(os.path.join(cache_dir, file))
+            return {"source": attachment, "filename": filename, "audio_url": attachment.url, "audio_path": audio_path, "title": audio_title, "artist": audiofile.artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
         except discord.errors.HTTPException as e:
             if e.status == 413:
                 return "!error%!payload_too_large%"
@@ -459,8 +451,8 @@ class Test(commands.Cog):
             elif track == "!error%!unsupportted_file_type%":
                 play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it？", inline=False)
                 return await interaction.followup.send(embed=play_embed)
-            track_title = track["filename"]
-            track_path = track["audio_path"]
+            track_title = track["title"]
+            track_path = track["audio_url"]
             print(track_path)
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
@@ -486,10 +478,7 @@ class Test(commands.Cog):
         elif player.home != interaction.channel:
             await interaction.followup.send(content=f"You can only play songs in {player.home.mention}, as the player has already started there.")
             return
-        if source.value == "web":
-            tracks: wavelink.Search = await wavelink.Playable.search(query)
-        else:
-            tracks: wavelink.Search = await wavelink.Playable.search(track_path, source=None)
+        tracks: wavelink.Search = await wavelink.Playable.search(query or track_path)
         if not tracks:
             await interaction.followup.send(content=f"{interaction.user.mention} - Could not find any tracks with that query. Please try again.")
             return
@@ -506,7 +495,10 @@ class Test(commands.Cog):
             for i in range(1):
                 track_list[guild_id].append(track)
                 await player.queue.put_wait(track)
-            await interaction.followup.send(content=f"Added **`{track}`** to the queue.")
+            if track.title == "Unknown title":
+                await interaction.followup.send(content=f"Added **`{track_title}`** to the queue.")
+            else:
+                await interaction.followup.send(content=f"Added **`{track}`** to the queue.")
 
         if not player.playing:
             # Play now since we aren't playing anything...
