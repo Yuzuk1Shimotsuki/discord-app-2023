@@ -192,18 +192,15 @@ class Test(commands.Cog):
         global current_track_index
         global loading_prev
         player: wavelink.Player | None = payload.player
-        guild_id = player.guild.id
         if not player:
             # Handle edge cases...
             return
-        elif current_track_index[guild_id] > len(track_list[guild_id]) - 1 and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
+        guild_id = player.guild.id
+        if current_track_index[guild_id] >= len(track_list[guild_id]) - 1 and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
             current_track_index[guild_id] = 0
         elif payload.track != None and not loading_prev[guild_id] and player.queue.mode != wavelink.QueueMode.loop:
             current_track_index[guild_id] += 1
-        
-
         await player.channel.send(current_track_index[guild_id])
-
 
     # Pauses the current track
     @app_commands.command(name="pause", description="Pauses the current track being played in voice channel")
@@ -260,41 +257,25 @@ class Test(commands.Cog):
         await interaction.response.send_message(embed=replay_embed)
 
     # Plays the previous track in history
-    @app_commands.command(name="prevhistory", description="Plays the previous track in history")
-    async def previous(self, interaction: Interaction):
-        player = cast(wavelink.Player, interaction.guild.voice_client)
-        prev_embed = discord.Embed(title="", color=interaction.user.colour)
-        if player is None:
-            prev_embed.add_field(name="", value="There is no previous track in history. I'm not even in a voice channel.", inline=False)
-            return await interaction.response.send_message(embed=prev_embed)
-        elif player and len(player.queue.history) == 0:
-            prev_embed.add_field(name="", value="There is no previous track in history.", inline=False)
-        else:
-            prev_track = player.queue.history[-2]  # Get the last song in the history
-            await player.queue.put_at(0, prev_track)
-            await player.play(player.queue.get())
-            prev_embed.add_field(name="", value="Playing previous track in history...", inline=False)
-        await interaction.response.send_message(embed=prev_embed)
-
-    # Plays the previous track in history
     @app_commands.command(name="previous", description="Plays the previous track in the queue")
-    async def previous(self, interaction: Interaction):
+    @app_commands.describe(amount="Number of tracks to be rollback. Leave this blank if you want to play the previous track only.")
+    async def previous(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
         global loading_prev
         global current_track_index
         guild_id = interaction.guild.id
         player = cast(wavelink.Player, interaction.guild.voice_client)
         prev_embed = discord.Embed(title="", color=interaction.user.colour)
-        previous_index = current_track_index[guild_id] - 1
+        previous_index = current_track_index[guild_id] - amount
         print(previous_index)
         loading_prev[guild_id] = True
         if player is None:
             prev_embed.add_field(name="", value="There is no previous track in history. I'm not even in a voice channel.", inline=False)
             return await interaction.response.send_message(embed=prev_embed)
-        elif player and len(player.queue.history) == 0 or previous_index <= -1:
+        elif player and len(player.queue.history) == 0 or (current_track_index[guild_id] == 0 and previous_index == -1):
             previous_index = 0
             prev_embed.add_field(name="", value="There is no previous track in history.", inline=False)
             return await interaction.response.send_message(embed=prev_embed)
-        elif previous_index < -1:
+        elif previous_index <= -1:
             previous_index = 0
             prev_embed.add_field(name="", value="The amount of tracks you tried to rollback exceeded the total number of available tracks can be rollback in the queue. Automatically rollback to the first track in the queue...", inline=False)
         else:
@@ -307,7 +288,6 @@ class Test(commands.Cog):
         await interaction.response.send_message(embed=prev_embed)
         await asyncio.sleep(1.5)
         loading_prev[guild_id] = False
-
 
     @commands.command()
     async def nightcore(self, ctx: commands.Context) -> None:
@@ -322,17 +302,6 @@ class Test(commands.Cog):
 
         await ctx.message.add_reaction("\u2705")
 
-    @commands.command()
-    async def volume(self, ctx: commands.Context, value: int) -> None:
-        """Change the volume of the player."""
-        player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
-        if not player:
-            return
-
-        await player.set_volume(value)
-        await ctx.message.add_reaction("\u2705")
-
-
     @commands.command(aliases=["dc"])
     async def disconnect(self, ctx: commands.Context) -> None:
         """Disconnect the Player."""
@@ -343,8 +312,62 @@ class Test(commands.Cog):
         await player.disconnect()
         await ctx.message.add_reaction("\u2705")
 
+    # Change the volume of the music player
+    @app_commands.command(name="volume", description="Change the volume of the music player")
+    @app_commands.describe(value="The new volume you want me to set. Leave this blank if you want me to set it as default.")
+    async def volume(self, interaction: Interaction, value: Optional[app_commands.Range[int, 0, 1000]] = 30):
+        player: wavelink.player = cast(wavelink.Player, interaction.guild.voice_client)
+        volume_embed = discord.Embed(title="", color=interaction.user.colour)
+        if player is None:
+            volume_embed.add_field(name="", value="I'm not in a voice channel!", inline=False)
+        else:
+            await player.set_volume(value)
+            volume_embed.add_field(name="", value=f"Changed volume to **{value}%**", inline=False)
+        await interaction.response.send_message(embed=volume_embed)
 
-    # Discord Autocomplete for YouTube search, rewrited for discord.py
+    # Looping the current track or all tracks in the list
+    @app_commands.command(name="repeat", description="Looping the current track or all tracks in the list")
+    @app_commands.describe(type="The type to repeat (Can be the current track or all tracks)")
+    @app_commands.choices(type=[app_commands.Choice(name="Repeat one", value="repeat_one"),
+                                 app_commands.Choice(name="Repeat all", value="repeat_all")
+                                 ])
+    @app_commands.choices(option=[app_commands.Choice(name="Enable", value="true"),
+                                 app_commands.Choice(name="Disable", value="false")
+                                 ])
+    async def repeat(self, interaction: Interaction, type: app_commands.Choice[str], option: app_commands.Choice[str]):
+        repeat_embed = discord.Embed(title="", color=interaction.user.colour)
+        player: wavelink.player = cast(wavelink.Player, interaction.guild.voice_client)
+        
+        if player is None:
+            repeat_embed.add_field(name="", value=f"I'm not in a voice channel!", inline=False)
+            return await interaction.response.send_message(embed=repeat_embed)
+        if type.value == "repeat_one":
+            # Loop
+            if player.queue.mode == wavelink.QueueMode.loop and option.value == "true":
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been already **enabled**!''', inline=False)
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop_all)) and option.value == "false":
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been already **disabled**!''', inline=False)
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop_all)) and option.value == "true":
+                player.queue.mode = wavelink.QueueMode.loop
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been **enabled**.''', inline=False)
+            elif player.queue.mode == wavelink.QueueMode.loop and option.value == "false":
+                player.queue.mode = wavelink.QueueMode.normal
+                repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been **disabled**.''', inline=False)
+        else:
+            # Loop all
+            if player.queue.mode == wavelink.QueueMode.loop_all and option.value == "true":
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been already **enabled**!''', inline=False)
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop)) and option.value == "false":
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been already **disabled**!''', inline=False)
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop)) and option.value == "true":
+                player.queue.mode = wavelink.QueueMode.loop_all
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been **enabled**.''', inline=False)
+            elif player.queue.mode == wavelink.QueueMode.loop_all and option.value == "false":
+                player.queue.mode = wavelink.QueueMode.normal
+                repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been **disabled**.''', inline=False)
+        await interaction.response.send_message(embed=repeat_embed)
+
+    # Discord Autocomplete for Web search, rewrited for discord.py and wavelink discord
     async def web_serach_autocomplete(self,
         interaction: Interaction,
         query: str
@@ -369,10 +392,10 @@ class Test(commands.Cog):
                     # The author did not entered anything yet
                     # Originally it should return a defult list on Windows, not sure why it's not working on linux...
                     return []
-            # Reutrn a blank list because YouTube URL's does not required to be searched.
+            # Reutrn a blank list because web URL's does not required to be searched.
             return []
         else:
-            # The source is not from YouTube
+            # The source is not from the web
             return []
 
 
@@ -381,7 +404,6 @@ class Test(commands.Cog):
     async def fetch_custom_rawfile(self, interaction: Interaction, attachment: discord.Attachment):
         try:
             guild_id = interaction.guild.id
-            print(attachment.content_type)
             supported_type = {"audio/mpeg": "mp3", "audio/x-wav": "wav", "audio/flac": "flac", "audio/mp4": "m4a"}
             if attachment.content_type in supported_type:
                 extension = supported_type[attachment.content_type]
@@ -390,7 +412,7 @@ class Test(commands.Cog):
                 return "!error%!unsupportted_file_type%"
             cache_dir = f"plugins/custom_audio/caches"
             audio_path = f"{cache_dir}/{attachment.id}.{extension}"
-            # Download the attachment to the client, then delete it afterwards.
+            # Download the attachment to the client, and deletes it afterwards.
             await attachment.save(audio_path, use_cached=False)
             audiofile = TinyTag.get(audio_path)
             audio_artist =  audiofile.artist
@@ -404,11 +426,12 @@ class Test(commands.Cog):
                 filename = f"{audio_artist} - {audio_title}"
             else:
                 filename = f"{audio_artist} - {audio_title} ({year})"
-            # Deletes the file to save storage space
+            # Delete the file to save storage space
             for file in os.listdir(cache_dir):
                 if not file.endswith(".gitkeep"):
                     os.remove(os.path.join(cache_dir, file))
-            return {"source": attachment, "filename": filename, "audio_url": attachment.url, "audio_path": audio_path, "title": audio_title, "artist": audiofile.artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
+            # Return the track information
+            return {"source": attachment, "filename": filename, "audio_url": attachment.url, "title": audio_title, "artist": audiofile.artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
         except discord.errors.HTTPException as e:
             if e.status == 413:
                 return "!error%!payload_too_large%"
@@ -600,70 +623,17 @@ class Test(commands.Cog):
             for index, upcoming_tracks in enumerate(track_list[guild_id][1 + current_track_index[guild_id]:end]):
                 queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {upcoming_tracks.title}", inline=False)
             view =  DropdownView()
+        if player.queue.mode == wavelink.QueueMode.loop:
+            queue_embed.add_field(name='\u200b', value="", inline=False)
+            queue_embed.add_field(name='''"Repeat one" has been enabled.''', value="", inline=False)
+        if player.queue.mode == wavelink.QueueMode.loop_all:
+            queue_embed.add_field(name='\u200b', value="", inline=False)
+            queue_embed.add_field(name='''"Repeat all" has been enabled.''', value="", inline=False)
         if view is None:
             await interaction.response.send_message(embed=queue_embed)
         else:
             await interaction.response.send_message(embed=queue_embed, view=view)
-    
-
-        """"
-        play_embed = discord.Embed(title="", color=interaction.user.colour)
-        try:
-            self.vc[guild_id] = self.vc[guild_id] or interaction.user.voice.channel
-        except:
-            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        await interaction.response.defer()
-        if self.vc[guild_id] is not None and self.is_paused[guild_id]:
-                self.vc[guild_id].resume()
-        elif self.vc[guild_id] is not None:
-            if source.value == "yt":
-                # From YouTube
-                if query is None:
-                    play_embed.add_field(name="", value=f'''Looks like you've selected YouTube as the audio source, but haven't specified the track you would like to play :thinking: ...
-    Just curious to know, what should I play right now, <@{interaction.user.id}>？''', inline=False)
-                    return await interaction.followup.send(embed=play_embed)
-                track = self.search_yt(query)
-                track_title = track['title']
-                if type(track) == type(True):
-                    play_embed.add_field(name="", value="Could not download the song: Incorrect format. Try another keywords. This could be due to the link you entered is a playlist or livestream format.", inline=False)
-                    return await interaction.followup.send(embed=play_embed)
-            elif source.value == "custom":
-                # Custom file
-                if attachment is None:
-                    play_embed.add_field(name="", value=f'''Looks like you've selected custom as the audio source, but haven't specified the file you would like to play :thinking: ...
-    Just curious to know, what should I play right now, <@{interaction.user.id}>？''', inline=False)
-                    return await interaction.followup.send(embed=play_embed)
-                track = await self.fetch_custom_rawfile(interaction, attachment)
-                # Return errors if occurs, or proceed to the next step if no errors encountered
-                if track == "!error%!payload_too_large%":
-                    play_embed.add_field(name="", value=f"Yooo, The file you uploaded was too large! I can't handle it apparently...", inline=False)
-                    return await interaction.followup.send(embed=play_embed)
-                elif track == "!error%!unsupportted_file_type%":
-                    play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it？", inline=False)
-                    return await interaction.followup.send(embed=play_embed)
-                track_title = track["filename"]
-            # Append the audio to the queue
-            track_queue[guild_id].append([track, source.value])
-            if len(track_queue[guild_id]) - 1 > 0:
-                # The queue contains more than 1 audio
-                play_embed.add_field(name="", value=f"**#{len(track_queue[guild_id])} - '{track_title}'** added to the queue", inline=False)
-            else:
-                # The queue only contains 1 audio
-                play_embed.add_field(name="", value=f"**'{track_title}'** added to the queue", inline=False)
-            await interaction.followup.send(embed=play_embed)
-            # Starts from index 0 if the queue only contains 1 audio
-            if len(track_queue[guild_id]) - 1 == 0:
-                current_track_queue_index[guild_id] = 0
-            # Plays the audio
-            if not self.is_playing[guild_id]:
-                await self.play_music(interaction)
-        else:
-            # The author is currently not in a voice channel
-            await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        """
-
 
 async def setup(bot):
     await bot.add_cog(Test(bot))
-
 
