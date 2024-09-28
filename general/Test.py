@@ -49,6 +49,7 @@ track_list = {}
 selectlist = []
 current_track_index = {}
 loading_prev = {}
+ftp = None
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
@@ -57,6 +58,7 @@ tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be 
 # Page select for track queue
 class MySelect(Select):
     def __init__(self):
+        global ftp
         global selectlist
         global tracks_per_page
         global current_track_index
@@ -152,11 +154,19 @@ class Test(commands.Cog):
     # Connect to lavalink node
     @commands.Cog.listener()
     async def on_ready(self) -> None:
+        global ftp
         nodes = [wavelink.Node(uri="http://linux20240907.eastus.cloudapp.azure.com:2333", password="youshallnotpass")]
         ftp_host = "linux20240907.eastus.cloudapp.azure.com"
-        ftp_port = 22
-        ftp_username = "azureadmin"
+        ftp_port = 21
+        ftp_username = "johnny"
         ftp_pass = "#a+8%32U48at"
+        ftp = FTP(ftp_host, user=ftp_username, passwd=ftp_pass)
+        ftp.set_pasv(0)
+        ftp.dir()
+        ftp.cwd("discord/plugins/custom_audio/guild_id")
+        ftp.dir()
+        logging.info("Connected to FTP server and changed directory to 'discord/plugins/custom_audio/guild_id'!")
+
         # cache_capacity is EXPERIMENTAL. Turn it off by passing None
         await wavelink.Pool.connect(nodes=nodes, client=self.bot, cache_capacity=100)
 

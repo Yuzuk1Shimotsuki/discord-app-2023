@@ -13,6 +13,6 @@ ftp.dir()
 print("Changed dir!")
 file = open("C:\\Users\\Ching\\Downloads\\retrieve.htm", "rb")
 ftp.storbinary(f'STOR retrieve.htm', file)
-# Change permission
-print ftp.sendcmd('SITE CHMOD 644 ' + filename)
+#Change permission
+#print ftp.sendcmd('SITE CHMOD 644 ' + filename)
 ftp.close()
