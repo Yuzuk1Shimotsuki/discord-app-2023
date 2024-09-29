@@ -804,6 +804,21 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Bumped up python version for docker enviroment to 3.12.6-bookworm
 
+#
 
+# 20240918 - 20240929 (night)
 
+(+) Wavelink v3.4.1 implementation
+
+(+) Rewrited the entire player system with wavelink and separated as a new file **"root/general/MusicPlayer.py"**
+
+(+) Fix YouTube videos or steamings cannot be played (thanks for wavelink)
+
+(+) **"root/general/VoiceChannel.py"** will now only handle basic voice channel operation, all music commands from that are removed.
+
+(+) Added **"root/general/VoiceChannelFallbackConfig.py"** for configuring fallback text channel in each guild due to to player system rewrite.
+
+(+) Moved **"root/ErrorHandling.py"** into **"root/errorhandling/ErrorHandling.py"** for better cogs origanization
+
+(+) Minior code improvement and cleanup
 
