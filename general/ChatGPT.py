@@ -9,7 +9,7 @@ from discord import app_commands, Interaction
 from discord.ext import commands
 from langdetect import detect, DetectorFactory
 from datetime import datetime
-from ErrorHandling import *
+from errorhandling.ErrorHandling import *
 
 load_dotenv()
 
