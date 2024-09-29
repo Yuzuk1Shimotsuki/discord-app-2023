@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import asyncio
+from dotenv import load_dotenv
 from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.ui import Select, View
@@ -21,6 +22,7 @@ loading_prev = {}
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
 
+load_dotenv()
 
 # Page select for track queue
 class MySelect(Select):
@@ -150,8 +152,7 @@ class MusicPlayer(commands.Cog):
     # Connect to lavalink node
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        global ftp
-        nodes = [wavelink.Node(uri="http://linux20240907.eastus.cloudapp.azure.com:2333", password="youshallnotpass")]
+        nodes = [wavelink.Node(uri=os.getenv("LAVALINK_SERVER_HOST"), password=os.getenv("LAVALINK_SERVER_HOST_PASSWORD"))]
         # cache_capacity is EXPERIMENTAL. Turn it off by passing None
         await wavelink.Pool.connect(nodes=nodes, client=self.bot, cache_capacity=100)
 
