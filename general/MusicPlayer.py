@@ -14,9 +14,7 @@ from tinytag import TinyTag
 from general.VoiceChannelFallbackConfig import *
 from errorhandling.ErrorHandling import *
 
-track_list = {}
 selectlist = []
-current_track_index = {}
 loading_prev = {}
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
@@ -716,8 +714,7 @@ class MusicPlayer(commands.Cog):
         if track_list[guild_id] != []:
             player.queue.reset()
             player.autoplay == wavelink.AutoPlayMode.partial
-            del track_list[guild_id]
-            del current_track_index[guild_id]
+            reset_music_player(guild_id)
             await player.skip()
             stop_embed.add_field(name="", value="Queue has been reset.")
         else:

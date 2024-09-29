@@ -37,12 +37,14 @@ class VoiceChannel(commands.Cog):
             before.channel != after.channel  # if these match then this could be e.g. server deafen
         ):
             guild_id = before.channel.guild.id
+            # Send fallback and reset all settings
             if guild_id in fallback_text_channel:
                 left_vc = discord.Embed(title="", description="", color=self.bot.user.color)
                 left_vc.add_field(name="", value="I left the voice channel.")
                 await fallback_text_channel[guild_id].send(embed=left_vc, silent=True)
-            # Reset all settings on guild
-            del fallback_text_channel[guild_id]
+                del fallback_text_channel[guild_id]
+            # Reset the music player
+            reset_music_player(guild_id)
             recording_vc[guild_id] = None
 
     # General commands
