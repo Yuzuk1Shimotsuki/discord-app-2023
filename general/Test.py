@@ -1,8 +1,7 @@
-
 """
 MIT License
 
-Copyright (c) 2019-Current PythonistaGuild, EvieePy
+Copyright (c) 2023-Current ChocolaMilk92
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,31 +24,26 @@ SOFTWARE.
 
 # TODO: Fix shitty code
 # The code is now partially functional, but some of the features are not working as expected.
+# track_list[guild_id] = [[track, cutom_audio_attribute or None]]
 
-import asyncio
 import discord
+import wavelink
 import logging
 import math
 import os
-import shutil
 import asyncio
-from getpass import getpass
-from discord import app_commands, Interaction, SelectOption
+from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.ui import Select, View
-from typing import cast
-from ftplib import FTP
 from discord import app_commands, Interaction
-from typing import Optional, List
+from typing import cast, Optional, List
 from tinytag import TinyTag
-from discord.ext import commands
-import wavelink
+from ErrorHandling import *
 
 track_list = {}
 selectlist = []
 current_track_index = {}
 loading_prev = {}
-ftp = None
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
@@ -58,7 +52,6 @@ tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be 
 # Page select for track queue
 class MySelect(Select):
     def __init__(self):
-        global ftp
         global selectlist
         global tracks_per_page
         global current_track_index
@@ -76,11 +69,10 @@ class MySelect(Select):
         view = None
         page = int(self.values[0])
         player: wavelink.Player
-        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
+        player = cast(wavelink.Player, interaction.guild.voice_client)
         queue_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
         if player is None:
-            queue_embed.add_field(name="", value="Please invite me to a voice channel first before using this command.")
-            return await interaction.response.send_message(embed=queue_embed)
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
         if player.current is None and player.queue.is_empty:
             queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
         if player.current is None:
@@ -113,11 +105,22 @@ class MySelect(Select):
                             selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_list[guild_id])}"))
                     else:
                         selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {end}"))
+            # Custom audio check
+            custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
             # Current track index and title, with index starts from 1
-            queue_embed.add_field(name=f"Now Playing :notes: ({1 + current_track_index[guild_id]}/{len(track_list[guild_id])}) :", value=f"> **#{1 + current_track_index[guild_id]}** - {player.current.title}", inline=False)
+            if custom_audio is None:
+                queue_embed.add_field(name=f"Now Playing :notes: ({1 + current_track_index[guild_id]}/{len(track_list[guild_id])}) :", value=f"> **#{1 + current_track_index[guild_id]}** - {player.current.title}", inline=False)
+            else:
+                queue_embed.add_field(name=f"Now Playing :notes: ({1 + current_track_index[guild_id]}/{len(track_list[guild_id])}) :", value=f"> **#{1 + current_track_index[guild_id]}** - {custom_audio["title"]}", inline=False)
             queue_embed.add_field(name="Upcoming Tracks:", value="", inline=False)
-            if player.queue.is_empty:
+            if player.queue.is_empty and player.autoplay == wavelink.AutoPlayMode.enabled:
+                # Empty queue, with autoplay enabled
+                queue_embed.add_field(name="", value="Will be fetched from web after the current track is finished", inline=False)
+            elif player.queue.is_empty:
+                # Empty queue
                 queue_embed.add_field(name="", value="There are no upcoming tracks will be played", inline=False)
+            else:
+                pass
             # Retrieving pages
             if len(track_list[guild_id]) - current_track_index[guild_id] - 1 > tracks_per_page_limit: 
                 end = 1 + current_track_index[guild_id] + tracks_per_page_limit
@@ -130,11 +133,29 @@ class MySelect(Select):
             end = current_track_index[guild_id] + page + tracks_per_page_limit * (page)
             # Upcoming track index and title, with index starts from 2 
             for index, upcoming_tracks in enumerate(track_list[guild_id][start:end]):
-                if page < 2:
-                    queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {upcoming_tracks.title}", inline=False)
+                custom_audio = upcoming_tracks[1]
+                if page < 2 and custom_audio is None:
+                    # Page < 2, not custom audio
+                    queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {upcoming_tracks[0].title}", inline=False)
+                elif page < 2:
+                    # Page < 2, custom audio
+                    queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {custom_audio["title"]}", inline=False)
+                elif custom_audio is None:
+                    # Page >= 2, not custom audio
+                    queue_embed.add_field(name="", value=f"> **#{page + current_track_index[guild_id] + index + (page - 1) * tracks_per_page_limit}** - {upcoming_tracks[0].title}", inline=False)
                 else:
-                    queue_embed.add_field(name="", value=f"> **#{page + current_track_index[guild_id] + index + (page - 1) * tracks_per_page_limit}** - {upcoming_tracks.title}", inline=False)
+                    # Page >= 2, custom audio
+                    queue_embed.add_field(name="", value=f"> **#{page + current_track_index[guild_id] + index + (page - 1) * tracks_per_page_limit}** - {custom_audio["title"]}", inline=False)
             view = DropdownView()
+        if player.queue.mode == wavelink.QueueMode.loop or player.queue.mode == wavelink.QueueMode.loop_all or player.autoplay == wavelink.AutoPlayMode.enabled:
+            # Creates an blank field
+            queue_embed.add_field(name='\u200b', value="", inline=False)
+        if player.queue.mode == wavelink.QueueMode.loop:
+            queue_embed.add_field(name='''"Repeat one" has been enabled.''', value="", inline=False)
+        if player.queue.mode == wavelink.QueueMode.loop_all:
+            queue_embed.add_field(name='''"Repeat all" has been enabled.''', value="", inline=False)
+        if player.autoplay == wavelink.AutoPlayMode.enabled:
+            queue_embed.add_field(name='''"Autoplay mode" has been enabled.''', value="", inline=False)
         if view is None:
             await interaction.response.edit_message(embed=queue_embed)
         else:
@@ -165,6 +186,9 @@ class Test(commands.Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: wavelink.TrackStartEventPayload) -> None:
+        global track_list
+        global current_track_index
+        guild_id = payload.player.guild.id
         player: wavelink.Player | None = payload.player
         if not player:
             # Handle edge cases...
@@ -174,13 +198,30 @@ class Test(commands.Cog):
         track: wavelink.Playable = payload.track
 
         embed: discord.Embed = discord.Embed(title="Now Playing")
-        embed.description = f"**{track.title}** by `{track.author}`"
+        custom_audio = None
+        try:
+            custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
+        except IndexError as e:
+            if original and original.recommended:
+                track_list[guild_id].append([payload.track, None])
+            else:
+                raise e
+        if custom_audio is None:
+            embed.description = f"**{track.title}** by **{track.author}**"
+            if track.artwork:
+                embed.set_image(url=track.artwork)
+            if track.album.name:
+                embed.add_field(name="Album", value=track.album.name)
 
-        if track.artwork:
-            embed.set_image(url=track.artwork)
+        else:
+            embed.description = f"**{custom_audio["title"]}** by **{custom_audio["artist"]}**"
+            if custom_audio["artwork"]:
+                embed.set_image(url=custom_audio["artwork"])
+            if custom_audio["album"]:
+                embed.add_field(name="Album", value=custom_audio["album"])
 
         if original and original.recommended:
-            embed.description += f"\n\n`This track was recommended via {track.source}`"
+            embed.description += f"\n\nThis track was recommended via **{track.source}**"
 
         if track.album.name:
             embed.add_field(name="Album", value=track.album.name)
@@ -196,59 +237,62 @@ class Test(commands.Cog):
             # Handle edge cases...
             return
         guild_id = player.guild.id
-        if current_track_index[guild_id] >= len(track_list[guild_id]) - 1 and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
-            current_track_index[guild_id] = 0
-        elif payload.track != None and not loading_prev[guild_id] and player.queue.mode != wavelink.QueueMode.loop:
-            current_track_index[guild_id] += 1
-        await player.channel.send(current_track_index[guild_id])
+        if guild_id in track_list and guild_id in current_track_index:
+            if current_track_index[guild_id] >= len(track_list[guild_id]) - 1 and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
+                current_track_index[guild_id] = 0
+            elif payload.track != None and not loading_prev[guild_id] and player.queue.mode != wavelink.QueueMode.loop:
+                current_track_index[guild_id] += 1
+        else:
+            # Stop the player
+            return
+
 
     # Pauses the current track
     @app_commands.command(name="pause", description="Pauses the current track being played in voice channel")
     async def pause(self, interaction: Interaction):
         pause_embed = discord.Embed(title="", color=interaction.user.colour)
-        if interaction.guild.voice_client is None:
+        player: wavelink.Player
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        if player is None:
             pause_embed.add_field(name="", value="No tracks were playing. I'm not even in a voice channel.", inline=False)
             return await interaction.response.send_message(embed=pause_embed)
-        player: wavelink.Player
-        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
-        if player is not None:
-            if player.paused:
-                pause_embed.add_field(name="", value="The track has been already paused!", inline=False)
-            else:
-                await player.pause(True)
-                pause_embed.add_field(name="", value="The track has been paused.", inline=False)
-        else:
+        if player.current is None and player.queue.is_empty:
             pause_embed.add_field(name="", value="No tracks were playing in voice channel.", inline=False)
+            return await interaction.response.send_message(embed=pause_embed)
+        if player.paused:
+            pause_embed.add_field(name="", value="The track has been already paused!", inline=False)
+        else:
+            await player.pause(True)
+            pause_embed.add_field(name="", value="The track has been paused.", inline=False)
         await interaction.response.send_message(embed=pause_embed)
 
     # Resume a paused track
     @app_commands.command(name = "resume", description="Resume a paused track in voice channel")
     async def resume(self, interaction: Interaction):
-        guild_id = interaction.guild.id
         resume_embed = discord.Embed(title="", color=interaction.user.colour)
-        if interaction.guild.voice_client is None:
+        player: wavelink.Player
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        if player is None:
             resume_embed.add_field(name="", value="No track has been paused before. I'm not even in a voice channel.", inline=False)
             return await interaction.response.send_message(embed=resume_embed)
-        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
-        if player is not None:
-            if not player.paused:
-                resume_embed.add_field(name="", value="No track has been paused before in voice channel.", inline=False)
-            else:
-                await player.pause(False)
-                resume_embed.add_field(name="", value="Resuming the track...", inline=False)
-        else:
+        if player.current is None and player.queue.is_empty:
+            resume_embed.add_field(name="", value="No tracks were paused or played before in the voice channel.", inline=False)
+            return await interaction.response.send_message(embed=resume_embed)
+        if not player.paused:
             resume_embed.add_field(name="", value="No track has been paused before in voice channel.", inline=False)
+        else:
+            await player.pause(False)
+            resume_embed.add_field(name="", value="Resuming the track...", inline=False)
         await interaction.response.send_message(embed=resume_embed)
 
     # Replay the current track in the queue
     @app_commands.command(name="replay", description="Replay the current track from the beginning")
     async def replay(self, interaction: Interaction):
-        guild_id = interaction.guild.id
-        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
+        global current_track_index
+        player = cast(wavelink.Player, interaction.guild.voice_client)
         replay_embed = discord.Embed(title="", color=interaction.user.colour)
         if player is None:
-            replay_embed.add_field(name="", value="I'm not in a voice channel!", inline=False)
-            return await interaction.response.send_message(embed=replay_embed)
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
         if player.paused or not player.playing:
             replay_embed.add_field(name="", value="No tracks were playing in voice channel.", inline=False)
             return await interaction.response.send_message(embed=replay_embed)
@@ -265,29 +309,41 @@ class Test(commands.Cog):
         guild_id = interaction.guild.id
         player = cast(wavelink.Player, interaction.guild.voice_client)
         prev_embed = discord.Embed(title="", color=interaction.user.colour)
-        previous_index = current_track_index[guild_id] - amount
-        print(previous_index)
-        loading_prev[guild_id] = True
         if player is None:
-            prev_embed.add_field(name="", value="There is no previous track in history. I'm not even in a voice channel.", inline=False)
+            prev_embed.add_field(name="", value="There is no previous track in the list. I'm not even in a voice channel.", inline=False)
             return await interaction.response.send_message(embed=prev_embed)
-        elif player and len(player.queue.history) == 0 or (current_track_index[guild_id] == 0 and previous_index == -1):
+        if player.current is None and player.queue.is_empty:
+            prev_embed.add_field(name="", value="There is no previous track in the list.", inline=False)
+            return await interaction.response.send_message(embed=prev_embed)
+        previous_index = current_track_index[guild_id] - amount
+        loading_prev[guild_id] = True
+        if player and len(player.queue.history) == 0 or (current_track_index[guild_id] == 0 and previous_index == -1):
             previous_index = 0
-            prev_embed.add_field(name="", value="There is no previous track in history.", inline=False)
+            prev_embed.add_field(name="", value="There is no previous track in the list.", inline=False)
             return await interaction.response.send_message(embed=prev_embed)
         elif previous_index <= -1:
             previous_index = 0
-            prev_embed.add_field(name="", value="The amount of tracks you tried to rollback exceeded the total number of available tracks can be rollback in the queue. Automatically rollback to the first track in the queue...", inline=False)
+            prev_embed.add_field(name="", value="The amount of tracks you tried to rollback exceeded the total number of available tracks can be rollback in the queue. Automatically rolling back to the first track in the list...", inline=False)
+        elif amount > 1:
+            prev_embed.add_field(name="", value=f"Rolling back **{amount}** tracks from the list...", inline=False)
         else:
-            prev_embed.add_field(name="", value="Playing previous track in history...", inline=False)
+            prev_embed.add_field(name="", value="Playing previous track in the list...", inline=False)
         # Getting previous track and replaces all upcoming tracks from the queue
         player.queue.clear()
-        await player.queue.put_wait(track_list[guild_id][previous_index:])
+        is_loop = player.queue.mode
+        if player.queue.mode == wavelink.QueueMode.loop:
+            # Bypass loop mode
+            player.queue.mode = wavelink.QueueMode.normal
+        for track in track_list[guild_id][previous_index:]:
+            await player.queue.put_wait(track[0])
         await player.play(player.queue.get())
         current_track_index[guild_id] = previous_index
+        if is_loop == wavelink.QueueMode.loop:
+            player.queue.mode == wavelink.QueueMode.loop
         await interaction.response.send_message(embed=prev_embed)
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(2)
         loading_prev[guild_id] = False
+
 
     @commands.command()
     async def nightcore(self, ctx: commands.Context) -> None:
@@ -328,8 +384,8 @@ class Test(commands.Cog):
     # Looping the current track or all tracks in the list
     @app_commands.command(name="repeat", description="Looping the current track or all tracks in the list")
     @app_commands.describe(type="The type to repeat (Can be the current track or all tracks)")
-    @app_commands.choices(type=[app_commands.Choice(name="Repeat one", value="repeat_one"),
-                                 app_commands.Choice(name="Repeat all", value="repeat_all")
+    @app_commands.choices(type=[app_commands.Choice(name="Repeat one", value="loop"),
+                                 app_commands.Choice(name="Repeat all", value="loop_all")
                                  ])
     @app_commands.choices(option=[app_commands.Choice(name="Enable", value="true"),
                                  app_commands.Choice(name="Disable", value="false")
@@ -341,7 +397,7 @@ class Test(commands.Cog):
         if player is None:
             repeat_embed.add_field(name="", value=f"I'm not in a voice channel!", inline=False)
             return await interaction.response.send_message(embed=repeat_embed)
-        if type.value == "repeat_one":
+        if type.value == "loop":
             # Loop
             if player.queue.mode == wavelink.QueueMode.loop and option.value == "true":
                 repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been already **enabled**!''', inline=False)
@@ -353,7 +409,7 @@ class Test(commands.Cog):
             elif player.queue.mode == wavelink.QueueMode.loop and option.value == "false":
                 player.queue.mode = wavelink.QueueMode.normal
                 repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been **disabled**.''', inline=False)
-        else:
+        elif type.value == "loop_all":
             # Loop all
             if player.queue.mode == wavelink.QueueMode.loop_all and option.value == "true":
                 repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been already **enabled**!''', inline=False)
@@ -365,6 +421,9 @@ class Test(commands.Cog):
             elif player.queue.mode == wavelink.QueueMode.loop_all and option.value == "false":
                 player.queue.mode = wavelink.QueueMode.normal
                 repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been **disabled**.''', inline=False)
+        else:
+            # Runtime error
+            raise RuntimeError("An unexpected error occured while repeating tracks.")
         await interaction.response.send_message(embed=repeat_embed)
 
     # Discord Autocomplete for Web search, rewrited for discord.py and wavelink discord
@@ -401,9 +460,9 @@ class Test(commands.Cog):
 
     # Custom files
     # Fetching raw data from custom file
-    async def fetch_custom_rawfile(self, interaction: Interaction, attachment: discord.Attachment):
+    # The file will be temporaily stored as a cache and will be deleted afterwards
+    async def fetch_custom_rawfile(self, attachment: discord.Attachment):
         try:
-            guild_id = interaction.guild.id
             supported_type = {"audio/mpeg": "mp3", "audio/x-wav": "wav", "audio/flac": "flac", "audio/mp4": "m4a"}
             if attachment.content_type in supported_type:
                 extension = supported_type[attachment.content_type]
@@ -419,27 +478,56 @@ class Test(commands.Cog):
             audio_title = audiofile.title
             if audiofile.title is None:
                 audio_title = attachment.filename.replace("_", " ")
-            year = audiofile.year
             if audiofile.title is None and audiofile.artist is None:
-                filename = attachment.filename.replace("_", " ")
-            elif year is None:
-                filename = f"{audio_artist} - {audio_title}"
-            else:
-                filename = f"{audio_artist} - {audio_title} ({year})"
+                audio_title = attachment.filename.replace("_", " ")
+                audio_artist =  "<Unknown artist>"
             # Delete the file to save storage space
             for file in os.listdir(cache_dir):
                 if not file.endswith(".gitkeep"):
                     os.remove(os.path.join(cache_dir, file))
             # Return the track information
-            return {"source": attachment, "filename": filename, "audio_url": attachment.url, "title": audio_title, "artist": audiofile.artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
+            return {"source": attachment, "filename": attachment.filename, "audio_url": attachment.url, "title": audio_title, "artist": audio_artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "artwork": audiofile.get_image(), "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
         except discord.errors.HTTPException as e:
             if e.status == 413:
                 return "!error%!payload_too_large%"
             else:
                 raise e
 
+    # Enable or disable autoplay mode
+    @app_commands.command(description="Toggle autoplay to automatically fetch recommendations for you")
+    @app_commands.describe(mode="The option you want to choose.")
+    @app_commands.choices(mode=[app_commands.Choice(name="Enable", value="enable"),
+                                    app_commands.Choice(name="Disable", value="disable")
+                                    ])
+    async def autoplay(self, interaction: Interaction, mode: app_commands.Choice[str]):
+        player: wavelink.Player
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        autoplay_embbed = discord.Embed(title="", color=interaction.user.color)
+        if player is None:
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
+        if mode.value == "enable" and player.autoplay == wavelink.AutoPlayMode.enabled:
+            # Autoplay mode has been already enabled
+            autoplay_embbed.add_field(name="", value="Autoplay mode has been already **enabled**!")
+        elif mode.value == "enable":
+            # Enable Autoplay mode
+            player.autoplay = wavelink.AutoPlayMode.enabled
+            autoplay_embbed.add_field(name="", value="Autoplay mode has been **enabled**.")
+        elif mode.value == "disable" and (player.autoplay == wavelink.AutoPlayMode.partial or player.autoplay == wavelink.AutoPlayMode.disabled):
+            # Autoplay mode has been already disabled
+            autoplay_embbed.add_field(name="", value="Autoplay mode has been already **disabled**!")
+        elif mode.value == "disable":
+            # Disable Autoplay mode
+            player.autoplay = wavelink.AutoPlayMode.partial
+            autoplay_embbed.add_field(name="", value="Autoplay mode has been **disabled**.")
+        else:
+            # Runtime error
+            raise RuntimeError("An unexpected error occured while toggling Autoplay mode.")
+        await interaction.response.send_message(embed=autoplay_embbed)
+        
+
+
     # Play selected tracks
-    @app_commands.command(description="Adds a selected track to the queue from YouTube link, keywords or a local file")
+    @app_commands.command(description="Adds a selected track to the queue from web link, keywords or a local file")
     @app_commands.describe(source="Source to play the track on")
     @app_commands.describe(query="Link or keywords of the track you want to play.")
     @app_commands.describe(attachment="The track to be played.")
@@ -447,7 +535,7 @@ class Test(commands.Cog):
                                     app_commands.Choice(name="Custom files", value="custom")
                                     ])
     @app_commands.autocomplete(query=web_serach_autocomplete)
-    async def play(self, interaction:Interaction, source: app_commands.Choice[str], query: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
+    async def play(self, interaction: Interaction, source: app_commands.Choice[str], query: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
         guild_id = interaction.guild.id
         if guild_id not in track_list:
             track_list[guild_id] = []
@@ -455,73 +543,82 @@ class Test(commands.Cog):
             current_track_index[guild_id] = 0
         if guild_id not in loading_prev:
             loading_prev[guild_id] = False
-        play_embed = discord.Embed(title="Player", color=interaction.user.colour)
+        play_embed = discord.Embed(title="", color=interaction.user.colour)
         await interaction.response.defer()
         if query is None and source.value == "web":
             play_embed.add_field(name="", value=f'''Looks like you've selected searching online for the audio source, but haven't specified the track you would like to play :thinking: ...
-    Just curious to know, what should I play right now, <@{interaction.user.id}>？''', inline=False)
-            return interaction.followup.send(embed=play_embed)
+    Just curious to know, what should I play right now, {interaction.user.mention}？''', inline=False)
+            return await interaction.followup.send(embed=play_embed)
         if source.value == "custom":
             if attachment is None:
                 play_embed.add_field(name="", value=f'''Looks like you've selected your custom files as the audio source, but haven't specified the track you would like to play :thinking: ...
-        Just curious to know, what should I play right now, <@{interaction.user.id}>？''', inline=False)
-                return interaction.followup.send(embed=play_embed)
-            track = await self.fetch_custom_rawfile(interaction, attachment)
+        Just curious to know, what should I play right now, {interaction.user.mention}？''', inline=False)
+                return await interaction.followup.send(embed=play_embed)
+            custom_track = await self.fetch_custom_rawfile(attachment)
             # Return errors if occurs, or proceed to the next step if no errors encountered
-            if track == "!error%!payload_too_large%":
-                play_embed.add_field(name="", value=f"Yooo, The file you uploaded was too large! I can't handle it apparently...", inline=False)
+            if custom_track == "!error%!payload_too_large%":
+                play_embed.add_field(name="", value=f"Yooo {interaction.user.mention}, The file you uploaded was too large! I can't handle it apparently...", inline=False)
                 return await interaction.followup.send(embed=play_embed)
-            elif track == "!error%!unsupportted_file_type%":
-                play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it？", inline=False)
+            elif custom_track == "!error%!unsupportted_file_type%":
+                play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it, {interaction.user.mention}？", inline=False)
                 return await interaction.followup.send(embed=play_embed)
-            track_title = track["title"]
-            track_path = track["audio_url"]
-            print(track_path)
         player: wavelink.Player
-        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
+        player = cast(wavelink.Player, interaction.guild.voice_client)
         if not player:
+            # Join author's voice channel
             try:
-                player = await interaction.user.voice.channel.connect(cls=wavelink.Player)  # type: ignore
+                player = await interaction.user.voice.channel.connect(cls=wavelink.Player)
             except AttributeError:
-                await interaction.followup.send(content="Please join a voice channel first before using this command.")
-                return
+                # The author is not in a voice channel
+                return await interaction.followup.send(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
             except discord.ClientException:
-                await interaction.followup.send(content="I was unable to join this voice channel. Please try again.")
-                return
+                # Something went wrong on discord or network side while joining voice channel
+                play_embed.add_field(name="", value=f"I was unable to join {interaction.user.voice.channel}. Please try again.", inline=False)
+                return await interaction.followup.send(embed=play_embed)
+
         # Turn on AutoPlay to enabled mode.
         # enabled = AutoPlay will play songs for us and fetch recommendations...
         # partial = AutoPlay will play songs for us, but WILL NOT fetch recommendations...
-        # disabled = AutoPlay will do nothing...
+        # disabled = AutoPlay will do nothing... (NOT RECOMMEND and disabled...)
         player.autoplay = wavelink.AutoPlayMode.partial
         
-
         # Lock the player to this channel...
         if not hasattr(player, "home"):
             player.home = interaction.channel
         elif player.home != interaction.channel:
-            await interaction.followup.send(content=f"You can only play songs in {player.home.mention}, as the player has already started there.")
-            return
-        tracks: wavelink.Search = await wavelink.Playable.search(query or track_path)
+            play_embed.add_field(name="", value=f"You can only play songs in {player.home.mention}, as the player has already started there.", inline=False)
+            return await interaction.followup.send(embed=play_embed)
+        tracks: wavelink.Search = await wavelink.Playable.search(query or custom_track["audio_url"])
         if not tracks:
-            await interaction.followup.send(content=f"{interaction.user.mention} - Could not find any tracks with that query. Please try again.")
-            return
-        
+            # Could not find any tracks from author's query
+            play_embed.add_field(name="", value=f"I couldn't find any tracks with that query you entered :thinking: ... Perhaps try to search something else and gave me a chance to play it, {interaction.user.mention}？", inline=False)
+            return await interaction.followup.send(embed=play_embed)
+
         if isinstance(tracks, wavelink.Playlist):
             # tracks is a playlist...
-            added: int = await player.queue.put_wait(tracks)
-            # Copy the entire list for self checking
-            track_list[guild_id].append(tracks.tracks)
-            await interaction.followup.send(content=f"Added the playlist **`{tracks.name}`** ({added} songs) to the queue.")
+            for i in range(12):
+                added: int = await player.queue.put_wait(tracks)
+                # Copy the entire list for self checking
+                for track in tracks.tracks:
+                    track_list[guild_id].append([track, None])
+            # Return track or playlist message
+            play_embed.add_field(name="", value=f"Added the playlist **{tracks.name}** (**{added}** songs) to the queue.", inline=False)
+            await interaction.followup.send(embed=play_embed)
         else:
             track: wavelink.Playable = tracks[0]
             # Copy the entire list for self checking
-            for i in range(1):
-                track_list[guild_id].append(track)
-                await player.queue.put_wait(track)
-            if track.title == "Unknown title":
-                await interaction.followup.send(content=f"Added **`{track_title}`** to the queue.")
+            if source.value == "custom":
+                track_list[guild_id].append([track, custom_track])
             else:
-                await interaction.followup.send(content=f"Added **`{track}`** to the queue.")
+                track_list[guild_id].append([track, None])
+            await player.queue.put_wait(track)
+            # Return track message
+            if track.title == "Unknown title":
+                play_embed.add_field(name="", value=f"Added **{custom_track["title"]}** to the queue.", inline=False)
+                await interaction.followup.send(embed=play_embed)
+            else:
+                play_embed.add_field(name="", value=f"Added **{track}** to the queue.", inline=False)
+                await interaction.followup.send(embed=play_embed)
 
         if not player.playing:
             # Play now since we aren't playing anything...
@@ -533,36 +630,50 @@ class Test(commands.Cog):
     async def skip(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
         global loading_prev
         player: wavelink.Player
-        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
+        player = cast(wavelink.Player, interaction.guild.voice_client)
         guild_id = interaction.guild.id
         loading_prev[guild_id] = False
         skip_embed = discord.Embed(title="", color=interaction.user.colour)
         if player is None:
-            skip_embed.add_field(name="", value="I'm not in a voice channel.", inline=False)
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
+        if player.current is None and player.queue.is_empty:
+            skip_embed.add_field(name="", value="There are no tracks in the queue.")
             return await interaction.response.send_message(embed=skip_embed)
-        print(current_track_index[guild_id])
-        print(len(track_list[guild_id]))
         if current_track_index[guild_id] > len(track_list[guild_id]) - 1:
             # The author has been already gone through all tracks in the queue
             skip_embed.add_field(name="", value=f"<@{interaction.user.id}> You have already gone through all tracks in the queue.", inline=False)
             return await interaction.response.send_message(embed=skip_embed)
-        if player.current and player.queue.is_empty:
+        if player.current and player.queue.is_empty and player.autoplay == wavelink.AutoPlayMode.enabled:
+            # The author just skipped the final track, with autoplay enabled
             await player.skip(force=True)
+            skip_embed.add_field(name="", value=f"Skipped the **final track**. Now fetching some **recommendations** from the web...", inline=False)
+        elif player.current and player.queue.is_empty:
             # The author just skipped the final track
-            skip_embed.add_field(name="", value=f'''Skipped the final track. There are no upcoming tracks will be played unless **"Repeat all"** was **enabled**.''', inline=False)
+            await player.skip(force=True)
+            skip_embed.add_field(name="", value=f"Skipped the **final track**. There are **no upcoming tracks** will be played.", inline=False)
         elif amount > player.queue.count:
-            skip_embed.add_field(name="", value="The amount of tracks you tried to skip exceeded the total number of available tracks can be skipped in the queue. Automatically skipping to the last track in the queue...", inline=False)
-            await player.play(track=player.queue[-1])
+            skip_embed.add_field(name="", value="The amount of tracks you tried to skip **exceeded** the **total number of available tracks can be skipped** in the queue. Automatically **skipping to the last track** in the queue...", inline=False)
+            player.queue.clear()
+            current_track_index[guild_id] = len(track_list[guild_id]) - 2
+            await player.queue.put_wait(track_list[guild_id][-1][0])
+            await player.play(player.queue.get())
         else:
             # Skip one or multiple tracks
-            count = amount
-            while count > 0:
-                await player.skip(force=True)
-                count -= 1
+            player.queue.clear()
+            is_loop = player.queue.mode
+            if player.queue.mode == wavelink.QueueMode.loop:
+                # Bypass loop mode
+                player.queue.mode = wavelink.QueueMode.normal
+            for track in track_list[guild_id][amount + current_track_index[guild_id]:]:
+                await player.queue.put_wait(track[0])
+            current_track_index[guild_id] += amount - 1
+            await player.play(player.queue.get())
             if amount > 1:
                 skip_embed.add_field(name="", value=f"Skipped **{amount}** tracks in the queue", inline=False)
             else:
-                skip_embed.add_field(name="", value="Skipped the current track", inline=False)
+                skip_embed.add_field(name="", value="Skipped the **current** track in the queue", inline=False)
+            if is_loop == wavelink.QueueMode.loop:
+                player.queue.mode == wavelink.QueueMode.loop
         await interaction.response.send_message(embed=skip_embed)
 
     # Shows the queue
@@ -572,11 +683,10 @@ class Test(commands.Cog):
         guild_id = interaction.guild.id
         view = None
         player: wavelink.Player
-        player = cast(wavelink.Player, interaction.guild.voice_client)  # type: ignore
+        player = cast(wavelink.Player, interaction.guild.voice_client)
         queue_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
         if player is None:
-            queue_embed.add_field(name="", value="Please invite me to a voice channel first before using this command.")
-            return await interaction.response.send_message(embsed=queue_embed)
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
         if player.current is None and player.queue.is_empty:
             queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
         if player.current is None:
@@ -609,11 +719,22 @@ class Test(commands.Cog):
                             selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {len(track_list[guild_id])}"))
                     else:
                         selectlist.append(discord.SelectOption(label=f"{i}", value=f"{i}", description=f"{start} - {end}"))
+            # Custom audio check
+            custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
             # Current track index and title, with index starts from 1
-            queue_embed.add_field(name=f"Now Playing :notes: ({1 + current_track_index[guild_id]}/{len(track_list[guild_id])}) :", value=f"> **#{1 + current_track_index[guild_id]}** - {player.current.title}", inline=False)
+            if custom_audio is None:
+                queue_embed.add_field(name=f"Now Playing :notes: ({1 + current_track_index[guild_id]}/{len(track_list[guild_id])}) :", value=f"> **#{1 + current_track_index[guild_id]}** - {player.current.title}", inline=False)
+            else:
+                queue_embed.add_field(name=f"Now Playing :notes: ({1 + current_track_index[guild_id]}/{len(track_list[guild_id])}) :", value=f"> **#{1 + current_track_index[guild_id]}** - {custom_audio["title"]}", inline=False)
             queue_embed.add_field(name="Upcoming Tracks:", value="", inline=False)
-            if player.queue.is_empty:
+            if player.queue.is_empty and player.autoplay == wavelink.AutoPlayMode.enabled:
+                # Empty queue, with autoplay enabled
+                queue_embed.add_field(name="", value="Will be fetched from web after the current track is finished", inline=False)
+            elif player.queue.is_empty:
+                # Empty queue
                 queue_embed.add_field(name="", value="There are no upcoming tracks will be played", inline=False)
+            else:
+                pass
             # Retrieving tracks
             if len(track_list[guild_id]) - current_track_index[guild_id] - 1 > tracks_per_page_limit: 
                 end = 1 + current_track_index[guild_id] + tracks_per_page_limit
@@ -621,19 +742,79 @@ class Test(commands.Cog):
                 end = len(track_list[guild_id])
             # Upcoming track index and title, with index starts from 2
             for index, upcoming_tracks in enumerate(track_list[guild_id][1 + current_track_index[guild_id]:end]):
-                queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {upcoming_tracks.title}", inline=False)
+                custom_audio = upcoming_tracks[1]
+                if custom_audio is None:
+                    queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {upcoming_tracks[0].title}", inline=False)
+                else:
+                    queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {custom_audio["title"]}", inline=False)
             view =  DropdownView()
-        if player.queue.mode == wavelink.QueueMode.loop:
+        if player.queue.mode == wavelink.QueueMode.loop or player.queue.mode == wavelink.QueueMode.loop_all or player.autoplay == wavelink.AutoPlayMode.enabled:
+            # Creates an blank field
             queue_embed.add_field(name='\u200b', value="", inline=False)
+        if player.queue.mode == wavelink.QueueMode.loop:
             queue_embed.add_field(name='''"Repeat one" has been enabled.''', value="", inline=False)
         if player.queue.mode == wavelink.QueueMode.loop_all:
-            queue_embed.add_field(name='\u200b', value="", inline=False)
             queue_embed.add_field(name='''"Repeat all" has been enabled.''', value="", inline=False)
+        if player.autoplay == wavelink.AutoPlayMode.enabled:
+            queue_embed.add_field(name='''"Autoplay mode" has been enabled.''', value="", inline=False)
         if view is None:
             await interaction.response.send_message(embed=queue_embed)
         else:
             await interaction.response.send_message(embed=queue_embed, view=view)
 
+    # Stops the track currently playing and clears the queue
+    @app_commands.command(name="stop", description="Stops the track currently playing and reset the queue")
+    async def stop(self, interaction: Interaction):
+        player: wavelink.Player
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        guild_id = interaction.guild.id
+        stop_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
+        if player is None:
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
+        if guild_id in track_list:
+            if track_list[guild_id] != []:
+                player.queue.reset()
+                player.autoplay == wavelink.AutoPlayMode.partial
+                del track_list[guild_id]
+                del current_track_index[guild_id]
+                await player.skip()
+                stop_embed.add_field(name="", value="Queue has been reset.")
+            else:
+                stop_embed.add_field(name="", value="There are no tracks in the queue")
+        else:
+            stop_embed.add_field(name="", value="There are no tracks in the queue")
+        await interaction.response.send_message(embed=stop_embed)
+
+    # Removes the last or a specified track added to the queue
+    @app_commands.command(name="remove", description="Removes the last or a specified track added to the queue")
+    @app_commands.describe(position="Postion of track to remove. Leave this blank if you want to remove the last track.")
+    async def remove(self, interaction: Interaction, position: Optional[app_commands.Range[int, 1]] = None):
+        player: wavelink.Player
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        if player is None:
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
+        guild_id = interaction.guild.id
+        remove_embed = discord.Embed(title="Queue", color=interaction.user.colour)
+        if track_list[guild_id] != []:
+            position = position or len(track_list[guild_id])
+            if position > len(track_list[guild_id]):
+                remove_embed.add_field(name="", value=f"Please enter a valid position of the track you want to remove from the queue.", inline=False)
+            else:
+                if position - 1 < 0:
+                    track_list[guild_id].pop(0)
+                else:
+                    track_list[guild_id].pop(position - 1)
+                remove_embed.add_field(name="", value=f"**#{position}** has been **removed** from queue.", inline=False)
+                if (current_track_index[guild_id] + 1) == position:
+                    # Skips to next track to prevent errors as the track is not exists anymore...
+                    await player.skip(force=True)
+                current_track_index[guild_id] -= 1
+                if current_track_index[guild_id] < 0:
+                    current_track_index[guild_id] = 0
+
+        else:
+            remove_embed.add_field(name="", value="There are no tracks in the queue.")
+        await interaction.response.send_message(embed=remove_embed)
+
 async def setup(bot):
     await bot.add_cog(Test(bot))
-

@@ -43,22 +43,21 @@ class AuthorNotInVoiceError():
         self.interaction = interaction
     def return_embed(self):
         embed = discord.Embed(title="", color=self.interaction.user.colour)
-        embed.add_field(name="", value=f"<@{self.user.id}> Join a voice channel plz :pleading_face:  I don't think I can stay there without u :pensive: ...", inline=False)
+        embed.add_field(name="", value=f"{self.user.mention} Join a voice channel plz :pleading_face:  I don't think I can stay there without u :pensive: ...", inline=False)
         return embed
 
 class BotAlreadyInVoiceError():
-    def __init__(self, bot_vc, user_vc):
+    def __init__(self, bot_vc: discord.VoiceChannel, user_vc: discord.VoiceChannel):
         self.bot_vc = bot_vc
         self.user_vc = user_vc
     def notauthor(self):
         return f'''I've already joined the voice channel :D , but not where you are ~
-**I'm currently in:** <#{self.bot_vc.id}>
-**You're currently in:** <#{self.user_vc.id}>'''
+**I'm currently in:** {self.bot_vc.mention}
+**You're currently in:** {self.user_vc.mention}'''
     def notrequired(self):
         return f'''I've already joined the voice channel :D , but not the one you wanted me to join ~
-**I'm currently in:** <#{self.bot_vc.id}>
-**The channel you wanted me to join:** <#{self.user_vc.id}>'''
+**I'm currently in:** {self.bot_vc.mention}
+**The channel you wanted me to join:** {self.user_vc.mention}'''
     def same(self):
-        return f"Can u found me in the voice channel？ I have connected to  <#{self.user_vc.id}> already :>"
-    
+        return f"Can u found me in the voice channel？ I have connected to {self.user_vc.mention} already :>"
     
