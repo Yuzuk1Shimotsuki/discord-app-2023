@@ -12,14 +12,14 @@ class ExtensionNotFoundError:
         self.cog = cog
 
     def __repr__(self) -> str:
-        return f"I couldn't find the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ？"
+        return f"I couldn't find the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ?"
 
 class ReturnNoEntryPointError:
     def __init__(self, cog: str) -> None:
         self.cog = cog
 
     def __repr__(self) -> str:
-        return f"I couldn't find the `async def setup()` function in cog `{self.cog}` :pensive_face: ... Perhaps check the cog and try again :thinking: ？"
+        return f"I couldn't find the `async def setup()` function in cog `{self.cog}` :pensive_face: ... Perhaps check the cog and try again :thinking: ?"
 
 class ExtensionFailedError:
     def __init__(self, cog: str) -> None:
@@ -35,31 +35,34 @@ class InvaildTypeError():
 class MessageNotFoundError():
     def __repr__(self) -> str:
         return f'''I couldn't found the message from the given ID or URL :(
-Have you entered a vaild ID or URL in the `message_id` field？'''
+Have you entered a vaild ID or URL in the `message_id` field?'''
 
 class AuthorNotInVoiceError():
     def __init__(self, interaction: Interaction, user: discord.User):
-        self.user = user
         self.interaction = interaction
+        self.user = user
     def return_embed(self):
         embed = discord.Embed(title="", color=self.interaction.user.colour)
         embed.add_field(name="", value=f"{self.user.mention} Join a voice channel plz :pleading_face:  I don't think I can stay there without u :pensive: ...", inline=False)
         return embed
 
 class BotAlreadyInVoiceError():
-    def __init__(self, bot_vc: discord.VoiceChannel, user_vc: discord.VoiceChannel):
+    def __init__(self, interaction: Interaction, bot_vc: discord.VoiceChannel, user_vc: discord.VoiceChannel):
+        self.interaction = interaction
         self.bot_vc = bot_vc
         self.user_vc = user_vc
     def notauthor(self):
-        return f'''I've already joined the voice channel :D , but not where you are ~
-**I'm currently in:** {self.bot_vc.mention}
-**You're currently in:** {self.user_vc.mention}'''
+        notauthor_embed = discord.Embed(title="", color=self.interaction.user.colour)
+        notauthor_embed.add_field(name="",value=f"I've already joined the voice channel :D , but not where you are ~\n\n**I'm currently in:** {self.bot_vc.mention}\n**You're currently in:** {self.user_vc.mention}")
+        return notauthor_embed
     def notrequired(self):
-        return f'''I've already joined the voice channel :D , but not the one you wanted me to join ~
-**I'm currently in:** {self.bot_vc.mention}
-**The channel you wanted me to join:** {self.user_vc.mention}'''
+        notrequired_embed = discord.Embed(title="", color=self.interaction.user.colour)
+        notrequired_embed.add_field(name="",value=f"I've already joined the voice channel :D , but not the one you wanted me to join ~\n\n**I'm currently in:** {self.bot_vc.mention}\n**The channel you wanted me to join:** {self.user_vc.mention}")
+        return notrequired_embed
     def same(self):
-        return f"Can u found me in the voice channel？ I have connected to {self.user_vc.mention} already :>"
+        same_embed = discord.Embed(title="", color=self.interaction.user.colour)
+        same_embed.add_field(name="", value=f"Can you found me in the voice channel? I have connected to {self.user_vc.mention} already :>")
+        return same_embed
 
 
 # This is just a configuration for which error meesages are needed to return when error occurs. No commands.Cog are involved.
