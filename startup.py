@@ -12,13 +12,13 @@ from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoE
 from datetime import datetime
 from quart import Quart
 from dotenv import load_dotenv
-from ErrorHandling import *
+from errorhandling.ErrorHandling import *
 
 load_dotenv()
 nest_asyncio.apply()
 app = Quart("DiscordBot")
 extensions = []
-extensions_folders = ['general', 'moderation']
+extensions_folders = ['general', 'moderation', 'errorhandling']
 
 logger = logging.getLogger(__name__)
 ConsoleOutputHandler = logging.StreamHandler()
