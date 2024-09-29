@@ -38,7 +38,9 @@ class VoiceChannel(commands.Cog):
         ):
             guild_id = before.channel.guild.id
             if guild_id in fallback_text_channel:
-                await fallback_text_channel[guild_id].send("I left the voice channel.", silent=True)
+                left_vc = discord.Embed(title="", description="", color=self.bot.user.color)
+                left_vc.add_field(name="", value="I left the voice channel.")
+                await fallback_text_channel[guild_id].send(embed=left_vc, silent=True)
             # Reset all settings on guild
             del fallback_text_channel[guild_id]
             recording_vc[guild_id] = None
@@ -62,22 +64,23 @@ class VoiceChannel(commands.Cog):
                 # Join voice channel
                 player = await voice_channel.connect(cls=wavelink.Player)
                 set_fallback_text_channel(interaction, interaction.channel)
-                await interaction.response.send_message(f"I've joined the voice channel {voice_channel.mention}")
+                join_embed.add_field(name="", value=f"I've joined the voice channel {voice_channel.mention}")
+                return await interaction.response.send_message(embed=join_embed)
             except discord.ClientException:
                 # Something went wrong on discord or network side while joining voice channel
                 join_embed.add_field(name="", value=f"I was unable to join {interaction.user.voice.channel}. Please try again.", inline=False)
-                return await interaction.followup.send(embed=join_embed)
+                return await interaction.response.send_message(embed=join_embed)
         elif player.channel != voice_channel:
             # The bot has been connected to a voice channel but not as same as the author or required one
             if channel is not None:
                 # The bot has been connected to a voice channel but not as same as the required one
-                await interaction.response.send_message(BotAlreadyInVoiceError(player.channel, voice_channel).notrequired())
+                await interaction.response.send_message(embed=BotAlreadyInVoiceError(interaction, player.channel, voice_channel).notrequired())
             else:
                 # The bot has been connected to a voice channel but not as same as the author one
-                await interaction.response.send_message(BotAlreadyInVoiceError(player.channel, voice_channel).notauthor())
+                await interaction.response.send_message(embed=BotAlreadyInVoiceError(interaction, player.channel, voice_channel).notauthor())
         else:
             # The bot has been connected to the same channel as the author
-            await interaction.response.send_message(BotAlreadyInVoiceError(player.channel, voice_channel).same())
+            await interaction.response.send_message(embed=BotAlreadyInVoiceError(interaction, player.channel, voice_channel).same())
 
     # Leaving voice channel
     @app_commands.command(description="Leaving a voice channel")
@@ -135,16 +138,16 @@ class VoiceChannel(commands.Cog):
             else:
                 # The author has not joined the voice channel yet
                 return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move all connected members into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move them all into right now, <@{interaction.user.id}>？''')
+Just curious to know, where should I move them all into right now, {interaction.user.mention}?''')
         else:
             specified_vc = channel
-        await interaction.response.send_message(f"Moving all users to <#{specified_vc.id}>...")
+        await interaction.response.send_message(f"Moving all users to {specified_vc.mention}...")
         # Return True when successful to move, or return False when no users were found in the voice channel.
         if await self.move_all_members(interaction, specified_vc, reason=reason):
             if reason is None:
-                await interaction.edit_original_response(content=f"All users has been moved to <#{specified_vc.id}>.")
+                await interaction.edit_original_response(content=f"All users has been moved to {specified_vc.mention}.")
             else:
-                await interaction.edit_original_response(content=f"All users has been moved to <#{specified_vc.id}> for **{reason}**.")
+                await interaction.edit_original_response(content=f"All users has been moved to {specified_vc.mention} for **{reason}**.")
         else:
             # No users were found in the voice channel
             await interaction.edit_original_response(content=f"No users were found in the voice channel.")
@@ -170,7 +173,7 @@ Just curious to know, where should I move them all into right now, <@{interactio
         elif interaction.user.voice is None:
             return await interaction.response.send_message(f"You're currently not in a voice channel !")
         elif member.voice is None:
-            return await interaction.response.send_message(f"<@{member.id}> currently not in a voice channel.")
+            return await interaction.response.send_message(f"{member.mention} currently not in a voice channel.")
         # Check the target vc
         if channel is None:
             if interaction.user.voice is not None:
@@ -178,19 +181,19 @@ Just curious to know, where should I move them all into right now, <@{interactio
             else:
                 # The author has not joined the voice channel yet
                 return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move someone into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move <@{member.id}> into right now, <@{interaction.user.id}>？''')
+Just curious to know, where should I move {member.mention} into right now, {interaction.user.mention}?''')
         else:
             specified_vc = channel
         if reason is None:
             await member.move_to(specified_vc)
             if interaction.user.id == self.bot.application_id:
-                return await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}>. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
-            await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}>.")
+                return await interaction.response.send_message(f"I have been moved to {specified_vc.mention}. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
+            await interaction.response.send_message(f"{member.mention} has been moved to {specified_vc.mention}.")
         else:
             await member.move_to(specified_vc, reason=reason)
             if interaction.user.id == self.bot.application_id:
-                return await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}> for **{reason}**. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
-            await interaction.response.send_message(f"<@{member.id}> has been moved to <#{specified_vc.id}> for **{reason}**")
+                return await interaction.response.send_message(f"I have been moved to {specified_vc.mention} for **{reason}**. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
+            await interaction.response.send_message(f"{member.mention} has been moved to {specified_vc.mention} for **{reason}**")
 
     @move_user.error
     async def move_user_error(self, interaction: Interaction, error):
@@ -210,10 +213,10 @@ Just curious to know, where should I move <@{member.id}> into right now, <@{inte
             return await interaction.response.send_message(f"You're currently not in a voice channel!")
         if reason is None:
             await interaction.user.move_to(channel)
-            await interaction.response.send_message(f"<@{interaction.user.id}> has been moved to <#{channel.id}>.")
+            await interaction.response.send_message(f"{interaction.user.mention} has been moved to <#{channel.id}>.")
         else:
             await interaction.user.move_to(channel, reason=reason)
-            await interaction.response.send_message(f"<@{interaction.user.id}> has been moved to <#{channel.id}> for {reason}")
+            await interaction.response.send_message(f"{interaction.user.mention} has been moved to <#{channel.id}> for {reason}")
 
     @move_me.error
     async def move_me_error(self, interaction: Interaction, error):
@@ -239,15 +242,15 @@ Just curious to know, where should I move <@{member.id}> into right now, <@{inte
             else:
                 # The author has not joined the voice channel yet
                 return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move me into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move into right now, <@{interaction.user.id}>？''')
+Just curious to know, where should I move into right now, {interaction.user.mention}?''')
         else:
             specified_vc = channel
         if reason is None:
             await player.move_to(specified_vc)
-            await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}>.")
+            await interaction.response.send_message(f"I have been moved to {specified_vc.mention}.")
         else:
             await player.move_to(specified_vc, reason=reason)
-            await interaction.response.send_message(f"I have been moved to <#{specified_vc.id}> for **{reason}**.")
+            await interaction.response.send_message(f"I have been moved to {specified_vc.mention} for **{reason}**.")
 
     @move_bot.error
     async def move_bot_error(self, interaction: Interaction, error):

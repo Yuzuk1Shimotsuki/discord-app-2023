@@ -1,31 +1,3 @@
-"""
-MIT License
-
-Copyright (c) 2023-Current ChocolaMilk92
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-
-# TODO: Fix shitty code
-# The code is now partially functional, but some of the features are not working as expected.
-# track_list[guild_id] = [[track, cutom_audio_attribute or None]]
-
 import discord
 import wavelink
 import logging
@@ -167,7 +139,9 @@ class DropdownView(View):
         super().__init__()
         self.add_item(MySelect())
 
-class Test(commands.Cog):
+# ----------<Music Player>----------
+
+class MusicPlayer(commands.Cog):
     def __init__(self, bot) -> None:
         global loading_prev
         self.bot = bot
@@ -336,12 +310,12 @@ class Test(commands.Cog):
         await interaction.response.defer()
         if query is None and source.value == "web":
             play_embed.add_field(name="", value=f'''Looks like you've selected searching online for the audio source, but haven't specified the track you would like to play :thinking: ...
-    Just curious to know, what should I play right now, {interaction.user.mention}？''', inline=False)
+    Just curious to know, what should I play right now, {interaction.user.mention}?''', inline=False)
             return await interaction.followup.send(embed=play_embed)
         if source.value == "custom":
             if attachment is None:
                 play_embed.add_field(name="", value=f'''Looks like you've selected your custom files as the audio source, but haven't specified the track you would like to play :thinking: ...
-        Just curious to know, what should I play right now, {interaction.user.mention}？''', inline=False)
+        Just curious to know, what should I play right now, {interaction.user.mention}?''', inline=False)
                 return await interaction.followup.send(embed=play_embed)
             custom_track = await self.fetch_custom_rawfile(attachment)
             # Return errors if occurs, or proceed to the next step if no errors encountered
@@ -349,7 +323,7 @@ class Test(commands.Cog):
                 play_embed.add_field(name="", value=f"Yooo {interaction.user.mention}, The file you uploaded was too large! I can't handle it apparently...", inline=False)
                 return await interaction.followup.send(embed=play_embed)
             elif custom_track == "!error%!unsupportted_file_type%":
-                play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it, {interaction.user.mention}？", inline=False)
+                play_embed.add_field(name="", value=f"Looks like the file you uploaded has an unsupportted format :thinking: ... Perhaps try to upload another file and gave me a chance to handle it, {interaction.user.mention}?", inline=False)
                 return await interaction.followup.send(embed=play_embed)
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)
@@ -357,6 +331,7 @@ class Test(commands.Cog):
             # Join author's voice channel
             try:
                 player = await interaction.user.voice.channel.connect(cls=wavelink.Player)
+                set_fallback_text_channel(interaction, interaction.channel)
             except AttributeError:
                 # The author is not in a voice channel
                 return await interaction.followup.send(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
@@ -364,43 +339,29 @@ class Test(commands.Cog):
                 # Something went wrong on discord or network side while joining voice channel
                 play_embed.add_field(name="", value=f"I was unable to join {interaction.user.voice.channel}. Please try again.", inline=False)
                 return await interaction.followup.send(embed=play_embed)
-
-        # Turn on AutoPlay to enabled mode.
-        # enabled = AutoPlay will play songs for us and fetch recommendations...
-        # partial = AutoPlay will play songs for us, but WILL NOT fetch recommendations...
-        # disabled = AutoPlay will do nothing... (NOT RECOMMEND and disabled...)
         player.autoplay = wavelink.AutoPlayMode.partial
-        set_fallback_text_channel(interaction, interaction.channel)
-        """
-        # Lock the player to this channel...
-        if not hasattr(player, "home"):
-            player.home = interaction.channel
-        elif player.home != interaction.channel:
-            play_embed.add_field(name="", value=f"You can only play songs in {player.home.mention}, as the player has already started there.", inline=False)
-            return await interaction.followup.send(embed=play_embed)
-        """
         tracks: wavelink.Search = await wavelink.Playable.search(query or custom_track["audio_url"])
         if not tracks:
             # Could not find any tracks from author's query
-            play_embed.add_field(name="", value=f"I couldn't find any tracks with that query you entered :thinking: ... Perhaps try to search something else and gave me a chance to play it, {interaction.user.mention}？", inline=False)
+            play_embed.add_field(name="", value=f"I couldn't find any tracks with that query you entered :thinking: ... Perhaps try to search something else and gave me a chance to play it, {interaction.user.mention}?", inline=False)
             return await interaction.followup.send(embed=play_embed)
 
         if isinstance(tracks, wavelink.Playlist):
             # tracks is a playlist...
-            for i in range(12):
-                added: int = await player.queue.put_wait(tracks)
-                # Copy the entire list for self checking
-                for track in tracks.tracks:
-                    track_list[guild_id].append([track, None])
+            added: int = await player.queue.put_wait(tracks)
+            # Copy the entire list for self checking, with custom_track attribute = None
+            for track in tracks.tracks:
+                track_list[guild_id].append([track, None])
             # Return track or playlist message
             play_embed.add_field(name="", value=f"Added the playlist **{tracks.name}** (**{added}** songs) to the queue.", inline=False)
             await interaction.followup.send(embed=play_embed)
         else:
             track: wavelink.Playable = tracks[0]
-            # Copy the entire list for self checking
             if source.value == "custom":
+                # Copy the entire list for self checking, with custom_track attribute
                 track_list[guild_id].append([track, custom_track])
             else:
+                # Copy the entire list for self checking, with custom_track attribute = None
                 track_list[guild_id].append([track, None])
             await player.queue.put_wait(track)
             # Return track message
@@ -453,8 +414,8 @@ class Test(commands.Cog):
             resume_embed.add_field(name="", value="Resuming the track...", inline=False)
         await interaction.response.send_message(embed=resume_embed)
 
-    # Plays the previous track in history
-    @app_commands.command(name="previous", description="Plays the previous track in the queue")
+    # Plays the previous track in the list
+    @app_commands.command(name="previous", description="Plays the previous track in the list")
     @app_commands.describe(amount="Number of tracks to be rollback. Leave this blank if you want to play the previous track only.")
     async def previous(self, interaction: Interaction, amount: Optional[app_commands.Range[int, 1]] = 1):
         global loading_prev
@@ -796,10 +757,10 @@ class Test(commands.Cog):
             remove_embed.add_field(name="", value="There are no tracks in the queue.")
         await interaction.response.send_message(embed=remove_embed)
 
-
+    """
     @commands.command()
     async def nightcore(self, ctx: commands.Context) -> None:
-        """Set the filter to a nightcore style."""
+        #Set the filter to a nightcore style.
         player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
         if not player:
             return
@@ -809,16 +770,9 @@ class Test(commands.Cog):
         await player.set_filters(filters)
 
         await ctx.message.add_reaction("\u2705")
+    """
 
-    @commands.command(aliases=["dc"])
-    async def disconnect(self, ctx: commands.Context) -> None:
-        """Disconnect the Player."""
-        player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
-        if not player:
-            return
-
-        await player.disconnect()
-        await ctx.message.add_reaction("\u2705")
+    # ----------</Music Player>----------
 
 async def setup(bot):
-    await bot.add_cog(Test(bot))
+    await bot.add_cog(MusicPlayer(bot))
