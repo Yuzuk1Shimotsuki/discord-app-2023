@@ -1,5 +1,5 @@
 import discord
-from discord import app_commands, Interaction
+from discord import Interaction
 from discord.ext import commands
 
 # Custom errors
@@ -60,4 +60,12 @@ class BotAlreadyInVoiceError():
 **The channel you wanted me to join:** {self.user_vc.mention}'''
     def same(self):
         return f"Can u found me in the voice channel？ I have connected to {self.user_vc.mention} already :>"
-    
+
+
+# This is just a configuration for which error meesages are needed to return when error occurs. No commands.Cog are involved.
+class ErrorHandling(commands.Cog):
+    def __init__(self, bot) -> None:
+        self.bot = bot
+
+async def setup(bot):
+    await bot.add_cog(ErrorHandling(bot))
