@@ -238,7 +238,11 @@ class MusicPlayer(commands.Cog):
     
         if original and original.recommended:
             embed.description += f"\n\nThis track was recommended via **{track_source}**"
-        await player.channel.send(embed=embed, file=custom_artwork_file)
+        if custom_artwork_file:
+            # Send with artwork
+            await player.channel.send(embed=embed, file=custom_artwork_file)
+        else:
+            await player.channel.send(embed=embed)
         # Deletes the artwork if the track have any
         if custom_artwork_file:
             custom_artwork_file.close()
@@ -618,7 +622,11 @@ class MusicPlayer(commands.Cog):
                 except OverflowError:
                     pass
             nowplaying_embed.add_field(name="Source", value=track_source, inline=False)
-        await interaction.response.send_message(embed=nowplaying_embed, file=custom_artwork_file)
+        if custom_artwork_file:
+            # Send with artwork
+            await interaction.response.send_message(embed=nowplaying_embed, file=custom_artwork_file)
+        else:
+            await interaction.response.send_message(embed=nowplaying_embed)
         # Deletes the artwork if the track have any
         if custom_artwork_file:
             custom_artwork_file.close()
