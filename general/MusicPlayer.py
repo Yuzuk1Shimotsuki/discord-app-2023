@@ -618,7 +618,7 @@ class MusicPlayer(commands.Cog):
                 except OverflowError:
                     pass
             nowplaying_embed.add_field(name="Source", value=track_source, inline=False)
-        await interaction.response.send_message(embed=nowplaying_embed)
+        await interaction.response.send_message(embed=nowplaying_embed, file=custom_artwork_file)
         # Deletes the artwork if the track have any
         if custom_artwork_file:
             custom_artwork_file.close()
