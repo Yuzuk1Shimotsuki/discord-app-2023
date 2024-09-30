@@ -830,5 +830,5 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # Fixed custom track information cannot be displayed properly
 
-# Implemented **"nowplaying()"** to vivew the infomation of the current track
+# Implemented **"nowplaying()"** to view the information of the current track
 
