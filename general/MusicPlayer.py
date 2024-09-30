@@ -4,7 +4,10 @@ import logging
 import math
 import os
 import asyncio
+from io import BytesIO
+from PIL import Image
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.ui import Select, View
@@ -16,6 +19,7 @@ from errorhandling.ErrorHandling import *
 
 selectlist = []
 loading_prev = {}
+cache_dir = f"plugins/custom_audio/caches"
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
@@ -46,10 +50,10 @@ class MySelect(Select):
         queue_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
         if player is None:
             return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        if player.current is None and player.queue.is_empty:
-            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
         if player.current is None:
             queue_embed.add_field(name=f"Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
+        if player.current is None and player.queue.is_empty:
+            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
         else:
             # Refreshing page
             # 1st page
@@ -141,6 +145,26 @@ class DropdownView(View):
 
 # ----------<Music Player>----------
 
+def format_source(source: str = None, url: str = None):
+    match source.lower():
+        case "youtube":
+            return f"[YouTube]({url})"
+        case "spotify":
+            return f"[Spotify]({url})"
+        case "bandcamp":
+            return f"[Bandcamp]({url})"
+        case "applemusic":
+            return f"[Apple Music]({url})"
+        case "deezer":
+            return f"[Deezer]({url})"
+        # Not common
+        case "flowerytts":
+            return f"[Flowery TTS]({url})"
+        case "yandexmusic":
+            return f"[Yandex Music]({url})"
+        case "vkmusic":
+            return f"[VK Music]({url})"
+
 class MusicPlayer(commands.Cog):
     def __init__(self, bot) -> None:
         global loading_prev
@@ -167,40 +191,59 @@ class MusicPlayer(commands.Cog):
         if not player:
             # Handle edge cases...
             return
-
         original: wavelink.Playable | None = payload.original
         track: wavelink.Playable = payload.track
-
+        # Format track source in markdown
+        track_source = format_source(track.source, track.uri)
+        custom_artwork_file = None
         embed: discord.Embed = discord.Embed(title="Now Playing")
-        custom_audio = None
         try:
+            await asyncio.sleep(0.1)
             custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
+            if custom_audio is not None:
+                # Custom audio
+                embed.description = f"**{custom_audio["title"]}** by **{custom_audio["artist"]}**"
+                if custom_audio["artwork"]:
+                    # Save the artwork as cache
+                    artwork = custom_audio["artwork"]
+                    artwork = Image.open(BytesIO(artwork))
+                    artwork.save(f"{cache_dir}/artwork.png")
+                    artwork.close()
+                    custom_artwork_file = discord.File(f"{cache_dir}/artwork.png")
+                    embed.set_image(url=f"attachment://{custom_artwork_file.filename}")
+                if custom_audio["album"]:
+                    embed.add_field(name="Album", value=custom_audio["album"], inline=False)
+                if custom_audio["year"]:
+                    embed.add_field(name="Year", value=custom_audio["year"], inline=False)
+                if custom_audio["duration"]:
+                    embed.add_field(name="Duration", value=f"{timedelta(seconds=math.floor(custom_audio["duration"]))}", inline=False)
+                embed.add_field(name="Source", value=f"[Custom audio]({custom_audio["audio_url"]})", inline=False)
+            else:
+                embed.description = f"**{track.title}** by **{track.author}**"
+                if track.artwork:
+                    embed.set_image(url=track.artwork)
+                if track.album.name:
+                    embed.add_field(name="Album", value=track.album.name, inline=False)
+                if track.length:
+                    try:
+                        embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+                    except OverflowError:
+                        pass
+                embed.add_field(name="Source", value=track_source, inline=False)
         except IndexError as e:
             if original and original.recommended:
                 track_list[guild_id].append([payload.track, None])
             else:
                 raise e
-        if custom_audio is None:
-            embed.description = f"**{track.title}** by **{track.author}**"
-            if track.artwork:
-                embed.set_image(url=track.artwork)
-            if track.album.name:
-                embed.add_field(name="Album", value=track.album.name)
-
-        else:
-            embed.description = f"**{custom_audio["title"]}** by **{custom_audio["artist"]}**"
-            if custom_audio["artwork"]:
-                embed.set_image(url=custom_audio["artwork"])
-            if custom_audio["album"]:
-                embed.add_field(name="Album", value=custom_audio["album"])
-
+    
         if original and original.recommended:
-            embed.description += f"\n\nThis track was recommended via **{track.source}**"
+            embed.description += f"\n\nThis track was recommended via **{track_source}**"
+        await player.channel.send(embed=embed, file=custom_artwork_file)
+        # Deletes the artwork if the track have any
+        if custom_artwork_file:
+            custom_artwork_file.close()
+            os.remove(os.path.join(cache_dir, custom_artwork_file.filename))
 
-        if track.album.name:
-            embed.add_field(name="Album", value=track.album.name)
-        
-        await player.channel.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: wavelink.TrackEndEventPayload):
@@ -211,8 +254,9 @@ class MusicPlayer(commands.Cog):
             # Handle edge cases...
             return
         guild_id = player.guild.id
+
         if guild_id in track_list and guild_id in current_track_index:
-            if current_track_index[guild_id] >= len(track_list[guild_id]) - 1 and player.queue.mode == wavelink.QueueMode.loop_all and not loading_prev[guild_id]:
+            if (current_track_index[guild_id] >= len(track_list[guild_id]) - 1 and player.queue.mode == wavelink.QueueMode.loop_all) and not loading_prev[guild_id]:
                 current_track_index[guild_id] = 0
             elif payload.track != None and not loading_prev[guild_id] and player.queue.mode != wavelink.QueueMode.loop:
                 current_track_index[guild_id] += 1
@@ -256,6 +300,7 @@ class MusicPlayer(commands.Cog):
     # Fetching raw data from custom file
     # The file will be temporaily stored as a cache and will be deleted afterwards
     async def fetch_custom_rawfile(self, attachment: discord.Attachment):
+        global cache_dir
         try:
             supported_type = {"audio/mpeg": "mp3", "audio/x-wav": "wav", "audio/flac": "flac", "audio/mp4": "m4a"}
             if attachment.content_type in supported_type:
@@ -263,11 +308,10 @@ class MusicPlayer(commands.Cog):
             else:
                 # Unsupportted file
                 return "!error%!unsupportted_file_type%"
-            cache_dir = f"plugins/custom_audio/caches"
             audio_path = f"{cache_dir}/{attachment.id}.{extension}"
             # Download the attachment to the client, and deletes it afterwards.
             await attachment.save(audio_path, use_cached=False)
-            audiofile = TinyTag.get(audio_path)
+            audiofile = TinyTag.get(audio_path, image=True)
             audio_artist =  audiofile.artist
             audio_title = audiofile.title
             if audiofile.title is None:
@@ -338,7 +382,10 @@ class MusicPlayer(commands.Cog):
                 # Something went wrong on discord or network side while joining voice channel
                 play_embed.add_field(name="", value=f"I was unable to join {interaction.user.voice.channel}. Please try again.", inline=False)
                 return await interaction.followup.send(embed=play_embed)
-        player.autoplay = wavelink.AutoPlayMode.partial
+        if player.autoplay == wavelink.AutoPlayMode.enabled:
+            pass
+        else:
+            player.autoplay = wavelink.AutoPlayMode.partial
         tracks: wavelink.Search = await wavelink.Playable.search(query or custom_track["audio_url"])
         if not tracks:
             # Could not find any tracks from author's query
@@ -425,8 +472,13 @@ class MusicPlayer(commands.Cog):
         if player is None:
             prev_embed.add_field(name="", value="There is no previous track in the list. I'm not even in a voice channel.", inline=False)
             return await interaction.response.send_message(embed=prev_embed)
-        if player.current is None and player.queue.is_empty:
-            prev_embed.add_field(name="", value="There is no previous track in the list.", inline=False)
+        # Returns if the list and index were not initialize yet
+        if not guild_id in track_list and not guild_id in current_track_index:
+            prev_embed.add_field(name="", value="There are no tracks in the queue.")
+            return await interaction.response.send_message(embed=prev_embed)
+        # Returns if the list was empty
+        if track_list[guild_id] == []:
+            prev_embed.add_field(name="", value="There are no tracks in the queue.")
             return await interaction.response.send_message(embed=prev_embed)
         previous_index = current_track_index[guild_id] - amount
         loading_prev[guild_id] = True
@@ -454,7 +506,7 @@ class MusicPlayer(commands.Cog):
         if is_loop == wavelink.QueueMode.loop:
             player.queue.mode == wavelink.QueueMode.loop
         await interaction.response.send_message(embed=prev_embed)
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         loading_prev[guild_id] = False
 
     # Skipping tracks
@@ -469,7 +521,12 @@ class MusicPlayer(commands.Cog):
         skip_embed = discord.Embed(title="", color=interaction.user.colour)
         if player is None:
             return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        if player.current is None and player.queue.is_empty:
+        # Returns if the list and index were not initialize yet
+        if not guild_id in track_list and not guild_id in current_track_index:
+            skip_embed.add_field(name="", value="There are no tracks in the queue.")
+            return await interaction.response.send_message(embed=skip_embed)
+        # Returns if the list was empty
+        if track_list[guild_id] == [] and player.queue.is_empty:
             skip_embed.add_field(name="", value="There are no tracks in the queue.")
             return await interaction.response.send_message(embed=skip_embed)
         if current_track_index[guild_id] > len(track_list[guild_id]) - 1:
@@ -508,6 +565,64 @@ class MusicPlayer(commands.Cog):
             if is_loop == wavelink.QueueMode.loop:
                 player.queue.mode == wavelink.QueueMode.loop
         await interaction.response.send_message(embed=skip_embed)
+
+    # Return the current track
+    @app_commands.command(name="nowplaying", description="Get information about the current track")
+    async def nowplaying(self, interaction: Interaction):
+        global track_list
+        global current_track_index
+        guild_id = interaction.guild.id
+        player: wavelink.Player
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        nowplaying_embed = discord.Embed(title="Now Playing", color=interaction.user.color)
+        if player is None:
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
+        if player.current is None:
+            nowplaying_embed.add_field(name="", value="No tracks were playing in the voice channel.", inline=False)
+            return await interaction.response.send_message(embed=nowplaying_embed)
+        if not guild_id in track_list and not guild_id in current_track_index:
+            nowplaying_embed.add_field(name="", value="No tracks were playing in the voice channel.", inline=False)
+            return await interaction.response.send_message(embed=nowplaying_embed)
+        # Format track source in markdown
+        track_source = format_source(player.current.source, player.current.uri)
+        custom_artwork_file = None
+        await asyncio.sleep(0.1)
+        custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
+        if custom_audio is not None:
+            # Custom audio
+            nowplaying_embed.description = f"**{custom_audio["title"]}** by **{custom_audio["artist"]}**"
+            if custom_audio["artwork"]:
+                # Save the artwork as cache
+                artwork = custom_audio["artwork"]
+                artwork = Image.open(BytesIO(artwork))
+                artwork.save(f"{cache_dir}/artwork.png")
+                artwork.close()
+                custom_artwork_file = discord.File(f"{cache_dir}/artwork.png")
+                nowplaying_embed.set_image(url=f"attachment://{custom_artwork_file.filename}")
+            if custom_audio["album"]:
+                nowplaying_embed.add_field(name="Album", value=custom_audio["album"], inline=False)
+            if custom_audio["year"]:
+                nowplaying_embed.add_field(name="Year", value=custom_audio["year"], inline=False)
+            if custom_audio["duration"]:
+                nowplaying_embed.add_field(name="Duration", value=f"{timedelta(seconds=math.floor(custom_audio["duration"]))}", inline=False)
+            nowplaying_embed.add_field(name="Source", value=f"[Custom audio]({custom_audio["audio_url"]})", inline=False)
+        else:
+            nowplaying_embed.description = f"**{player.current.title}** by **{player.current.author}**"
+            if player.current.artwork:
+                nowplaying_embed.set_image(url=player.current.artwork)
+            if player.current.album.name:
+                nowplaying_embed.add_field(name="Album", value=player.current.album.name, inline=False)
+            if player.current.length:
+                try:
+                    nowplaying_embed.add_field(name="Duration", value=f"{timedelta(milliseconds=player.current.length)}", inline=False)
+                except OverflowError:
+                    pass
+            nowplaying_embed.add_field(name="Source", value=track_source, inline=False)
+        await interaction.response.send_message(embed=nowplaying_embed)
+        # Deletes the artwork if the track have any
+        if custom_artwork_file:
+            custom_artwork_file.close()
+            os.remove(os.path.join(cache_dir, custom_artwork_file.filename))
 
     # Replay the current track in the queue
     @app_commands.command(name="replay", description="Replay the current track from the beginning")
@@ -624,10 +739,10 @@ class MusicPlayer(commands.Cog):
         queue_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
         if player is None:
             return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        if player.current is None and player.queue.is_empty:
-            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
         if player.current is None:
             queue_embed.add_field(name=f"Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
+        if player.current is None and player.queue.is_empty:
+            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
         else:
             # Refreshing page
             # 1st page
@@ -708,7 +823,12 @@ class MusicPlayer(commands.Cog):
         stop_embed = discord.Embed(title="Queue:", color=interaction.user.colour)
         if player is None:
             return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        if player.current is None and player.queue.is_empty:
+        # Returns if the list and index were not initialize yet
+        if not guild_id in track_list and not guild_id in current_track_index:
+            stop_embed.add_field(name="", value="There are no tracks in the queue.")
+            return await interaction.response.send_message(embed=stop_embed)
+        # Returns if the list was empty
+        if track_list[guild_id] == []:
             stop_embed.add_field(name="", value="There are no tracks in the queue.")
             return await interaction.response.send_message(embed=stop_embed)
         if track_list[guild_id] != []:
@@ -731,7 +851,12 @@ class MusicPlayer(commands.Cog):
         remove_embed = discord.Embed(title="Queue", color=interaction.user.colour)
         if player is None:
             return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        if player.current is None and player.queue.is_empty:
+        # Returns if the list and index were not initialize yet
+        if not guild_id in track_list and not guild_id in current_track_index:
+            remove_embed.add_field(name="", value="There are no tracks in the queue.")
+            return await interaction.response.send_message(embed=remove_embed)
+        # Returns if the list was empty
+        if track_list[guild_id] == []:
             remove_embed.add_field(name="", value="There are no tracks in the queue.")
             return await interaction.response.send_message(embed=remove_embed)
         if track_list[guild_id] != []:
