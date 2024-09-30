@@ -822,3 +822,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and cleanup
 
+#
+
+# 20240930 (night)
+
+**"root/general/MusicPlayer.py"**
+
+# Fixed custom track information cannot be displayed properly
+
+# Implemented **"nowplaying()"** to vivew the infomation of the current track
+
