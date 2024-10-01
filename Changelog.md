@@ -832,3 +832,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # Implemented **"nowplaying()"** to view the information of the current track
 
+#
+
+# 20241001 (afternoon)
+
+**"root/general/MusicPlayer.py"**
+
+(+) Fix upcoming tracks cannot display properly and improved Autoplay feature
+
+(+) Minior code improvement and cleanup
+
