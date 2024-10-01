@@ -53,7 +53,7 @@ class MySelect(Select):
         if player.current is None:
             queue_embed.add_field(name=f"Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
         if player.current is None and player.queue.is_empty:
-            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
+            queue_embed.add_field(name="Upcoming Tracks:", value="There are no tracks in the queue", inline=False)
         else:
             # Refreshing page
             # 1st page
@@ -92,7 +92,7 @@ class MySelect(Select):
             queue_embed.add_field(name="Upcoming Tracks:", value="", inline=False)
             if player.queue.is_empty and player.autoplay == wavelink.AutoPlayMode.enabled:
                 # Empty queue, with autoplay enabled
-                queue_embed.add_field(name="", value="Will be fetched from web after the current track is finished", inline=False)
+                queue_embed.add_field(name="", value="Will be fetched by **Autoplay** after the current track is finished. Note that this feature **does not work** on **custom tracks**.", inline=False)
             elif player.queue.is_empty:
                 # Empty queue
                 queue_embed.add_field(name="", value="There are no upcoming tracks will be played", inline=False)
@@ -197,6 +197,7 @@ class MusicPlayer(commands.Cog):
         track_source = format_source(track.source, track.uri)
         custom_artwork_file = None
         embed: discord.Embed = discord.Embed(title="Now Playing")
+        embed.description = ""
         try:
             await asyncio.sleep(0.1)
             custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
@@ -218,7 +219,7 @@ class MusicPlayer(commands.Cog):
                 if custom_audio["duration"]:
                     embed.add_field(name="Duration", value=f"{timedelta(seconds=math.floor(custom_audio["duration"]))}", inline=False)
                 embed.add_field(name="Source", value=f"[Custom audio]({custom_audio["audio_url"]})", inline=False)
-            else:
+            elif original and not original.recommended:
                 embed.description = f"**{track.title}** by **{track.author}**"
                 if track.artwork:
                     embed.set_image(url=track.artwork)
@@ -230,14 +231,25 @@ class MusicPlayer(commands.Cog):
                     except OverflowError:
                         pass
                 embed.add_field(name="Source", value=track_source, inline=False)
+            else:
+                raise RuntimeError
         except IndexError as e:
             if original and original.recommended:
                 track_list[guild_id].append([payload.track, None])
+                embed.description = f"**{track.title}** by **{track.author}**"
+                embed.description += f"\n\nThis track was recommended via **{track_source}**"
+                if track.artwork:
+                    embed.set_image(url=track.artwork)
+                if track.album.name:
+                    embed.add_field(name="Album", value=track.album.name, inline=False)
+                if track.length:
+                    try:
+                        embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+                    except OverflowError:
+                        pass
+                embed.add_field(name="Source", value=track_source, inline=False)
             else:
                 raise e
-    
-        if original and original.recommended:
-            embed.description += f"\n\nThis track was recommended via **{track_source}**"
         if custom_artwork_file:
             # Send with artwork
             await player.channel.send(embed=embed, file=custom_artwork_file)
@@ -540,7 +552,7 @@ class MusicPlayer(commands.Cog):
         if player.current and player.queue.is_empty and player.autoplay == wavelink.AutoPlayMode.enabled:
             # The author just skipped the final track, with autoplay enabled
             await player.skip(force=True)
-            skip_embed.add_field(name="", value=f"Skipped the **final track**. Now fetching some **recommendations** from the web...", inline=False)
+            skip_embed.add_field(name="", value=f"Skipped the **final track**. Now fetching some **recommendations** by **Autoplay**...\nNote that this feature **does not work** on **custom tracks**, and the player **will be halted** instead.", inline=False)
         elif player.current and player.queue.is_empty:
             # The author just skipped the final track
             await player.skip(force=True)
@@ -750,7 +762,7 @@ class MusicPlayer(commands.Cog):
         if player.current is None:
             queue_embed.add_field(name=f"Now Playing :notes: :", value=f"There are no tracks playing now", inline=False)
         if player.current is None and player.queue.is_empty:
-            queue_embed.add_field(name="", value="There are no tracks in the queue", inline=False)
+            queue_embed.add_field(name="Upcoming Tracks:", value="There are no tracks in the queue", inline=False)
         else:
             # Refreshing page
             # 1st page
@@ -789,7 +801,7 @@ class MusicPlayer(commands.Cog):
             queue_embed.add_field(name="Upcoming Tracks:", value="", inline=False)
             if player.queue.is_empty and player.autoplay == wavelink.AutoPlayMode.enabled:
                 # Empty queue, with autoplay enabled
-                queue_embed.add_field(name="", value="Will be fetched from web after the current track is finished", inline=False)
+                queue_embed.add_field(name="", value="Will be fetched by **Autoplay** after the current track is finished. Note that this feature **does not work** on **custom tracks**.", inline=False)
             elif player.queue.is_empty:
                 # Empty queue
                 queue_embed.add_field(name="", value="There are no upcoming tracks will be played", inline=False)
