@@ -704,7 +704,7 @@ class MusicPlayer(commands.Cog):
 
     # Enable or disable autoplay mode
     @app_commands.command(description="Toggle autoplay to automatically fetch recommendations for you")
-    @app_commands.describe(option="Enable or disable?")
+    @app_commands.describe(mode="Enable or disable?")
     async def autoplay(self, interaction: Interaction, mode: bool):
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)
