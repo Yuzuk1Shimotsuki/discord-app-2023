@@ -842,3 +842,16 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and cleanup
 
+#
+
+# 20241013 (midnight)
+
+# (+) Added **"root/general/CustomEmbed.py"**
+
+**"root/general/MusicPlayer.py"**
+
+(+) Changed optional choice to boolean value for repeat and autoplay function
+
+(+) Minior code improvement and cleanup
+
+
