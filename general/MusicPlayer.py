@@ -662,13 +662,11 @@ class MusicPlayer(commands.Cog):
     # Looping the current track or all tracks in the list
     @app_commands.command(name="repeat", description="Looping the current track or all tracks in the list")
     @app_commands.describe(type="The type to repeat (Can be the current track or all tracks)")
+    @app_commands.describe(option="Enable or disable?")
     @app_commands.choices(type=[app_commands.Choice(name="Repeat one", value="loop"),
                                  app_commands.Choice(name="Repeat all", value="loop_all")
                                  ])
-    @app_commands.choices(option=[app_commands.Choice(name="Enable", value="true"),
-                                 app_commands.Choice(name="Disable", value="false")
-                                 ])
-    async def repeat(self, interaction: Interaction, type: app_commands.Choice[str], option: app_commands.Choice[str]):
+    async def repeat(self, interaction: Interaction, type: app_commands.Choice[str], option: bool):
         repeat_embed = discord.Embed(title="", color=interaction.user.colour)
         player: wavelink.player = cast(wavelink.Player, interaction.guild.voice_client)
         
@@ -677,26 +675,26 @@ class MusicPlayer(commands.Cog):
             return await interaction.response.send_message(embed=repeat_embed)
         if type.value == "loop":
             # Loop
-            if player.queue.mode == wavelink.QueueMode.loop and option.value == "true":
+            if player.queue.mode == wavelink.QueueMode.loop and option:
                 repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been already **enabled**!''', inline=False)
-            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop_all)) and option.value == "false":
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop_all)) and not option:
                 repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been already **disabled**!''', inline=False)
-            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop_all)) and option.value == "true":
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop_all)) and option:
                 player.queue.mode = wavelink.QueueMode.loop
                 repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been **enabled**.''', inline=False)
-            elif player.queue.mode == wavelink.QueueMode.loop and option.value == "false":
+            elif player.queue.mode == wavelink.QueueMode.loop and not option:
                 player.queue.mode = wavelink.QueueMode.normal
                 repeat_embed.add_field(name="", value=f'''**"Repeat one"** has been **disabled**.''', inline=False)
         elif type.value == "loop_all":
             # Loop all
-            if player.queue.mode == wavelink.QueueMode.loop_all and option.value == "true":
+            if player.queue.mode == wavelink.QueueMode.loop_all and option:
                 repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been already **enabled**!''', inline=False)
-            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop)) and option.value == "false":
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop)) and not option:
                 repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been already **disabled**!''', inline=False)
-            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop)) and option.value == "true":
+            elif ((player.queue.mode == wavelink.QueueMode.normal) or (player.queue.mode ==wavelink.QueueMode.loop)) and option:
                 player.queue.mode = wavelink.QueueMode.loop_all
                 repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been **enabled**.''', inline=False)
-            elif player.queue.mode == wavelink.QueueMode.loop_all and option.value == "false":
+            elif player.queue.mode == wavelink.QueueMode.loop_all and not option:
                 player.queue.mode = wavelink.QueueMode.normal
                 repeat_embed.add_field(name="", value=f'''**"Repeat all"** has been **disabled**.''', inline=False)
         else:
@@ -706,27 +704,24 @@ class MusicPlayer(commands.Cog):
 
     # Enable or disable autoplay mode
     @app_commands.command(description="Toggle autoplay to automatically fetch recommendations for you")
-    @app_commands.describe(mode="The option you want to choose.")
-    @app_commands.choices(mode=[app_commands.Choice(name="Enable", value="enable"),
-                                    app_commands.Choice(name="Disable", value="disable")
-                                    ])
-    async def autoplay(self, interaction: Interaction, mode: app_commands.Choice[str]):
+    @app_commands.describe(option="Enable or disable?")
+    async def autoplay(self, interaction: Interaction, mode: bool):
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)
         autoplay_embbed = discord.Embed(title="", color=interaction.user.color)
         if player is None:
             return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
-        if mode.value == "enable" and player.autoplay == wavelink.AutoPlayMode.enabled:
+        if mode and player.autoplay == wavelink.AutoPlayMode.enabled:
             # Autoplay mode has been already enabled
             autoplay_embbed.add_field(name="", value="Autoplay mode has been already **enabled**!")
-        elif mode.value == "enable":
+        elif mode:
             # Enable Autoplay mode
             player.autoplay = wavelink.AutoPlayMode.enabled
             autoplay_embbed.add_field(name="", value="Autoplay mode has been **enabled**.")
-        elif mode.value == "disable" and (player.autoplay == wavelink.AutoPlayMode.partial or player.autoplay == wavelink.AutoPlayMode.disabled):
+        elif not mode and (player.autoplay == wavelink.AutoPlayMode.partial or player.autoplay == wavelink.AutoPlayMode.disabled):
             # Autoplay mode has been already disabled
             autoplay_embbed.add_field(name="", value="Autoplay mode has been already **disabled**!")
-        elif mode.value == "disable":
+        elif not mode:
             # Disable Autoplay mode
             player.autoplay = wavelink.AutoPlayMode.partial
             autoplay_embbed.add_field(name="", value="Autoplay mode has been **disabled**.")
