@@ -1,14 +1,18 @@
-FROM python:3.11-bookworm
+FROM python:3.12.6-bookworm
 
 RUN mkdir app
 WORKDIR /app
 
-ENV DISCORD_BOT_TOKEN="MTE1ODYzMjExOTU1MjE5NjYyOA.GUgqE7.Mevb-1-zh-acwXrHqHDoFoWcvzN6lsKO0M0yg8"
-ENV OPENAI_API_KEY="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"
+# For Google Cloud Run
+EXPOSE 8080
 
-COPY init_setup.py init_setup.py
+# Enviromental variables, excluding Discord application token and AzureOpenAI API token
+ENV AZURE_OPENAI_ENDPOINT="https://apim-aoai-eas-dev02.azure-api.net/cs-eastus/openai/deployments/gpt4o/chat/completions"
+ENV LAVALINK_SERVER_HOST="http://linux20240907.eastus.cloudapp.azure.com:2333"
+ENV LAVALINK_SERVER_HOST_PASSWORD="youshallnotpass"
+ENV AZURE_OPENAI_API_VERSION="2024-02-01"
+
 COPY requirements.txt requirements.txt
-RUN python3 init_setup.py
 RUN pip3 install -r requirements.txt
 
 COPY . .
