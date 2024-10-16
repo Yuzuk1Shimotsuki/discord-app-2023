@@ -3,7 +3,7 @@ name: Push the code as an image to Docker
 on:
   push:
     branches:
-      - 'under-development'
+      - 'stable'
   workflow_dispatch:
 
 jobs:
@@ -28,5 +28,5 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/discord_bot_2023_internal:${{ github.sha }}-development
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/discord_bot_2023_internal:${{ github.sha }}-stable
           
