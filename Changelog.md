@@ -49,7 +49,7 @@
 
 **------**
 
-**"general/DisplayUserInfo.py" in line 40 and 41**
+**"root/general/DisplayUserInfo.py" in line 40 and 41**
 
 (+) Changed the command **user()** as the follows:
 
@@ -59,7 +59,7 @@
 
 #
 
-**"administration/GetBannedList.py" in line 29 and 32**
+**"root/moderation/GetBannedList.py" in line 29 and 32**
 
 (+) Changed the command **banned_list()** as follows
 
@@ -71,7 +71,7 @@
 
 **-----**
 
-**"general/VoiceChannel.py" in line 46 and 172**
+**"root/general/VoiceChannel.py" in line 46 and 172**
 
 (+) Fixed some grammatical errors in command **join()** and **move_all()** respectively
 
@@ -91,7 +91,7 @@
 # 
 
 # 20231105:
-(+) Added **"LockChannel.py"** in **"root/administration"** folder
+(+) Added **"LockChannel.py"** in **"root/moderation"** folder
 
 # 
 
@@ -99,7 +99,7 @@
 
 **-----**
 
-**"root/administration/LockChannel.py"**
+**"root/moderation/LockChannel.py"**
 
 (+) Fixed slow responding issue while handling lockdowns for multiple text channels
 
@@ -400,7 +400,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240123
 
-(-/+) Rewrited **"root/cogs/Poll.py"** for mutiple global server support
+(-/+) Rewrited **"root/general/Poll.py"** for mutiple global server support
 
 (+) Futher debugging
 
@@ -425,3 +425,455 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Music player will now return a notification if the author just skipped the last track or has been already gone through all tracks in the queue
 
 (+) Fixed music player still attempting to skip tracks even the last track in the queue has been finished when the **"skip()"** function is called
+
+#
+
+# 20240202
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added support for playing custom audio (mp3/wav) files
+
+(+) Code improvement
+
+#
+
+# 20240203
+
+**"root/general/VoiceChannel.py"**
+
+(-/+) Replaced module "eyed3" with "tinytag"
+
+(+) Fixed custom files won't play on music player in VoiceChannel.py
+
+#
+
+.
+.
+.
+
+#
+
+# 20240224
+
+**"root/general/VoiceChannel.py"**
+
+(+/-) Grouped major error messages each as a seperated class
+
+(+) Bug fixing
+
+**"root/general/SendFromInput.py"**
+
+(+) Added send as @silent message option as boolean
+
+#
+
+# 20240225
+
+# (+/-) Rewriting all code for changing the module from **"pycord"** to **"discord.py"**\
+
+(+) Custom status is now supported
+
+(-) Removed **"recording_vc()"** function for privacy concerns
+
+(-/+) Futher optimization
+
+#
+
+# 20240227
+
+(-/+) Rewrited **"root/startup.py"**
+
+(+) Updated some return messages in **"root/cogs/VoiceChannel.py"**
+
+#
+
+.
+.
+.
+
+#
+
+# 20240309
+
+(+) Fixed errors when using default avatars for **"root/general/DisplayUserInfo.py"**
+
+(+) Optimized the code sturcture in **"root/general/ReactingMessages.py"**
+
+(+) Minor bug fixes and improvement
+
+#
+
+.
+.
+.
+
+#
+
+# 20240319
+
+(+) Bot owner can now shutdown the bot by entering "`command_prefix`shutdown" for maintenance on every server the bot in or DM. Other users attempting to do this will return **"NotBotOwnerError()"**.
+
+(+) Optimized error handling in **"root/general/ChatGPT.py"**
+
+
+.
+.
+.
+
+#
+
+# 20240404
+
+**"root/startup.py"**
+
+(+) Added command **restart()** and **restarter.py** for bot owner to restart the bot. Again, other users attempting to do this will return **"NotBotOwnerError()"**.
+
+(-/+) Replaced **os.system()** with **subprocess**
+
+**"root/general/MessageFiltering.py"**
+
+(+) Optimized messages handling
+
+(+) Messages (except Stickers) sent in system channel will now be deleted automatically.
+
+
+.
+.
+.
+
+# 20240407 - 20240511
+
+(!) Bot unavailible due to another migration and reconstruction from Microsoft Azure to Google Cloud Run API.
+
+#
+
+# 20240512
+
+(!) The bot is now being hosted as a Quart app in a docker container.
+
+(-/+) Rewrited **"startup.py"** with breaking logical changes to comply with the migration.
+
+(-) Removed variable **"is_restarting"** due to the breaking changes.
+
+(-) Removed command **"shutdown()"** in startup.py
+
+(+) Minor bug fixs and optimization
+
+#
+
+# 20240513
+
+**"root/startup.py"**
+
+(+) Added command **"systeminfo()"** for bot owner to retrieve system info from the bot. Other users attempting to do this will return **"NotBotOwnerError()"**.
+
+
+.
+.
+.
+
+# 20240529 - 20240531
+
+(!) Bot temporarily unavailible due to a rollback to Microsoft Azure.
+
+#
+
+# 20240601
+
+(!) The bot is now hosting on Microsoft Azure again, with the same structure as hosting on Google Cloud Run.
+
+(+) Some typo and bug fixes
+
+(+) Command **"shutdown()"** is now returned with its original functionality
+
+#
+
+# 20240602
+
+**"root/startup.py"**
+
+(-) Removed command **"restart()"** due to some compatibility issues
+
+(+) Marked command **"shutdown()"** as SELF DESTRUCT
+
+**"root/general/VoiceChannel.py"**
+
+(+) The bot will now return error if no user were in the vc while trying to move them to another vc
+
+(+) Combined the main component of end vc call and moving all users
+
+#
+
+# 20240607
+
+(+) Minior code improvement and bug fixes
+
+#
+
+# 20240608 (morning)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added Volume Control function and command **"replay()"**
+
+(-/+) Rewrited some codes on line 5, 196 and 221 due to above implementation
+
+(+) Minior code improvement and bug fixes
+
+#
+
+# 20240608 (night)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added repeat one or all tracks function
+
+(-/+) Rewrited the entire player logic due to above implementation
+
+(+) Minior improvements and bug fixes
+
+#
+
+# 20240609
+
+**"root/general/VoiceChannel.py"**
+
+(+) Added track paging function with dropdown menu
+
+(-/+) Renamed varibale **"music_queue"** as **"track_queue"** and **"current_music_queue_index"** as **"current_track_queue_index"**.
+
+(-/+) Some queue variables and repeat are now redefined as global due to above implementation
+
+(+) Defined scalable variable **"tracks_per_page"** due to above implementation
+
+(-/+) Rewrited the entire queue system due to above implementation
+
+(+) Fixed track skipping not functional when attempting to skip to the last track in the queue.
+
+(+) Minior code improvements and futher bug fixes
+
+#
+
+# 20240609 (night)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Fixed queue not displaying correctly when there are more than 15 tracks in the queue.
+
+#
+
+# 20240610 (night)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Fixed last track not displaying correctly in the queue.
+
+(+) Minior code improvement
+
+#
+
+# 20240614 (midnight)
+
+(+) Added error handling for command **"vkick()"** in **"root/general/VoiceChannel.py"**
+
+(+) Optimized all fallback messages for moderation section
+
+(+) Minior code improvement
+
+
+#
+
+# 20240614 (night)
+
+**"root/general/Ban.py"**
+
+(-/+) Rewrited the user or guild ban logic mostly
+
+(+) Fixed guild ban cannot be functioned properly
+
+#
+
+# 20240616 (midnight)
+
+(-/+) Seperated all cogs by its category again
+
+(-/+) Renamed **"cogs"** to **"general"**
+
+**"root/startup.py"**
+
+(-/+) Rewrited the logic for getting extensions
+
+(+) Minior code improvements and bug fixes
+
+#
+
+# 20240716 (night)
+
+**"root/general/ChatGPT.py"**
+
+(-/+) "Fixed" ChatGPT issue
+
+#
+
+# 20240718 (midnight)
+
+**"root/general/ChatGPT.py"**
+
+(+) Improved prompting
+
+(+) Command **"resetgpt()"** is now for bot owner only
+
+#
+
+# 20240720 (midnight)
+
+**Added "root/ErrorHandling.py"**
+
+(+) Moved all custom errors into **"root/general/ErrorHandling.py"**
+
+#
+
+# 20240721 (midnight)
+
+**"root/general/VoiceChannel.py"**
+
+(+) Fixed adding multiple tracks to "track_queue"
+
+#
+
+# 20240730 (morning)
+
+**"root/general/ChatGPT.py"**
+
+(+) Added support for new User-Installed applications
+
+(+) Rewrited the entire file due to the above implement
+
+#
+
+# 20240816 (morning)
+
+# Created **"root/general/Poll.py"**
+
+(+) Implemented new poll system 
+
+(+/-) Renamed old poll system to **"root/general/Vote.py"**
+
+(+) Bot verified and transfered to a team
+
+#
+
+# 20240816 (night)
+
+**"root/general/ChatGPT.py"**
+
+(+) Fine-tuned ChatGPT prompt
+
+(+) Optimized error response for **"NotBotOwnerError()"**
+
+(+) Updated emojis
+
+#
+
+# 20240906 (night)
+
+**"root/general/ChatGPT.py"**
+
+(+) Switched to Azure OpenAI from OpenAI for better GPT-4o support
+
+(+) Updated **"OPENAI_API_KEY"** to **"AZUREOPENAI_API_KEY"**
+
+#
+
+# 20240907 (afternoon)
+
+**"root/general/ChatGPT.py"**
+
+(+) Rewrited and improved error handling for Azure Open AI migration purpose
+
+(+) Optimized changelog
+
+#
+
+# 20240914 (night)
+
+(+) git implementation for all branches
+
+# 20240915 (morning)
+
+(+) Bumped up python version for docker enviroment to 3.12.6-bookworm
+
+#
+
+# 20240918 - 20240929 (night)
+
+(+) Wavelink v3.4.1 implementation
+
+(+) Rewrited the entire player system with wavelink and separated as a new file **"root/general/MusicPlayer.py"**
+
+(+) Fix YouTube videos or steamings cannot be played (thanks for wavelink)
+
+(+) **"root/general/VoiceChannel.py"** will now only handle basic voice channel operation, all music commands from that are removed.
+
+(+) Added **"root/general/VoiceChannelFallbackConfig.py"** for configuring fallback text channel in each guild due to to player system rewrite.
+
+(+) Moved **"root/ErrorHandling.py"** into **"root/errorhandling/ErrorHandling.py"** for better cogs origanization
+
+(+) Minior code improvement and cleanup
+
+#
+
+# 20240930 (night)
+
+**"root/general/MusicPlayer.py"**
+
+# Fixed custom track information cannot be displayed properly
+
+# Implemented **"nowplaying()"** to view the information of the current track
+
+#
+
+# 20241001 (afternoon)
+
+**"root/general/MusicPlayer.py"**
+
+(+) Fix upcoming tracks cannot display properly and improved Autoplay feature
+
+(+) Minior code improvement and cleanup
+
+#
+
+# 20241013 (midnight)
+
+# (+) Added **"root/general/CustomEmbed.py"**
+
+**"root/general/MusicPlayer.py"**
+
+(+) Changed optional choice to boolean value for repeat and autoplay function
+
+(+) Minior code improvement and cleanup
+
+
+#
+
+# 20241016 (afternoon)
+
+(+) Reset application API key and Azure OpenAI API key for security reason
+
+**"root/general/ChatGPT.py"**
+
+(+) Rewrited the entire logic and input mode for ChatGPT
+
+(+) Provide better formatting of markdowns
+
+(+) Support custom prompt
+
+(+) Optimized comments
+
+(+) Minior code improvement and cleanup
+
+
+
+
+
