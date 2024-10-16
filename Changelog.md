@@ -855,3 +855,25 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Minior code improvement and cleanup
 
 
+#
+
+# 20241016 (afternoon)
+
+(+) Reset application API key and Azure OpenAI API key for security reason
+
+**"root/general/ChatGPT.py"**
+
+(+) Rewrited the entire logic and input mode for ChatGPT
+
+(+) Provide better formatting of markdowns
+
+(+) Support custom prompt
+
+(+) Optimized comments
+
+(+) Minior code improvement and cleanup
+
+
+
+
+
