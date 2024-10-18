@@ -36,7 +36,7 @@ You can simply run the following command in your terminal:
 ```bash
 pip install -r requirements.txt
 ```
-which will automatically install all required dependencies to your environment (except **doker** and **python3**)
+which will automatically install all required dependencies to your environment (except **docker** and **python3**)
 
 ---
 
