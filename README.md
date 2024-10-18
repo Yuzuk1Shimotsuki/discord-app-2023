@@ -8,7 +8,7 @@ The application contains some core functions already but can be extended as need
 
 ## What this bot can do right now?
 
-This bot has been already equipped with the following functions:
+The bot has been already equipped with the following functions:
 - ChatGPT with gpt4o
 - Music player
 - Getting a discord user information or avatar
@@ -90,7 +90,7 @@ There are plenty of ways to achieve this and I'm not gonna tell you all of them 
 
 ## Future implemtations
 
-This bot is working in progress. More functionality will be added in the future such as:
+The bot is still working in progress. More functionality will be added in the future such as:
 
 - **Fun Commands**: Add more fun commands like `!roll` to roll a dice, or `!joke` to tell a random joke.
 - **Role Management**: Allow the bot to assign or remove roles from users.
