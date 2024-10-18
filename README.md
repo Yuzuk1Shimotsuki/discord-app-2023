@@ -24,9 +24,9 @@ and so much more...
 ## Prerequisites
 
 - **[Python](https://www.python.org/downloads/) 3.10 or later**
--  **[discord.py](https://github.com/Rapptz/discord.py) v2.4.0** for creating the bot.
+-  **[discord.py](https://github.com/Rapptz/discord.py) v2.4.0 or later**
 -  **[Docker](https://www.docker.com/)** for hosting the bot.
--  **[Wavelink](https://github.com/PythonistaGuild/Wavelink)** for the bot to play music in voice channels.
+-  **[Wavelink](https://github.com/PythonistaGuild/Wavelink) v3.4.1 or later** for the bot to play music in voice channels.
 
 ---
 
