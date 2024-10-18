@@ -90,12 +90,10 @@ There are plenty of ways to achieve this and I'm not gonna tell you all of them 
 
 ## Future implemtations
 
-This bot is a work in progress, and you can extend it with more functionality such as:
+This bot is working in progress. More functionality will be added in the future such as:
 
-1. **Error Handling**: Add error handling for commands that don't exist or when users don't have permissions.
-2. **Moderation Commands**: Add commands like `!kick`, `!ban`, or `!mute` for server moderation.
-3. **Fun Commands**: Add more fun commands like `!roll` to roll a dice, or `!joke` to tell a random joke.
-4. **Role Management**: Allow the bot to assign or remove roles from users.
-5. **Database Integration**: Store user data or server configurations using a simple file system, SQLite, or an external database.
+- **Fun Commands**: Add more fun commands like `!roll` to roll a dice, or `!joke` to tell a random joke.
+- **Role Management**: Allow the bot to assign or remove roles from users.
+- **Database Integration**: Store user data or server configurations using a simple file system, SQLite, or an external database.
 
 ---
