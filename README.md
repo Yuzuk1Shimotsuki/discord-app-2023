@@ -8,7 +8,7 @@ The application contains some core functions already but can be extended as need
 
 ## What this bot can do right now?
 
-The bot has been already equipped with the following functions:
+The bot has been already equipped with these functions:
 - ChatGPT with gpt4o
 - Music player
 - Getting a discord user information or avatar
