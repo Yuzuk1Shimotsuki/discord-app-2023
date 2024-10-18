@@ -64,7 +64,7 @@ After that, you can install the bot as an **user-installed application**, or **i
 
 ---
 
-# How to start up and host your bot 
+## How to start up and host your bot 
 
 To start the bot, open a terminal in the `discord-bot` directory and run:
 
