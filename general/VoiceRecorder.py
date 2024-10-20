@@ -4,7 +4,6 @@ import io
 import time
 import numpy as np
 import wave
-import asyncio
 from discord import app_commands, Interaction
 from discord.ext import voice_recv
 from discord.ext.voice_recv import AudioSink, VoiceData, WaveSink
@@ -190,9 +189,6 @@ class VoiceRecorder(commands.Cog):
                             "✅ Recording finished.",
                             file=discord.File(combined_file_path)
                         )
-                        await asyncio.sleep(1.5)
-                        f.close()
-                        os.remove(combined_file_path)
                     except discord.errors.HTTPException as e:
                         if e.status == 413 and e.code == 40005:
                             return await interaction.followup.send("<a:CrossRed:1274034371724312646> Failed to send the recording because the file was too large")
