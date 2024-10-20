@@ -69,7 +69,7 @@ After that, you can install the bot as an **user-installed application**, or **i
 To start the bot, open a terminal in the `discord-bot` directory and run:
 
 ```bash
-python bot.py
+python startup.py
 ```
 
 If everything is set up correctly, you should see something like:
