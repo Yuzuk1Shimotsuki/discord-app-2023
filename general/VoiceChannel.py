@@ -56,11 +56,12 @@ class VoiceChannel(commands.Cog):
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)
         join_embed = discord.Embed(title="", color=interaction.user.colour)
-        if interaction.user.voice is not None:
-            voice_channel = channel or interaction.user.voice.channel
+        voice_channel = channel
+        if voice_channel is None and interaction.user.voice is not None:
+            voice_channel = interaction.user.voice.channel
         if voice_channel is None:
             # The author is not in a voice channel, or not specified which voice channel the application should join
-            return await interaction.followup.send(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
         if not player:
             try:
                 # Join voice channel
@@ -262,61 +263,8 @@ Just curious to know, where should I move into right now, {interaction.user.ment
             raise error
 
     # discord.py has no recording vc function.
-
-    """
-        
-    # Recording voice channels
-
-    # Start recording callback function
-    async def finished_callback(self, sink, interaction: Interaction):
-        recorded_users = [f"<@{user_id}>" for user_id, audio in sink.audio_data.items()]
-        if recorded_users == []:
-            return await interaction.followup.send(f"Nobody were talking in the voice channel, so no audio recorded.")
-        try:
-            files = [
-                discord.File(audio.file, f"{user_id}.{sink.encoding}")
-                for user_id, audio in sink.audio_data.items()
-            ]
-            await interaction.followup.send(f"Finished! Recorded audio for {', '.join(recorded_users)}.", files=files)
-        except discord.errors.HTTPException as file_error:
-            if file_error.status == 413:
-                await interaction.followup.send(f"An error occured while saving the recorded audio: 413 Payload Too Large (error code: 40005): Request entity too large")
-            else:
-                raise file_error
-
-    # Start the recording of voice channels
-    @commands.slash_command(description="Start the recording of voice channels")
-    async def start(self, interaction: Interaction):
-        await interaction.response.defer()
-        if interaction.author.voice is not None:
-            guild_id = interaction.guild.id
-            self.recording_vc[guild_id] = discord.utils.get(self.bot.voice_clients, guild=interaction.guild)
-            if self.recording_vc[guild_id] is None:
-                self.recording_vc[guild_id] = await interaction.author.voice.channel.connect()
-            try:    
-                self.recording_vc[guild_id].start_recording(
-                discord.sinks.OGGSink(),  # The sink type to use.
-                self.finished_callback,  # What to do once done.
-                interaction)
-                await interaction.followup.send("Recording voice channels...")
-            except discord.sinks.errors.RecordingException:
-                await interaction.followup.send("There's a recording already going on right now.")
-        else:
-            await interaction.followup.send(AuthorNotInVoiceError(interaction, interaction.author))
-
-    # Stop the recording of a voice channel
-    @commands.slash_command(description="Stop the recording of a voice channel")
-    async def finish(self, interaction: Interaction):
-        await interaction.response.defer()
-        guild_id = interaction.guild.id
-        if guild_id in self.recording_vc:
-            await interaction.followup.send(f"Saving audio...", delete_after=0)
-            self.recording_vc[guild_id].stop_recording()
-            del self.recording_vc[guild_id]
-        else:
-            await interaction.followup.send("I wasn't recording audio in this guild.")
-
-    """
+    # 21102024 UPDATE: recording vc function can now be achieved by discord.ext.voice_recv plugin,
+    # and has been separated as another cog (see VoiceRecorder.py)
 
     # ----------</Voice Channels>----------
 
