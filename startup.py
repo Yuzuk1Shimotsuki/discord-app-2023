@@ -223,6 +223,7 @@ async def before_serving():
             exit(1)
         asyncio.run(load_extensions())
         await bot.run(token)
+        loop.create_task(bot.connect())
     except discord.HTTPException as http_error:
         if http_error.status == 429:
             logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
