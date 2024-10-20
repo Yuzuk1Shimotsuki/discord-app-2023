@@ -873,7 +873,19 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and cleanup
 
+#
 
+# 20241021 (midnight)
+
+# Add **"root/general/VoiceRecorder.py"**
+
+(++) Re-add voice channel recording function to the application since the migration of discord.py
+
+(+) Created a new directory **"custom_recording"** in **"root/plugins"**
+
+(+) Optimized comments
+
+(+) Minior code improvement and bug fixs
 
 
 
