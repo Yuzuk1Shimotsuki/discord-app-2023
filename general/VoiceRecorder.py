@@ -123,7 +123,6 @@ class MultiAudioImprovedWithSilenceSink(AudioSink):
 
 class VoiceRecorder(commands.Cog):
     global record_path
-    record = app_commands.Group(name="record", description="Recording in voice channels commands")
 
     def __init__(self, bot):
         self.bot = bot
@@ -134,8 +133,8 @@ class VoiceRecorder(commands.Cog):
         self.custom_sink = MultiAudioImprovedWithSilenceSink()
         self.is_recording = False
 
-    @record.command(name="start", description="🟢 Starts voice recording in the user's current voice channel")
-    async def voice_start(self, interaction: Interaction):
+    @app_commands.command(name="start-recording", description="🟢 Starts voice recording in the user's current voice channel")
+    async def start_recording(self, interaction: Interaction):
         if not interaction.user.voice:
             return await interaction.response.send_message("<a:CrossRed:1274034371724312646> You must be connected to a voice channel to use this command.", ephemeral=True)
 
@@ -157,8 +156,8 @@ class VoiceRecorder(commands.Cog):
 
         await interaction.response.send_message("🎙️ Recording has started. Use /var end to finish.")
 
-    @record.command(name="end", description="🔴 Stops the current voice recording")
-    async def voice_end(self, interaction: Interaction):
+    @app_commands.command(name="stop-recording", description="🔴 Stops the current voice recording")
+    async def stop_recording(self, interaction: Interaction):
         voice_client = interaction.guild.voice_client
         if not voice_client or not self.is_recording:
             return await interaction.response.send_message("<a:CrossRed:1274034371724312646> No recording in progress.", ephemeral=True)

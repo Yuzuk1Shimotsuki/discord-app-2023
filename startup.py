@@ -6,6 +6,7 @@ import sys
 import logging
 import psutil
 import signal
+import socket
 import subprocess
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
@@ -154,33 +155,37 @@ async def reload(ctx, cog_name):
 async def systeminfo(ctx):
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
+    def convert_to_GB(raw):
+        return round(raw / 1024 ** 3, 2)
     # CPU
-    cpuPercentage = psutil.cpu_percent(interval=1, percpu=False) * 100
+    cpuPercentage = psutil.cpu_percent()
     numberOfSystemCores = psutil.cpu_count(logical=False)
     numberOfLogicalCores = psutil.cpu_count(logical=True)
     # Memory
     ram = psutil.virtual_memory()
-    usedRamInGB = round(ram.used / 1024 ** 3, 2)
-    freeRamInGB = round(ram.free / 1024 ** 3, 2)
-    totalRamInGB = round(ram.total / 1024 ** 3, 2)
+    usedRamInGB = convert_to_GB(ram.used)
+    availableRamInGB = convert_to_GB(ram.available)
+    totalRamInGB = convert_to_GB(ram.total)
     ramPercentage = ram.percent
     # Storage
     disk = psutil.disk_usage('/')
-    usedVolumeInGB = round(disk.used / 1024 ** 3, 2)
-    freeVolumeInGB = round(disk.free / 1024 ** 3, 2)
-    totalVolumeInGB = round(disk.total / 1024 ** 3, 2)
+    usedVolumeInGB = convert_to_GB(disk.used)
+    freeVolumeInGB = convert_to_GB(disk.free)
+    totalVolumeInGB = convert_to_GB(disk.total)
     diskPercentage = disk.percent
     # Network
+    hostname = socket.gethostname()
+    IPv4Addr = socket.gethostbyname(hostname)
     network = psutil.net_io_counters()
     # Returning system info as embed
     hardware_info_embed = discord.Embed(title="Resource Usage (For reference only):", description='\u200b', timestamp=datetime.now(), color=ctx.author.colour)
-    hardware_info_embed.add_field(name="CPU", value=f"CPU utilization: {cpuPercentage}%\nNumber of system cores: {numberOfSystemCores}\nNumber of logical cores: {numberOfLogicalCores}", inline=False)
-    hardware_info_embed.add_field(name="\u200b", value="", inline=False)
-    hardware_info_embed.add_field(name="RAM", value=f"Memory in use: {usedRamInGB} / {totalRamInGB} GB ({ramPercentage}%)\nAvailible memory: {freeRamInGB} GB", inline=False)
+    hardware_info_embed.add_field(name="CPU", value=f"CPU utilization: {cpuPercentage}%\nNumber of system cores: {numberOfSystemCores}\nNumber of logical cores: {numberOfLogicalCores}", inline=True)
+    hardware_info_embed.add_field(name="\u200b", value="", inline=True)
+    hardware_info_embed.add_field(name="RAM", value=f"Memory in use: {usedRamInGB} / {totalRamInGB} GB ({ramPercentage}%)\nAvailible memory: {availableRamInGB} GB", inline=True)
     hardware_info_embed.add_field(name="\u200b", value="", inline=False)
     hardware_info_embed.add_field(name="Storage", value=f"Space used: {usedVolumeInGB} / {totalVolumeInGB} GB ({diskPercentage}%)\nAvailible space: {freeVolumeInGB} GB", inline=False)
     hardware_info_embed.add_field(name="\u200b", value="", inline=False)
-    hardware_info_embed.add_field(name="Network", value=f"Number of bytes sent: {network.bytes_sent}\nNumber of bytes received: {network.bytes_recv}\nNumber of packets sent: {network.packets_sent}\nNumber of packets received: {network.packets_recv}\nTotal number of errors while receiving: {network.errin}\nTotal number of errors while sending: {network.errout}\nTotal number of incoming packets dropped: {network.dropin}\nTotal number of outgoing packets dropped: {network.dropout}", inline=False)
+    hardware_info_embed.add_field(name="Network", value=f"Hostname: {hostname}\nIPv4: {IPv4Addr}\nNumber of bytes sent: {network.bytes_sent}\nNumber of bytes received: {network.bytes_recv}\nNumber of packets sent: {network.packets_sent}\nNumber of packets received: {network.packets_recv}\nTotal number of errors while receiving: {network.errin}\nTotal number of errors while sending: {network.errout}\nTotal number of incoming packets dropped: {network.dropin}\nTotal number of outgoing packets dropped: {network.dropout}", inline=False)
     hardware_info_embed.add_field(name="\u200b", value="", inline=False)
     await ctx.reply(embed=hardware_info_embed)
 
