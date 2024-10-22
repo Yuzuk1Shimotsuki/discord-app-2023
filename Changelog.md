@@ -887,5 +887,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and bug fixs
 
+#
 
+# 20241023 (midnight)
+
+# Add **"root/GetDetailIPv4Info.py"**
+
+(+) Optimized comments and outputs
+
+(+) Minior code improvement and bug fixs
 
