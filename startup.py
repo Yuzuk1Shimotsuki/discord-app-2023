@@ -40,7 +40,7 @@ class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
             intents=intents, 
-            command_prefix="?",
+            command_prefix="!",
             self_bot=False,     # This is IMPORTANT!
             strip_after_prefix = True
         )
