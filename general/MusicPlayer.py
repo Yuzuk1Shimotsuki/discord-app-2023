@@ -7,7 +7,7 @@ import asyncio
 from io import BytesIO
 from PIL import Image
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import timedelta
 from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.ui import Select, View
@@ -176,7 +176,7 @@ class MusicPlayer(commands.Cog):
     async def on_ready(self) -> None:
         nodes = [wavelink.Node(uri=os.getenv("LAVALINK_SERVER_HOST"), password=os.getenv("LAVALINK_SERVER_HOST_PASSWORD"))]
         # cache_capacity is EXPERIMENTAL. Turn it off by passing None
-        await wavelink.Pool.connect(nodes=nodes, client=self.bot, cache_capacity=100)
+        await wavelink.Pool.connect(nodes=nodes, client=self.bot, cache_capacity=None)
 
     @commands.Cog.listener()
     async def on_wavelink_node_ready(self, payload: wavelink.NodeReadyEventPayload) -> None:
