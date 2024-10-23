@@ -304,7 +304,8 @@ async def self_shutdown():
 def startup(queue):
     global instruction_queue
     instruction_queue = queue
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 3000)))  # Custom PORT: 3000 for Azure and Docker
+
 
 
 if __name__ == "__main__":

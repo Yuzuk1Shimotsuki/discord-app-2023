@@ -907,8 +907,8 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (-) Removed **"root/restarter.py"** due to the above rewrite
 
+(+) Changed the port number from 8080 to 3000
+
 (+) Minior code improvement and bug fixs
-
-
 
 
