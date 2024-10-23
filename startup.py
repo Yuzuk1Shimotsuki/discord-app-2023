@@ -9,6 +9,8 @@ import psutil
 import signal
 import socket
 import subprocess
+import time
+from multiprocessing import Process, Queue
 from GetDetailIPv4Info import *
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
@@ -25,18 +27,20 @@ extensions_folders = ['general', 'moderation', 'errorhandling']
 
 logger = logging.getLogger(__name__)
 ConsoleOutputHandler = logging.StreamHandler()
-logger.addHandler(ConsoleOutputHandler)
+logger.addHandler(logging.StreamHandler())
 logging.basicConfig(filename='bot.log', level=logging.INFO)
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+
+instruction_queue = None    # IMPORTANT for multiprocessing
 
 # Default configuration
 class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
             intents=intents, 
-            command_prefix="!",
+            command_prefix="?",
             self_bot=False,     # This is IMPORTANT!
             strip_after_prefix = True
         )
@@ -45,8 +49,8 @@ class MyNewHelp(commands.MinimalHelpCommand):
     async def send_pages(self):
         destination = self.get_destination()
         for page in self.paginator.pages:
-            emby = discord.Embed(description=page)
-            await destination.send(embed=emby)
+            embed = discord.Embed(description=page)
+            await destination.send(embed=embed)
 
 bot = Bot()
 bot.help_command = MyNewHelp()
@@ -65,13 +69,17 @@ def get_extensions():
 # Startup info
 @bot.event
 async def on_ready():
-    logger.info("-" * 140)
-    logger.info("Welcome to use the bot.")
-    logger.info(f"Bot Username: {bot.user.name} #{bot.user.discriminator}")
-    logger.info(f"Bot ID: {bot.application_id}")
-    logger.info("-" * 140)
-    logger.info("The bot is now initiated and ready for use!")
-    logger.info("-" * 140)
+    print(
+f'''
+{"-" * 120}
+Welcome to use the bot.
+Bot Username: {bot.user.name} #{bot.user.discriminator}
+Bot ID: {bot.application_id}
+{"-" * 120}
+The bot is now initiated and ready for use!
+{"-" * 120}
+'''
+        )
 
 # Sync all cogs for latest changes
 @bot.command()
@@ -206,21 +214,24 @@ async def systeminfo(ctx):
 # Restart the bot (Use it only as a LAST RESORT)
 @bot.command()
 async def restart(ctx):
+    global is_restarting
+    is_restarting = True
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
     bot.clear()
     await bot.close()
-    # Restart
-    subprocess.Popen([sys.executable, *sys.argv])
+    await self_restart()
 
-# Shut down the bot (SELF DESTRUCT)
+# Shut down the bot and the server (SELF DESTRUCT)
 @bot.command()
 async def shutdown(ctx):
+    global is_shutdown
+    is_shutdown = True
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
     bot.clear()
     await bot.close()
-    exit(0)
+    await app.shutdown()
 
 # Load extensions
 async def load_extensions():
@@ -231,24 +242,21 @@ async def load_extensions():
         await bot.load_extension(extension)
         logger.info(extension)
 
-# Starting the bot
-@app.before_serving
-async def before_serving():
-    loop = asyncio.get_event_loop()
+# Start the bot application
+async def start_bot():
     try:
         token = os.getenv("DISCORD_BOT_TOKEN") or ""
         if token == "":
             logger.error("No vaild tokens were found in the environment variable. Please add your token to the Secrets pane.")
             exit(1)
         asyncio.run(load_extensions())
-        await bot.run(token)
-        loop.create_task(bot.connect())
+        await bot.login(token)
+        await bot.connect()
     except discord.HTTPException as http_error:
         if http_error.status == 429:
             logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
             logger.error("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
-            subprocess.run(["python", "restarter.py"])
-            os.kill(os.getpid(), signal.SIGINT)
+            instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
         else:
             raise http_error
     except discord.errors.LoginFailure as token_error:
@@ -258,22 +266,74 @@ async def before_serving():
 
 # ----------<Quart app>----------
 
-# Returning the status of the Quart app
+# Coroutine called when the web server starts
+@app.before_serving
+async def before_serving():
+    # Rewrite for database connection in the future
+    app.add_background_task(start_bot)
+
 @app.route("/")
-async def hello_world():
-    return "Your application is now hosting normally."
+def hello_world():
+    return "Hello, World!"
+
+# Returning the status of the Quart app
+@app.get("/status")
+def status():
+    if len(app.background_tasks) == 0:
+        return "No applications were hosting now."
+    return "Your applications are now hosting normally."
+
+@app.get('/restart')
+async def self_restart():
+    await bot.close()
+    instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
+    return "Please Wait. Your server is now restarting..."
+
 
 # Actions after shutting down the Quart app (Ctrl + C)
 @app.after_serving
-async def my_shutdown():
+async def self_shutdown():
     await bot.close()
-    print("Shuting down...")
-    os.kill(os.getpid(), signal.SIGINT)
+    instruction_queue.put("shutdown")   # Put "shutdown" to the queue to terminate the web server
+
 
 # ----------</Quart app>----------
 
 
-
 # Runs the whole application (Bot + Quart)
-if __name__ == "__main__":
+def startup(queue):
+    global instruction_queue
+    instruction_queue = queue
     app.run(debug=False, port=int(os.environ.get("PORT", 8080)))  # PORT NUMBER: 8080 for Google Cloud Run
+
+
+if __name__ == "__main__":
+    try:
+        q = Queue() # IMPORTANT
+        p = Process(target=startup, args=[q,])
+        p.start()
+        while q.empty():    # Waiting queue, sleep if there is no call
+            time.sleep(0.001)   # Using minimal time delay to make it neglectable
+        p.terminate()
+        # Get instruction from the queue
+        match q.get():
+            case "shutdown":
+                # Terminate the program
+                print("Shutting down...")
+                os.kill(os.getpid(), signal.SIGINT)
+            case "restart" | "reboot":
+                pass
+            case _:
+                raise ValueError("Invaild input for Queue, must be either 'shutdown', 'reboot' or 'restart'.")
+        # Restart the program
+        print("Please Wait. Your server is now restarting...")
+        time.sleep(7)
+        args = [sys.executable] + [sys.argv[0]]
+        subprocess.call(args)
+    except KeyboardInterrupt:
+        print("Shutting down by Keyboard Interruption...")
+        p.terminate()
+
+
+
+

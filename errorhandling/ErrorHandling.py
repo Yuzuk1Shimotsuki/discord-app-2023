@@ -64,6 +64,9 @@ class BotAlreadyInVoiceError():
         same_embed.add_field(name="", value=f"Can you found me in the voice channel? I have connected to {self.user_vc.mention} already :>")
         return same_embed
 
+class NotVaildEmojiError():
+    def __repr__(self) -> str:
+        return "It seems that the emoji you provided it's not a valid emoji :thinking:..."
 
 # This is just a configuration for which error meesages are needed to return when error occurs. No commands.Cog are involved.
 class ErrorHandling(commands.Cog):
