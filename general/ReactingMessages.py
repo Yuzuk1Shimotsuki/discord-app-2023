@@ -20,7 +20,7 @@ class ReactingMessages(commands.Cog):
         except discord.HTTPException as error:
             if error.status == 400 and error.code == 10014:
                 # An invaild emoji was given
-                return await interaction.response.send_message(f"It seems that the emoji u provided it's not a valid emoji :thinking:...")
+                return await interaction.response.send_message(NotVaildEmojiError())
             else:
                 raise error  # Raise other errors to ensure they aren't ignored
                 
@@ -32,7 +32,7 @@ class ReactingMessages(commands.Cog):
         except discord.HTTPException as error:
             if error.status == 400 and error.code == 10014:
                 # An invaild emoji was given
-                return await interaction.response.send_message(f"It seems that the emoji u provided it's not a valid emoji :thinking:...")
+                return await interaction.response.send_message(NotVaildEmojiError())
             else:
                 raise error  # Raise other errors to ensure they aren't ignored
 

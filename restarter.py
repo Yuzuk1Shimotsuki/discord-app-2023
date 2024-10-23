@@ -1,4 +1,5 @@
+import subprocess
+import sys
 from time import sleep
-from os import system
 sleep(7)
-system("python startup.py")
+subprocess.run([sys.executable, "startup.py"])

@@ -16,19 +16,11 @@ class SendFromInput(commands.Cog):
     @app_commands.describe(silent="Send it as a silent message?")
     @app_commands.describe(message="The message u would like to send. Leave this empty if u want to send the attachment only.")
     @app_commands.describe(attachment="The attachment u would like to send. Leave this empty if u want to send the message only.")
-    @app_commands.choices(silent=[
-        app_commands.Choice(name="True", value="True"),
-        app_commands.Choice(name="False", value="False")
-        ])
-    async def send(self, interaction: Interaction, silent: app_commands.Choice[str], message: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
+    async def send(self, interaction: Interaction, silent: bool, message: Optional[str] = None, attachment: Optional[discord.Attachment] = None):
         if message is None and attachment is None:
             # Returns if no message or attachment are provided
             await interaction.response.send_message("You cannot let me to send nothing! (say at least send a message or an attachment)")
         else:
-            if silent.value == "True":
-                silent = True
-            else:
-                silent = False
             # Sends the required input
             await interaction.response.defer()
             # Checks if the attachment is None or not

@@ -45,8 +45,6 @@ _ _
 
 7. Follow the **Discord Community Guidelines** - You can find them here: https://discordapp.com/guidelines
 
-Notes: You can refer to channel <#1154392689605873674> to look for all the rules again if u wish to :wink:
-
 And finally, have fun and enjoy in our server!
 
 Regards,

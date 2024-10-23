@@ -897,3 +897,18 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and bug fixs
 
+#
+
+# 20241023 (night)
+
+**"root/startup.py"**
+
+(+) Heavily rewrited the shutdown and restart logic with multiprocessing
+
+(-) Removed **"root/restarter.py"** due to the above rewrite
+
+(+) Minior code improvement and bug fixs
+
+
+
+
