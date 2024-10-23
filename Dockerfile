@@ -4,7 +4,7 @@ RUN mkdir app
 WORKDIR /app
 
 # For Google Cloud Run
-EXPOSE 8080
+EXPOSE 3000
 
 # Enviromental variables, excluding Discord application token and AzureOpenAI API token
 ENV AZURE_OPENAI_ENDPOINT="https://apim-aoai-eas-dev02.azure-api.net/cs-eastus/openai/deployments/gpt4o/chat/completions"
