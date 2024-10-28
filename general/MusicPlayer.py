@@ -12,6 +12,7 @@ from discord import app_commands, Interaction
 from discord.ext import commands
 from discord.ui import Select, View
 from discord import app_commands, Interaction
+from wavelink import LavalinkLoadException
 from typing import cast, Optional, List
 from tinytag import TinyTag
 from general.VoiceChannelFallbackConfig import *
@@ -402,7 +403,21 @@ class MusicPlayer(commands.Cog):
             pass
         else:
             player.autoplay = wavelink.AutoPlayMode.partial
-        tracks: wavelink.Search = await wavelink.Playable.search(query or custom_track["audio_url"])
+        try:
+            tracks: wavelink.Search = await wavelink.Playable.search(query or custom_track["audio_url"])
+        except LavalinkLoadException as load_error:
+            def to_dict(input_string: str):
+                message_part, key_value_part = input_string.split(": ", 1)
+                result_dict = {"message": message_part}
+                key_value_pairs = key_value_part.split(", ")
+                for pair in key_value_pairs:
+                    key, value = pair.split("=", 1)
+                    result_dict[key] = value
+                return result_dict
+            load_error = to_dict(str(load_error))
+            load_error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646> Error while loading tracks with wavelink", color=interaction.user.colour)
+            load_error_embed.add_field(name=f"{load_error["message"]}", value=f"{load_error["error"]}\n\nSeverity: {load_error["severity"]}\nCause: {load_error["cause"]}", inline=False)
+            return await interaction.followup.send(embed=load_error_embed)
         if not tracks:
             # Could not find any tracks from author's query
             play_embed.add_field(name="", value=f"I couldn't find any tracks with that query you entered :thinking: ... Perhaps try to search something else and gave me a chance to play it, {interaction.user.mention}?", inline=False)
