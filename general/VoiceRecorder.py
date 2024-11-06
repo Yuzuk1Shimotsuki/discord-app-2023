@@ -4,6 +4,7 @@ import io
 import time
 import numpy as np
 import wave
+import wavelink
 import asyncio
 from discord import app_commands, Interaction
 from discord.ext import voice_recv
@@ -139,7 +140,10 @@ class VoiceRecorder(commands.Cog):
             return await interaction.response.send_message("<a:CrossRed:1274034371724312646> You must be connected to a voice channel to use this command.", ephemeral=True)
 
         if self.bot.voice_clients:
-            return await interaction.response.send_message("<a:CrossRed:1274034371724312646> I'm already connected to a voice channel.", ephemeral=True)
+            if isinstance(self.bot.voice_clients[0], wavelink.Player):
+                return await interaction.response.send_message("<a:CrossRed:1274034371724312646> The voice client is now being occupied by the music player, Please terminate the player and try again.", ephemeral=True)
+            else:
+                return await interaction.response.send_message("<a:CrossRed:1274034371724312646> I'm already connected to a voice channel.", ephemeral=True)
 
         voice_channel = interaction.user.voice.channel
         voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient)
@@ -154,7 +158,7 @@ class VoiceRecorder(commands.Cog):
                 continue
             voice_client.listen(self.custom_sink)
 
-        await interaction.response.send_message("🎙️ Recording has started. Use /var end to finish.")
+        await interaction.response.send_message("🎙️ Recording has started. Use </stop-recording:1298511803277512806> to stop.")
 
     @app_commands.command(name="stop-recording", description="🔴 Stops the current voice recording")
     async def stop_recording(self, interaction: Interaction):
