@@ -1,7 +1,8 @@
 import discord
 import wavelink
-from discord import app_commands, Interaction
+from discord import app_commands, Embed, Interaction, Forbidden
 from discord.ext import commands
+from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
 from typing import cast, Optional
 from general.VoiceChannelFallbackConfig import *
@@ -261,6 +262,131 @@ Just curious to know, where should I move into right now, {interaction.user.ment
             await interaction.response.send_message("It seems that you don't have permission to move me!")
         else:
             raise error
+
+    # Function of mutes a member from voice channel
+    async def mute_member_voice(self, interaction: Interaction, member, days, hours, minutes, seconds, reason):
+        vmute_embed = Embed(title="", color=interaction.user.color)
+        vmute_error_embed = Embed(title="", color=discord.Colour.red())
+        try:
+            duration = timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+            if reason == None:
+                await member.edit(mute=True, reason=reason)
+                vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds. :zipper_mouth:\nReason: **{reason}**")
+            else:
+                await member.edit(mute=True)
+                vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for **{days}** days, **{hours}** hours, **{minutes}** minutes, and **{seconds}** seconds. :zipper_mouth:")
+                await asyncio.sleep(duration.total_seconds())
+            await member.edit(mute=False)
+        except Forbidden as e:
+            if e.status == 403 and e.code == 50013:
+                # Handling rare forbidden case
+                vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I couldn't **mute** that user from voice. Please **double-check** my **permissions** and **role position**.")
+                await interaction.response.send_message(embed=vmute_error_embed)
+            else:
+                raise e
+
+    # Mutes a member from voice for a specified amount of time
+    @app_commands.command(description="Mutes a member from voice channels")
+    @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.describe(member="Member to mute")
+    async def vmute(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None, days: Optional[app_commands.Range[int, 0]] = 0, hours: Optional[app_commands.Range[int, None, 23]] = 0, minutes: Optional[app_commands.Range[int, None, 59]] = 0, seconds: Optional[app_commands.Range[int, None, 59]] = 0):  # setting each value with a default value of 0 reduces a lot of the code
+        vmute_error_embed = Embed(title="", color=discord.Colour.red())
+        if member == interaction.user:
+            vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {interaction.user.mention}, You can't **mute yourself**!")
+            return await interaction.response.send_message(embed=vmute_error_embed)
+        if member.guild_permissions.administrator and interaction.user != interaction.guild.owner:
+            if not await self.bot.is_owner(interaction.user):
+                vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Stop trying to **mute an admin**! :rolling_eyes:")
+                return await interaction.response.send_message(embed=vmute_error_embed)
+        if member == self.bot.user:
+            vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {interaction.user.mention}, I can't **mute myself**!")
+            return await interaction.response.send_message(embed=vmute_error_embed)
+        await self.mute_member_voice(interaction, member, days, hours, minutes, seconds, reason)
+
+    @vmute.error
+    async def mute_voice_error(self, interaction: Interaction, error):
+        if isinstance(error, MissingPermissions):
+            await interaction.response.send_message("You cannot do this **without moderate members permissions**!")
+        else:
+            raise error
+
+    # Unmutes a member from voice
+    @app_commands.command(description="Unmutes a member from voice channels")
+    @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.describe(member="Member to unmute (Enter the User ID e.g. 529872483195806124)")
+    @app_commands.describe(reason="Reason for unmute")
+    async def vunmute(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
+        vunmute_embed = Embed(title="", color=interaction.user.color)
+        if reason is not None:
+            await member.edit(mute=False, reason=reason)
+            vunmute_embed.add_field(name="", value=f"{member.mention} has been **unmuted from voice**.\nReason: **{reason}**")
+        else:
+            await member.edit(mute=False)
+            vunmute_embed.add_field(name="", value=f"{member.mention} has been **unmuted from voice**.")
+        await interaction.response.send_message(embed=vunmute_embed)
+
+    @vunmute.error
+    async def vunmute_error(self, interaction: Interaction, error):
+        vunmute_error_embed = Embed(title="", color=discord.Colour.red())
+        if isinstance(error, MissingPermissions):
+            vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> This command **requires** `moderate members` permission, and you probably **don't have** it, {interaction.user.mention}.")
+            await interaction.response.send_message(embed=vunmute_error_embed)
+        elif isinstance(error, BotMissingPermissions):
+            vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I couldn't **unmute** that user. Please **double-check** my **permissions** and **role position**.")
+            await interaction.response.send_message(embed=vunmute_error_embed)
+        else:
+            raise error
+
+    # Kicks a member from voice
+    @app_commands.command(description="Kicks a member from the voice channel")
+    @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.describe(member="User to kick")
+    @app_commands.rename(member="user")
+    @app_commands.describe(reason="Reason for kick")
+    async def vkick(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
+        vkick_embed = Embed(title="", color=interaction.user.color)
+        vkick_error_embed = Embed(title="", color=discord.Colour.red())
+        try:
+            if member.voice is None:
+                vkick_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not in voice** currently.")
+                return await interaction.response.send_message(embed=vkick_error_embed)
+            if member == interaction.user:
+                vkick_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {interaction.user.mention}, You can't **kick yourself from voice**!")
+                return await interaction.response.send_message(embed=vkick_error_embed)
+            if member == self.bot.user:
+                vkick_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {interaction.user.mention}, I can't **kick myself from voice**!")
+                return await interaction.response.send_message(embed=vkick_error_embed)
+            if member.guild_permissions.administrator and interaction.user != interaction.guild.owner:
+                if not await self.bot.is_owner(interaction.user):
+                    vkick_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Stop trying to **kick an admin from voice**! :rolling_eyes:")
+                    return await interaction.response.send_message(embed=vkick_error_embed)
+            if reason is not None:
+                await member.kick(reason=reason)
+                vkick_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **kicked from voice**.\nReason: **{reason}**")
+            else:
+                await member.kick()
+                vkick_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **kicked from voice**.")        
+            return await interaction.response.send_message(embed=vkick_embed)
+        except Forbidden as e:
+            if e.status == 403 and e.code == 50013:
+                # Handling rare forbidden case
+                vkick_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I couldn't **kick that user from voice**. Please **double-check** my **permissions** and **role position**.")
+                await interaction.response.send_message(embed=vkick_error_embed)
+            else:
+                raise e
+            
+    @vkick.error
+    async def vkick_error(self, interaction: Interaction, error):
+        vkick_error_embed = Embed(title="", color=discord.Colour.red())
+        if isinstance(error, MissingPermissions):
+            vkick_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> This command **requires** `moderate members` permission, and you probably **don't have** it, {interaction.user.mention}.")
+            await interaction.response.send_message(embed=vkick_error_embed)
+        elif isinstance(error, BotMissingPermissions):
+            vkick_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I couldn't **kick that user from voice**. Please **double-check** my **permissions** and **role position**.")
+            await interaction.response.send_message(embed=vkick_error_embed)
+        else:
+            raise error
+
 
     # discord.py has no recording vc function.
     # 21102024 UPDATE: recording vc function can now be achieved by discord.ext.voice_recv plugin,

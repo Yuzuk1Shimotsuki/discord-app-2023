@@ -921,4 +921,17 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and bug fixs
 
+#
+
+# 20241106 (night)
+
+(+) Rewrited and refactored most of the codes in moderation session
+
+(-/+) Separated both voice kick and mute functions from **"root/moderation/Kick.py"** and **"root/moderation/Mute.py"** and rewrited as **"vkick()"**, **vmute()** and **"vumute()"** in **"root/general/VoiceChannel.py"**
+
+(+) Better error handling
+
+(+) Minior code improvement and bug fixs
+
+
 
