@@ -15,6 +15,7 @@ class Unmute(commands.Cog):
     # Unmutes a member from text
     @app_commands.command(description="Unmutes a member from text channels")
     @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.checks.bot_has_permissions(moderate_members=True)
     @app_commands.describe(member="Member to unmute (Enter the User ID e.g. 529872483195806124)")
     @app_commands.describe(reason="Reason for unmute")
     async def unmute(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
@@ -22,7 +23,7 @@ class Unmute(commands.Cog):
         unmute_error_embed = Embed(title="", color=discord.Colour.red())
         muted = discord.utils.get(interaction.guild.roles, name="Muted")
         if muted not in member.roles:
-            unmute_error_embed.add_field(name="", value=f"{member.mention} has **not been muted** currently.")
+            unmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not muted** currently.")
             return await interaction.response.send_message(embed=unmute_error_embed)
         if reason is None:
             await member.remove_roles(muted)

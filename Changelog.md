@@ -933,5 +933,12 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and bug fixs
 
+#
+
+# 20241107 (morning)
+
+(-/+) Removed days, hours, minutes, seconds parameters from **"root/moderation/Kick.py"**, **"root/moderation/Mute.py"** and **"root/general/VoiceChannel.py"** by rewriting them as timestring objects
+
+(+) Minior code improvement and bug fixs
 
 

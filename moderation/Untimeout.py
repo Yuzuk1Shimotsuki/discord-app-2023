@@ -15,6 +15,7 @@ class Untimeout(commands.Cog):
     # Untimeouts a member
     @app_commands.command(name="untimeout", description="Remove timeouts for a member")
     @app_commands.checks.has_permissions(moderate_members=True)
+    @app_commands.checks.bot_has_permissions(moderate_members=True)
     @app_commands.describe(member="Member to untimeout (Enter the User ID e.g. 529872483195806124)")
     @app_commands.describe(reason="Reason for untimeout")
     async def untimeout(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):

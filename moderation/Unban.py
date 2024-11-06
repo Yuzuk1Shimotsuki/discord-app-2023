@@ -23,6 +23,7 @@ class Unban(commands.Cog):
     # Unban users
     @app_commands.command(description="Unbans a member")
     @app_commands.checks.has_permissions(ban_members=True)
+    @app_commands.checks.bot_has_permissions(ban_members=True)
     @app_commands.describe(user="User to remove the ban of (Enter the User ID e.g. 529872483195806124)")
     @app_commands.describe(reason="Reason for unban")
     async def unban(self, interaction: Interaction, user: discord.User, reason: Optional[str] = None):
