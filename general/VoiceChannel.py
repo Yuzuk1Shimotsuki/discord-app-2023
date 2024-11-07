@@ -310,23 +310,40 @@ Just curious to know, where should I move into right now, {interaction.user.ment
         return {"years": years, "months": months, "weeks": weeks, "days": days, "hours": hours, "minutes": minutes, "seconds": seconds, "total_seconds": total_seconds}
     
     # Function of mutes a member from voice channel
-    async def mute_member_voice(self, interaction: Interaction, member, timestring, reason):
+    async def mute_member_voice(self, interaction: Interaction, member: discord.Member, timestring: str | None, reason: str):
         vmute_embed = Embed(title="", color=interaction.user.color)
         vmute_error_embed = Embed(title="", color=discord.Colour.red())
         try:
-            total_duration = self.timestring_converter(timestring)
-            if total_duration == "error_improper_format":
-                vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like the time fomrmat you entered it's not vaild :thinking: ... Perhaps enter again and gave me a chance to handle it, {interaction.user.mention} :pleading_face:?", inline=False)
-                vmute_error_embed.add_field(name="Supported time format:", value=f"**1**s = **1** second | **2**m = **2** minutes | **5**h = **5** hours | **10**d = **10** days | **3**w = **3** weeks | **6**y = **6** years.", inline=False)
+            if timestring is not None:  # For time-based voice mute only
+                total_duration = self.timestring_converter(timestring)
+                if total_duration == "error_improper_format":
+                    vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like the time fomrmat you entered it's not vaild :thinking: ... Perhaps enter again and gave me a chance to handle it, {interaction.user.mention} :pleading_face:?", inline=False)
+                    vmute_error_embed.add_field(name="Supported time format:", value=f"**1**s = **1** second | **2**m = **2** minutes | **5**h = **5** hours | **10**d = **10** days | **3**w = **3** weeks | **6**y = **6** years.", inline=False)
+                    return await interaction.response.send_message(embed=vmute_error_embed)
+            if member.voice.mute:
+                vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **already muted from voice**!")
                 return await interaction.response.send_message(embed=vmute_error_embed)
             if reason == None:
                 await member.edit(mute=True, reason=reason)
-                vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:\nReason: **{reason}**")
+                if timestring is None:
+                    # Infinity
+                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** :zipper_mouth:\nReason: **{reason}**")
+                else:
+                    # Time-based
+                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:\nReason: **{reason}**")
             else:
                 await member.edit(mute=True)
-                vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:")
+                if timestring is None:
+                    # Infinity
+                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** :zipper_mouth:")
+                else:
+                    # Time-based
+                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:")
+            await interaction.response.send_message(embed=vmute_embed)
+            if timestring is not None:  # For time-based voice mute only
                 await asyncio.sleep(total_duration["total_seconds"])
-            await member.edit(mute=False)
+                if member.voice:
+                    await member.edit(mute=False, reason=f"Automatically unmuted after {timestring}.")
         except Forbidden as e:
             if e.status == 403 and e.code == 50013:
                 # Handling rare forbidden case
@@ -341,7 +358,7 @@ Just curious to know, where should I move into right now, {interaction.user.ment
     @app_commands.checks.bot_has_permissions(moderate_members=True)
     @app_commands.describe(member="Member to mute")
     @app_commands.describe(duration="Duration for mute (e.g. 1s = 1 second | 2m = 2 minutes | 5h = 5 hours | 10d = 10 days | 3w = 3 weeks | 6y = 6 years)")
-    async def vmute(self, interaction: Interaction, member: discord.Member, duration: str, reason: Optional[str] = None):
+    async def vmute(self, interaction: Interaction, member: discord.Member, duration: Optional[str] = None, reason: Optional[str] = None):
         vmute_error_embed = Embed(title="", color=discord.Colour.red())
         if member == interaction.user:
             vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {interaction.user.mention}, You can't **mute yourself from voice**!")
@@ -352,6 +369,9 @@ Just curious to know, where should I move into right now, {interaction.user.ment
                 return await interaction.response.send_message(embed=vmute_error_embed)
         if member == self.bot.user:
             vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {interaction.user.mention}, I can't **mute myself from voice**!")
+            return await interaction.response.send_message(embed=vmute_error_embed)
+        if member.voice is None:
+            vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not connected to voice** currently.")
             return await interaction.response.send_message(embed=vmute_error_embed)
         await self.mute_member_voice(interaction, member, duration, reason)
 
@@ -375,6 +395,13 @@ Just curious to know, where should I move into right now, {interaction.user.ment
     @app_commands.describe(reason="Reason for unmute")
     async def vunmute(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
         vunmute_embed = Embed(title="", color=interaction.user.color)
+        vunmute_error_embed = Embed(title="", color=discord.Colour.red())
+        if member.voice is None:
+            vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not connected to voice** currently.")
+            return await interaction.response.send_message(embed=vunmute_error_embed)
+        if not member.voice.mute:
+            vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not muted from voice** currently.")
+            return await interaction.response.send_message(embed=vunmute_error_embed)
         if reason is not None:
             await member.edit(mute=False, reason=reason)
             vunmute_embed.add_field(name="", value=f"{member.mention} has been **unmuted from voice**.\nReason: **{reason}**")
