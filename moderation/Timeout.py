@@ -51,7 +51,7 @@ class Timeout(commands.Cog):
         return {"weeks": weeks, "days": days, "hours": hours, "minutes": minutes, "seconds": seconds, "total_seconds": total_seconds}
 
     # Function of timeout a member
-    async def timeout_member(self, interaction: Interaction, member, timestring, reason):
+    async def timeout_member(self, interaction: Interaction, member: discord.Member, timestring: str, reason: str):
         timeout_embed = Embed(title="", color=interaction.user.color)
         timeout_error_embed = Embed(title="", color=discord.Colour.red())
         try:

@@ -941,4 +941,14 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement and bug fixs
 
+#
+
+# 20241107 (afternoon)
+
+(+) Fixed the mute function does not work in voice channels properly before
+
+(+) The mute time will now be infinite if notthing pass to the parameter duration for mute() and vmute()
+
+(+) Minior code improvement
+
 
