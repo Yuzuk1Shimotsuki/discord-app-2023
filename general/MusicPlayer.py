@@ -125,7 +125,7 @@ class MySelect(Select):
                     # Page >= 2, custom audio
                     queue_embed.add_field(name="", value=f"> **#{page + current_track_index[guild_id] + index + (page - 1) * tracks_per_page_limit}** - {custom_audio["title"]}", inline=False)
             view = DropdownView()
-        if player.queue.mode == wavelink.QueueMode.loop or player.queue.mode == wavelink.QueueMode.loop_all or player.autoplay == wavelink.AutoPlayMode.enabled:
+        if player.queue.mode == wavelink.QueueMode.loop or player.queue.mode == wavelink.QueueMode.loop_all or player.autoplay == wavelink.AutoPlayMode.enabled or hasattr(player, "is_nightcore"):
             # Creates an blank field
             queue_embed.add_field(name='\u200b', value="", inline=False)
         if player.queue.mode == wavelink.QueueMode.loop:
@@ -134,6 +134,8 @@ class MySelect(Select):
             queue_embed.add_field(name='''"Repeat all" has been enabled.''', value="", inline=False)
         if player.autoplay == wavelink.AutoPlayMode.enabled:
             queue_embed.add_field(name='''"Autoplay mode" has been enabled.''', value="", inline=False)
+        if hasattr(player, "is_nightcore"):
+            queue_embed.add_field(name='''"Nightcore mode" has been activated.''', value="", inline=False)
         if view is None:
             await interaction.response.edit_message(embed=queue_embed)
         else:
@@ -830,7 +832,7 @@ class MusicPlayer(commands.Cog):
                 else:
                     queue_embed.add_field(name="", value=f"> **#{2 + current_track_index[guild_id] + index}** - {custom_audio["title"]}", inline=False)
             view =  DropdownView()
-        if player.queue.mode == wavelink.QueueMode.loop or player.queue.mode == wavelink.QueueMode.loop_all or player.autoplay == wavelink.AutoPlayMode.enabled:
+        if player.queue.mode == wavelink.QueueMode.loop or player.queue.mode == wavelink.QueueMode.loop_all or player.autoplay == wavelink.AutoPlayMode.enabled or hasattr(player, "is_nightcore"):
             # Creates an blank field
             queue_embed.add_field(name='\u200b', value="", inline=False)
         if player.queue.mode == wavelink.QueueMode.loop:
@@ -839,6 +841,8 @@ class MusicPlayer(commands.Cog):
             queue_embed.add_field(name='''"Repeat all" has been enabled.''', value="", inline=False)
         if player.autoplay == wavelink.AutoPlayMode.enabled:
             queue_embed.add_field(name='''"Autoplay mode" has been enabled.''', value="", inline=False)
+        if hasattr(player, "is_nightcore"):
+            queue_embed.add_field(name='''"Nightcore mode" has been activated.''', value="", inline=False)
         if view is None:
             await interaction.response.send_message(embed=queue_embed)
         else:
@@ -910,20 +914,24 @@ class MusicPlayer(commands.Cog):
             remove_embed.add_field(name="", value="There are no tracks in the queue.")
         await interaction.response.send_message(embed=remove_embed)
 
-    """
-    @commands.command()
-    async def nightcore(self, ctx: commands.Context) -> None:
+    @app_commands.command(name="nightcore", description="Toggle nightcore mode")
+    async def nightcore(self, interaction: Interaction):
         #Set the filter to a nightcore style.
-        player: wavelink.Player = cast(wavelink.Player, ctx.voice_client)
-        if not player:
-            return
-
+        player = cast(wavelink.Player, interaction.guild.voice_client)
+        nightcore_embed = discord.Embed(title="", color=interaction.user.color)
+        if player is None:
+            return await interaction.response.send_message(embed=AuthorNotInVoiceError(interaction, interaction.user).return_embed())
         filters: wavelink.Filters = player.filters
-        filters.timescale.set(pitch=1.2, speed=1.2, rate=1)
+        if hasattr(player, "is_nightcore"):    # Check if nightcore mode has been already activated
+            delattr(player, "is_nightcore")
+            filters.timescale.set(pitch=1, speed=1, rate=1)    # Restore to original speed and pitch
+            nightcore_embed.add_field(name="", value=f"**Deactivating** nightcore mode...", inline=False)
+        else:
+            filters.timescale.set(pitch=1.2, speed=1.2, rate=1)    # Speed and pitch for nightcore mode
+            player.is_nightcore = True  # Setting something for attribute "is_nightcore" 
+            nightcore_embed.add_field(name="", value=f"**Activating** nightcore mode...", inline=False)
         await player.set_filters(filters)
-
-        await ctx.message.add_reaction("\u2705")
-    """
+        await interaction.response.send_message(embed=nightcore_embed)
 
     # ----------</Music Player>----------
 
