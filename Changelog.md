@@ -951,4 +951,14 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement
 
+#
+
+# 20241111 (midnight)
+
+(+) Add support for nightcore filter in "/root/general/MusicPlayer.py"
+
+(+) Minior code improvement
+
+
+
 
