@@ -959,6 +959,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement
 
+#
 
+# 20241113 (night)
 
+(-/+) Rewrited and simpified "/root/general/ChatGPT.py"
+
+(+) Minior code improvement
 
