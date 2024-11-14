@@ -5,7 +5,7 @@ from discord import app_commands, Embed, Interaction, Forbidden, Permissions
 from discord.ext import commands
 from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
-from typing import Optional
+from typing import Optional, Union
 
 
 class Mute(commands.Cog):
@@ -14,58 +14,57 @@ class Mute(commands.Cog):
 
     # ----------<Mutes a member from text channel>----------
 
-    # Getting total seconds from timestring
-    def timestring_converter(self, timestr):
-        time_matches = re.findall(r"(\d+)(mo|[smhdwy])", timestr)
-        if time_matches == []:
+    # Convert time string to seconds and detailed duration breakdown
+    def parse_duration(self, duration_str: str) -> Union[dict, str]:
+        units = {
+            "s": 1,        # seconds
+            "m": 60,       # minutes
+            "h": 3600,     # hours
+            "d": 86400,    # days
+            "w": 604800,   # weeks
+            "mo": 2592000, # months (approximate)
+            "y": 31536000  # years (approximate)
+        }
+
+        matches = re.findall(r"(\d+)(mo|[smhdwy])", duration_str)
+        if not matches:
             return "error_improper_format"
-        time_units = {
-                    "s": 1,        # seconds
-                    "m": 60,       # minutes
-                    "h": 3600,     # hours
-                    "d": 86400,    # days
-                    "w": 604800,   # weeks
-                    "mo": 2592000, # months (approximation)
-                    "y": 31536000  # years (approximation)
-                }
-        # Calculate the total duration in seconds
+
         total_seconds = 0
-        seconds = 0
-        minutes = 0
-        hours = 0
-        days = 0
-        weeks = 0
-        months = 0
-        years = 0
-        for amount, unit in time_matches:
-            if unit == "":
-                return "error_improper_format"
-            if unit == "s":
-                seconds += int(amount)
-            if unit == "m":
-                minutes += int(amount)
-            if unit == "h":
-                hours += int(amount)
-            if unit == "d":
-                days += int(amount)
-            if unit == "w":
-                weeks += int(amount)
-            if unit == "mo":
-                months += int(amount)
-            if unit == "y":
-                years += int(amount)
-            if unit in time_units:
-                total_seconds += int(amount) * time_units[unit]
-        return {"years": years, "months": months, "weeks": weeks, "days": days, "hours": hours, "minutes": minutes, "seconds": seconds, "total_seconds": total_seconds}
+        duration_breakdown = {
+            "years": 0,
+            "months": 0,
+            "weeks": 0,
+            "days": 0,
+            "hours": 0,
+            "minutes": 0,
+            "seconds": 0
+        }
+
+        for amount, unit in matches:
+            if unit in units:
+                total_seconds += int(amount) * units[unit]
+                duration_breakdown[{
+                    "y": "years",
+                    "mo": "months",
+                    "w": "weeks",
+                    "d": "days",
+                    "h": "hours",
+                    "m": "minutes",
+                    "s": "seconds"
+                }[unit]] += int(amount)
+
+        duration_breakdown["total_seconds"] = total_seconds
+        return duration_breakdown
 
     # Function of mutes a member from text channel
-    async def mute_text(self, interaction: Interaction, member: discord.Member, timestring: str | None, reason: str):
+    async def mute_text(self, interaction: Interaction, member: discord.Member, duration_str: str | None, reason: str | None):
         mute_embed = Embed(title="", color=interaction.user.color)
         mute_error_embed = Embed(title="", color=discord.Colour.red())
         try:
             muted = discord.utils.get(interaction.guild.roles, name="Muted")
-            if timestring is not None:  # For time-based mute only
-                total_duration = self.timestring_converter(timestring)
+            if duration_str is not None:  # For time-based mute only
+                total_duration = self.parse_duration(duration_str)
                 if total_duration == "error_improper_format":
                     mute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like the time fomrmat you entered it's not vaild :thinking: ... Perhaps enter again and gave me a chance to handle it, {interaction.user.mention} :pleading_face:?", inline=False)
                     mute_error_embed.add_field(name="Supported time format:", value=f"**1**s = **1** second | **2**m = **2** minutes | **5**h = **5** hours | **10**d = **10** days | **3**w = **3** weeks | **6**y = **6** years.", inline=False)
@@ -75,27 +74,18 @@ class Mute(commands.Cog):
             if muted in member.roles:
                 mute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is already muted!")
                 return await interaction.response.send_message(embed=mute_error_embed, ephemeral=True)
+            duration_message = "for " + " and ".join(", ".join([f"**{value}** {unit[:-1]}" + ("s" if value > 1 else "") for unit, value in total_duration.items() if unit != "total_seconds" and value != 0]).rsplit(", ", 1)) + " " if duration_str is not None else ""
+            reason_message =  f"\nReason: **{reason}**" if reason is not None else ""
             if reason is not None:
                 await member.add_roles(muted, reason=reason)
-                if timestring is None:
-                    # Infinity
-                    mute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted** :zipper_mouth:\nReason: **{reason}**")
-                else:
-                    # Time-based
-                    mute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:\nReason: **{reason}**")
             else:
                 await member.add_roles(muted)
-                if timestring is None:
-                    # Infinity
-                    mute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted** :zipper_mouth:")
-                else:
-                    # Time-based
-                    mute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:")
+            mute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted** {duration_message}:zipper_mouth:{reason_message}")
             await interaction.response.send_message(embed=mute_embed)
-            if timestring is not None:  # For time-based mute only
+            if duration_str is not None:  # For time-based mute only
                 await asyncio.sleep(total_duration["total_seconds"])
                 if muted in member.roles:
-                    await member.remove_roles(muted, reason=f"Automatically unmuted after {timestring}.")
+                    await member.remove_roles(muted, reason=f"Automatically unmuted after {duration_str}.")
         except Forbidden as e:
             if e.status == 403 and e.code == 50013:
                 # Handling rare forbidden case
