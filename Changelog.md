@@ -967,3 +967,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement
 
+#
+
+# 20241114 (night)
+
+(-/+) Rephrase the **'duration_message'** in a more readable form for all time-based mutes or timeouts
+
+(+) Minior code improvement
+

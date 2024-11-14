@@ -5,7 +5,7 @@ from discord.ext import commands
 from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, Union
 
 
 class Timeout(commands.Cog):
@@ -14,61 +14,63 @@ class Timeout(commands.Cog):
 
     # ----------<Timeouts a member>----------
 
-    # Getting total seconds from timestring
-    def timestring_converter(self, timestr):
-        time_matches = re.findall(r"(\d+)([smhdw])", timestr)
-        if time_matches == []:
+    # Convert time string to seconds and detailed duration breakdown (< 28 days / 4 weeks)
+    def parse_duration(self, duration_str: str) -> Union[dict, str]:
+        units = {
+            "s": 1,        # seconds
+            "m": 60,       # minutes
+            "h": 3600,     # hours
+            "d": 86400,    # days
+            "w": 604800,   # weeks
+        }
+
+        matches = re.findall(r"(\d+)(mo|[smhdwy])", duration_str)
+        if not matches:
             return "error_improper_format"
-        time_units = {
-                    "s": 1,        # seconds
-                    "m": 60,       # minutes
-                    "h": 3600,     # hours
-                    "d": 86400,    # days
-                    "w": 604800,   # weeks
-                }
-        # Calculate the total duration in seconds
+
         total_seconds = 0
-        seconds = 0
-        minutes = 0
-        hours = 0
-        days = 0
-        weeks = 0
-        for amount, unit in time_matches:
-            if unit == "":
-                return "error_improper_format"
-            if unit == "s":
-                seconds += int(amount)
-            if unit == "m":
-                minutes += int(amount)
-            if unit == "h":
-                hours += int(amount)
-            if unit == "d":
-                days += int(amount)
-            if unit == "w":
-                weeks += int(amount)
-            if unit in time_units:
-                total_seconds += int(amount) * time_units[unit]
-        return {"weeks": weeks, "days": days, "hours": hours, "minutes": minutes, "seconds": seconds, "total_seconds": total_seconds}
+        duration_breakdown = {
+            "weeks": 0,
+            "days": 0,
+            "hours": 0,
+            "minutes": 0,
+            "seconds": 0
+        }
+
+        for amount, unit in matches:
+            if unit in units:
+                total_seconds += int(amount) * units[unit]
+                duration_breakdown[{
+                    "w": "weeks",
+                    "d": "days",
+                    "h": "hours",
+                    "m": "minutes",
+                    "s": "seconds"
+                }[unit]] += int(amount)
+
+        duration_breakdown["total_seconds"] = total_seconds
+        return duration_breakdown
 
     # Function of timeout a member
-    async def timeout_member(self, interaction: Interaction, member: discord.Member, timestring: str, reason: str):
+    async def timeout_member(self, interaction: Interaction, member: discord.Member, duration_str: str, reason: str):
         timeout_embed = Embed(title="", color=interaction.user.color)
         timeout_error_embed = Embed(title="", color=discord.Colour.red())
         try:
-            total_duration = self.timestring_converter(timestring)
+            total_duration = self.parse_duration(duration_str)
             if total_duration == "error_improper_format":
                 timeout_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like the time fomrmat you entered it's not vaild :thinking:... Perhaps enter again and gave me a chance to handle it, {interaction.user.mention} :pleading_face:?", inline=False)
                 timeout_error_embed.add_field(name="Supported time format:", value=f"**1**s = **1** second | **2**m = **2** minutes | **5**h = **5** hours | **10**d = **10** days | **3**w = **3** weeks. Must be less than **28** days in total.", inline=False)
                 return await interaction.response.send_message(embed=timeout_error_embed)
-            if total_duration["total_seconds"] >= 2419200:   # Check if the total time exceeds 28 days = 2419200 seconds
+            if total_duration["total_seconds"] >= 2419200:   # Check if the total time exceeds 28 days / 2419200 seconds
                 timeout_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {interaction.user.mention}, I can't **timeout** someone for **more than 28 days**!")
                 return await interaction.response.send_message(embed=timeout_error_embed, ephemeral = True)
+            duration_message = "for " + " and ".join(", ".join([f"**{value}** {unit[:-1]}" + ("s" if value > 1 else "") for unit, value in total_duration.items() if unit != "total_seconds" and value != 0]).rsplit(", ", 1)) + " " if duration_str is not None else ""
+            reason_message =  f"\nReason: **{reason}**" if reason is not None else ""
             if reason is not None:
                 await member.timeout(timedelta(seconds=total_duration["total_seconds"]), reason=reason)
-                timeout_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **timeout** for {'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:\nReason: **{reason}**")
             else:
                 await member.timeout(timedelta(seconds=total_duration["total_seconds"]))
-                timeout_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **timeout** for {'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:")
+            timeout_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **timeout** {duration_message}:zipper_mouth:{reason_message}")
             await interaction.response.send_message(embed=timeout_embed)
         except Forbidden as e:
             if e.status == 403 and e.code == 50013:

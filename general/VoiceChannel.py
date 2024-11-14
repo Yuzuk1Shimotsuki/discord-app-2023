@@ -6,7 +6,7 @@ from discord import app_commands, Embed, Interaction, Forbidden
 from discord.ext import commands
 from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
-from typing import cast, Optional
+from typing import cast, Optional, Union
 from general.VoiceChannelFallbackConfig import *
 from errorhandling.ErrorHandling import *
 
@@ -265,57 +265,56 @@ Just curious to know, where should I move into right now, {interaction.user.ment
         else:
             raise error
 
-    # Getting total seconds from timestring
-    def timestring_converter(self, timestr):
-        time_matches = re.findall(r"(\d+)(mo|[smhdwy])", timestr)
-        if time_matches == []:
+    # Convert time string to seconds and detailed duration breakdown
+    def parse_duration(self, duration_str: str) -> Union[dict, str]:
+        units = {
+            "s": 1,        # seconds
+            "m": 60,       # minutes
+            "h": 3600,     # hours
+            "d": 86400,    # days
+            "w": 604800,   # weeks
+            "mo": 2592000, # months (approximate)
+            "y": 31536000  # years (approximate)
+        }
+
+        matches = re.findall(r"(\d+)(mo|[smhdwy])", duration_str)
+        if not matches:
             return "error_improper_format"
-        time_units = {
-                    "s": 1,        # seconds
-                    "m": 60,       # minutes
-                    "h": 3600,     # hours
-                    "d": 86400,    # days
-                    "w": 604800,   # weeks
-                    "mo": 2592000, # months (approximation)
-                    "y": 31536000  # years (approximation)
-                }
-        # Calculate the total duration in seconds
+
         total_seconds = 0
-        seconds = 0
-        minutes = 0
-        hours = 0
-        days = 0
-        weeks = 0
-        months = 0
-        years = 0
-        for amount, unit in time_matches:
-            if unit == "":
-                return "error_improper_format"
-            if unit == "s":
-                seconds += int(amount)
-            if unit == "m":
-                minutes += int(amount)
-            if unit == "h":
-                hours += int(amount)
-            if unit == "d":
-                days += int(amount)
-            if unit == "w":
-                weeks += int(amount)
-            if unit == "mo":
-                months += int(amount)
-            if unit == "y":
-                years += int(amount)
-            if unit in time_units:
-                total_seconds += int(amount) * time_units[unit]
-        return {"years": years, "months": months, "weeks": weeks, "days": days, "hours": hours, "minutes": minutes, "seconds": seconds, "total_seconds": total_seconds}
+        duration_breakdown = {
+            "years": 0,
+            "months": 0,
+            "weeks": 0,
+            "days": 0,
+            "hours": 0,
+            "minutes": 0,
+            "seconds": 0
+        }
+
+        for amount, unit in matches:
+            if unit in units:
+                total_seconds += int(amount) * units[unit]
+                duration_breakdown[{
+                    "y": "years",
+                    "mo": "months",
+                    "w": "weeks",
+                    "d": "days",
+                    "h": "hours",
+                    "m": "minutes",
+                    "s": "seconds"
+                }[unit]] += int(amount)
+
+        duration_breakdown["total_seconds"] = total_seconds
+        return duration_breakdown
     
     # Function of mutes a member from voice channel
-    async def mute_member_voice(self, interaction: Interaction, member: discord.Member, timestring: str | None, reason: str):
+    async def mute_member_voice(self, interaction: Interaction, member: discord.Member, duration_str: str | None, reason: str):
         vmute_embed = Embed(title="", color=interaction.user.color)
         vmute_error_embed = Embed(title="", color=discord.Colour.red())
         try:
-            if timestring is not None:  # For time-based voice mute only
-                total_duration = self.timestring_converter(timestring)
+            if duration_str is not None:  # For time-based voice mute only
+                total_duration = self.timestring_converter(duration_str)
                 if total_duration == "error_improper_format":
                     vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like the time fomrmat you entered it's not vaild :thinking: ... Perhaps enter again and gave me a chance to handle it, {interaction.user.mention} :pleading_face:?", inline=False)
                     vmute_error_embed.add_field(name="Supported time format:", value=f"**1**s = **1** second | **2**m = **2** minutes | **5**h = **5** hours | **10**d = **10** days | **3**w = **3** weeks | **6**y = **6** years.", inline=False)
@@ -323,27 +322,18 @@ Just curious to know, where should I move into right now, {interaction.user.ment
             if member.voice.mute:
                 vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **already muted from voice**!")
                 return await interaction.response.send_message(embed=vmute_error_embed)
-            if reason == None:
+            duration_message = "for " + " and ".join(", ".join([f"**{value}** {unit[:-1]}" + ("s" if value > 1 else "") for unit, value in total_duration.items() if unit != "total_seconds" and value != 0]).rsplit(", ", 1)) + " " if duration_str is not None else ""
+            reason_message =  f"\nReason: **{reason}**" if reason is not None else ""
+            if reason is not None:
                 await member.edit(mute=True, reason=reason)
-                if timestring is None:
-                    # Infinity
-                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** :zipper_mouth:\nReason: **{reason}**")
-                else:
-                    # Time-based
-                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:\nReason: **{reason}**")
             else:
                 await member.edit(mute=True)
-                if timestring is None:
-                    # Infinity
-                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** :zipper_mouth:")
-                else:
-                    # Time-based
-                    vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** for {'**' + str(total_duration["years"]) + '**' if total_duration["years"] != 0 else ''}{' year(s), ' if total_duration["years"] != 0 else ''}{'**' + str(total_duration["months"]) + '**' if total_duration["months"] != 0 else ''}{' month(s), ' if total_duration["months"] != 0 else ''}{'**' + str(total_duration["weeks"]) + '**' if total_duration["weeks"] != 0 else ''}{' week(s), ' if total_duration["weeks"] != 0 else ''}{'**' + str(total_duration["days"]) + '**' if total_duration["days"] != 0 else ''}{' day(s), ' if total_duration["days"] != 0 else ''}{'**' + str(total_duration["hours"]) + '**' if total_duration["hours"] != 0 else ''}{' hour(s), ' if total_duration["hours"] != 0 else ''}{'**' + str(total_duration["minutes"]) + '**' if total_duration["minutes"] != 0 else ''}{' minute(s), ' if total_duration["minutes"] != 0 else ''}{'**' + str(total_duration["seconds"]) + '**' if total_duration["seconds"] != 0 else ''}{' second(s). ' if total_duration["seconds"] != 0 else ''}:zipper_mouth:")
+            vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** {duration_message}:zipper_mouth:{reason_message}")
             await interaction.response.send_message(embed=vmute_embed)
-            if timestring is not None:  # For time-based voice mute only
+            if duration_str is not None:  # For time-based voice mute only
                 await asyncio.sleep(total_duration["total_seconds"])
                 if member.voice:
-                    await member.edit(mute=False, reason=f"Automatically unmuted after {timestring}.")
+                    await member.edit(mute=False, reason=f"Automatically unmuted after {duration_str}.")
         except Forbidden as e:
             if e.status == 403 and e.code == 50013:
                 # Handling rare forbidden case
