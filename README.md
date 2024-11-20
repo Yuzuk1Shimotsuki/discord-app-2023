@@ -114,8 +114,8 @@ Once you have checked that the bot can be hosted normally on your local machine,
 There are plenty of ways to achieve this and I'm not gonna tell you all of them in there. This project is designed to host with docker and you can find more relevant information about it by googling.
 
 
-[!NOTE]
-Make sure that Docker is already installed on your computer or server.
+> [!NOTE]
+> Make sure that Docker is already installed on your computer or server.
 
 1. Clone this Repository
 ```
@@ -128,8 +128,8 @@ cd [somthing]
 ```
 
 3. Pass your `.env` file to the project directory
-[!WARNING]
-NEVER push your `.env` file directly to this repo as this will cause data compromisation and triggers Discord security action, and worst case could get your account terminated!
+> [!WARNING]
+> NEVER push your `.env` file directly to this repo as this will cause data compromisation and triggers Discord security action, and worst case could get your account terminated!
 
 4. Launch the bot with your `.env` file created earlier
 ```
