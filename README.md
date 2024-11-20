@@ -7,6 +7,8 @@
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
 
+
+
 # Discord Bot template in Python
 
 A simple Discord application template in Python (using [discord.py][discord.py_GitHub])
@@ -53,34 +55,32 @@ which will automatically install all required dependencies to your environment (
 
 There are two ways to use the application:
 
-<details>
-<summary>If you want to host your own bot with our code manually</summary>
-<br>
-1. **Create a Discord Bot**:  
-   - Go to the [Discord Developer Portal](https://discord.com/developers/applications).
-   - Create a new **application**.
-   - Inside your application, go to the **"Bot"** tab and click **"Add Bot"**.
-   - Copy the **bot token** (you will need this later).
+- If you want to host your own bot with our code manually
+   1. **Create a Discord Bot**:  
+      - Go to the [Discord Developer Portal](https://discord.com/developers/applications).
+      - Create a new **application**.
+      - Inside your application, go to the **"Bot"** tab and click **"Add Bot"**.
+      - Copy the **bot token** (you will need this later).
 
-After that, you can install the bot as an **user-installed application**, or **inviting it to your server**: 
-   - In the same Developer Portal, go to the **"OAuth2"** tab, generate an **OAuth2 URL** with the **`bot`** scope, and give your bot necessary permissions (such as `Send Messages` and `Read Messages`).
-   - Visit the generated URL and follow the instructions from the website.
+   After that, you can install the bot as an **user-installed application**, or **inviting it to your server**: 
+      - In the same Developer Portal, go to the **"OAuth2"** tab, generate an **OAuth2 URL** with the **`bot`** scope, and give your bot necessary permissions (such as `Send Messages` and `Read Messages`).
+      - Visit the generated URL and follow the instructions from the website.
 
-2. **Create a .env file and store your bot token**:
-   - Create .env file in your root directory and copy the below template:
-     
-     ```bash
-     DISCORD_BOT_TOKEN="YOUR_BOT_TOKEN_HERE"
-     ```
-     and replace `YOUR_BOT_TOKEN_HERE` with your bot token.
+   2. **Create a .env file and store your bot token**:
+      - Create .env file in your root directory and copy the below template:
+      
+      ```bash
+      DISCORD_BOT_TOKEN="YOUR_BOT_TOKEN_HERE"
+      ```
+      and replace `YOUR_BOT_TOKEN_HERE` with your bot token.
 
-3. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more insturctions.
+   3. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more insturctions.
 
 </details>
 <br>
 <details>
 <summary>Or, if you just want to try our features...</summary>
-Head over to [the link](https://discord.com/oauth2/authorize?client_id=1158632119552196628) and **invite the bot to your server**, or install it as an **user-installed application** as you like.
+Head over to <a href="https://discord.com/oauth2/authorize?client_id=1158632119552196628">the link</a> and <b>invite the bot to your server</b>, or install it as an <b>user-installed application</b> as you like.
 </details>
 
 ---
@@ -113,8 +113,7 @@ Once you have checked that the bot can be hosted normally on your local machine,
 
 There are plenty of ways to achieve this and I'm not gonna tell you all of them in there. This project is designed to host with docker and you can find more relevant information about it by googling.
 
-<details>
-<summary>Docker Compose</summary>
+
 [!NOTE]
 Make sure that Docker is already installed on your computer or server.
 
@@ -138,7 +137,7 @@ docker compose up
 ```
 
 5. If nothing goes wrong, congratulations :tada:! You're now all set up!
-</details>
+
 
 <details>
 <summary>Docker Run</summary>
@@ -159,8 +158,6 @@ The bot is still working in progress. More functionality will be added in the fu
 
 
 <!--Links in use in this markdown for refrences-->
-
-[BotOauth2]: https://discord.com/oauth2/authorize?client_id=1158632119552196628
 
 [discord.py_GitHub]: https://github.com/Rapptz/discord.py
 
