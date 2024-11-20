@@ -1,6 +1,15 @@
+<!-- PROJECT SHIELDS -->
+<!--
+*** Markdown "reference style" are in-used to all links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+
 # Discord Bot template in Python
 
-A simple Discord application template in Python (using [discord.py](https://github.com/Rapptz/discord.py))
+A simple Discord application template in Python (using [discord.py][discord.py_GitHub])
 
 The application contains some core functions already but can be extended as needed. This guide assumes you have Python installed and a basic understanding of Python programming.
 
@@ -23,10 +32,10 @@ and so much more...
 
 ## Prerequisites
 
-- **[Python](https://www.python.org/downloads/) 3.10 or later**
--  **[discord.py](https://github.com/Rapptz/discord.py) v2.4.0 or later**
--  **[Docker](https://www.docker.com/)** for hosting the bot.
--  **[Wavelink](https://github.com/PythonistaGuild/Wavelink) v3.4.1 or later** for the bot to play music in voice channels.
+- **[Python][Python] 3.10 or later**
+-  **[discord.py][discord.py_GitHub] v2.4.0 or later**
+-  **[Docker][Docker]** for hosting the bot.
+-  **[Wavelink][Wavelink_GitHub] v3.4.1 or later** for the bot to play music in voice channels.
 
 ---
 
@@ -42,6 +51,11 @@ which will automatically install all required dependencies to your environment (
 
 ## Before you use the bot
 
+There are two ways to use the application:
+
+<details>
+<summary>If you want to host your own bot with our code manually</summary>
+<br>
 1. **Create a Discord Bot**:  
    - Go to the [Discord Developer Portal](https://discord.com/developers/applications).
    - Create a new **application**.
@@ -60,11 +74,18 @@ After that, you can install the bot as an **user-installed application**, or **i
      ```
      and replace `YOUR_BOT_TOKEN_HERE` with your bot token.
 
-3. Great! You're now all set up!
+3. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more insturctions.
+
+</details>
+<br>
+<details>
+<summary>Or, if you just want to try our features...</summary>
+Head over to [the link](https://discord.com/oauth2/authorize?client_id=1158632119552196628) and **invite the bot to your server**, or install it as an **user-installed application** as you like.
+</details>
 
 ---
 
-## How to start up and host your bot 
+## How to start up and host your bot
 
 To start the bot, open a terminal in the `discord-bot` directory and run:
 
@@ -75,7 +96,13 @@ python startup.py
 If everything is set up correctly, you should see something like:
 
 ```
-Logged in as `YourBotName`
+----------------------------------
+Welcome to use the bot.
+Bot Username: `BOT_NAME` #`BOT_DISCRIMINATOR`
+Bot ID: {bot.application_id}
+----------------------------------
+The bot is now initiated and ready for use!
+----------------------------------
 ```
 
 which can be customized later on
@@ -86,14 +113,61 @@ Once you have checked that the bot can be hosted normally on your local machine,
 
 There are plenty of ways to achieve this and I'm not gonna tell you all of them in there. This project is designed to host with docker and you can find more relevant information about it by googling.
 
+<details>
+<summary>Docker Compose</summary>
+[!NOTE]
+Make sure that Docker is already installed on your computer or server.
+
+1. Clone this Repository
+```
+git clone [somthing]
+```
+
+2. Navigate to project directory by `cd`
+```
+cd [somthing]
+```
+
+3. Pass your `.env` file to the project directory
+[!WARNING]
+NEVER push your `.env` file directly to this repo as this will cause data compromisation and triggers Discord security action, and worst case could get your account terminated!
+
+4. Launch the bot with your `.env` file created earlier
+```
+docker compose up
+```
+
+5. If nothing goes wrong, congratulations :tada:! You're now all set up!
+</details>
+
+<details>
+<summary>Docker Run</summary>
+*Not Implemented yet*
+</details>
+
 ---
 
 ## Future implemtations
 
 The bot is still working in progress. More functionality will be added in the future such as:
 
-- **Fun Commands**: Add more fun commands like `!roll` to roll a dice, or `!joke` to tell a random joke.
 - **Role Management**: Allow the bot to assign or remove roles from users.
 - **Database Integration**: Store user data or server configurations using a simple file system, SQLite, or an external database.
 
 ---
+
+
+
+<!--Links in use in this markdown for refrences-->
+
+[BotOauth2]: https://discord.com/oauth2/authorize?client_id=1158632119552196628
+
+[discord.py_GitHub]: https://github.com/Rapptz/discord.py
+
+[Discord-DeveloperPortal]: https://discord.com/developers/applications
+
+[Python]: https://www.python.org/downloads/
+
+[Docker]: https://www.docker.com/
+
+[Wavelink_GitHub]: https://github.com/PythonistaGuild/Wavelink
