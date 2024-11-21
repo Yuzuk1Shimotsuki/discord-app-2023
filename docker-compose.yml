@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  skylar3:
+    image: ghcr.io/chocolamilk92/skylar3-internal/stable:latest
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    expose:
+      - 3000
+    env_file:
+      - .env
+    volumes:
+      - "./configs:/app/configs"
+      - "./plugins:/app/plugins"
+    depends_on:
+      - lavalink
+    networks:
+      - lavalink
+
+  lavalink:
+      # pin the image version to Lavalink v4
+      image: ghcr.io/lavalink-devs/lavalink:4
+      container_name: lavalink
+      restart: unless-stopped
+      environment:
+        # set lavalink server port
+        - SERVER_PORT=2333
+        # set password for lavalink
+        - LAVALINK_SERVER_PASSWORD=youshallnotpass
+      volumes:
+        - "./configs/Lavalink/application.yml:/opt/Lavalink/application.yml"
+        - "./configs/Lavalink/plugins/:/opt/Lavalink/plugins/"
+      networks:
+        - lavalink
+      expose:
+        # lavalink exposes port 2333 to connect to for other containers (this is for documentation purposes only)
+        - 2333
+      ports:
+        # you only need this if you want to make your lavalink accessible from outside of containers
+        - "2333:2333"
+        
+networks:
+  # create a lavalink network you can add other containers to, to give them access to Lavalink
+  lavalink:
+    name: lavalink
