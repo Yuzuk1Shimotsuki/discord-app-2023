@@ -77,7 +77,6 @@ jobs:
           token: ${{ secrets.REPO_ACCESS_TOKEN }}
       - 
         name: Verify the version number is updated for the next build
-        id: verify_versions
         run: |
           RELEASE_MINOR_SET=$(gh secret list -R ${{ github.repository }} | grep RELEASE_MINOR | awk '{print $2}')
           RELEASE_MAJOR_SET=$(gh secret list -R ${{ github.repository }} | grep RELEASE_MAJOR | awk '{print $2}')
@@ -91,4 +90,5 @@ jobs:
           else
             echo "Successfully bumped the version."
           fi
+
 
