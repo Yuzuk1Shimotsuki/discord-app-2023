@@ -11,8 +11,8 @@ services:
     env_file:
       - .env
     volumes:
-      - "./configs:/app/configs"
-      - "./plugins:/app/plugins"
+      - ./configs:/app/configs
+      - ./plugins:/app/plugins
     depends_on:
       - lavalink
     networks:
@@ -23,13 +23,12 @@ services:
       image: ghcr.io/lavalink-devs/lavalink:4
       container_name: lavalink
       environment:
-        # set lavalink server port
-        - SERVER_PORT=2333
-        # set password for lavalink
-        - LAVALINK_SERVER_PASSWORD=youshallnotpass
+          - SERVER_PORT=2333
       volumes:
-        - "./configs/Lavalink/application.yml:/opt/Lavalink/application.yml"
-        - "./plugins/:/opt/Lavalink/plugins/"
+          # mount application.yml from the same directory or use environment variables
+          - ./configs/Lavalink/application.yml:/opt/Lavalink/application.yml
+          # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
+          - ./configs/Lavalink/plugins/:/opt/Lavalink/plugins/
       networks:
         - lavalink
       expose:
