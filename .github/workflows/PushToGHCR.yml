@@ -80,7 +80,7 @@ jobs:
             echo "ERROR: Failed to bump the major version. Please check the secret pane!" >&2
             exit 1
           else
-            echo "Successfully bumped the version. The version for next release will be ${UPCOMING_RELEASE_MINOR}.${UPCOMING_RELEASE_MAJOR}"
+            echo "Successfully bumped the version. The version for next release will be '${UPCOMING_RELEASE_MAJOR}.${UPCOMING_RELEASE_MINOR}'"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
