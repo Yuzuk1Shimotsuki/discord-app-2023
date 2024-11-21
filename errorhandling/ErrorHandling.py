@@ -12,7 +12,7 @@ class ExtensionNotFoundError:
         self.cog = cog
 
     def __repr__(self) -> str:
-        return f"I couldn't find the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input :thinking: ?"
+        return f"I couldn't find the cog `{self.cog}` :pensive_face: ... Perhaps it was not a vaild input or has been excluded from the cog list :thinking: ?"
 
 class ReturnNoEntryPointError:
     def __init__(self, cog: str) -> None:
