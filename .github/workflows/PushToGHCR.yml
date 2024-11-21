@@ -71,8 +71,8 @@ jobs:
       - 
         name: Verify the version number is updated for the next build
         run: |
-          FINAL_RELEASE_MINOR=$(echo "${{ vars.RELEASE_MINOR }}" | awk '{print $1}')
-          FINAL_RELEASE_MAJOR=$(echo "${{ vars.RELEASE_MAJOR }}" | awk '{print $1}')
+          FINAL_RELEASE_MINOR=$(gh variable get 'RELEASE_MINOR' --repo ${{ github.repository }} | awk '{print $1}')
+          FINAL_RELEASE_MAJOR=$(gh variable get 'RELEASE_MAJOR' --repo ${{ github.repository }} | awk '{print $1}')
           
           if [ "${FINAL_RELEASE_MINOR}" != "${{ env.NEW_RELEASE_MINOR }}" ]; then
             echo "ERROR: Failed to bump the minor version. Please check the secret pane!" >&2
