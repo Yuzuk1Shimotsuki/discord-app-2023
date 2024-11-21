@@ -37,9 +37,10 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ secrets.RELEASE_MAJOR }}.${{ secrets.RELEASE_MINOR }}
+          tags: ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}
 
-  update_version:    # This application requires "Access Tokens for GitHub Actions", Avalible on https://github.com/marketplace/access-manager-for-github-actions
+  update_version:
+    needs: build_and_push
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -71,17 +72,20 @@ jobs:
       - 
         name: Verify the version number is updated for the next build
         run: |
-          FINAL_RELEASE_MINOR=$(gh variable get 'RELEASE_MINOR' --repo ${{ github.repository }} | awk '{print $1}')
-          FINAL_RELEASE_MAJOR=$(gh variable get 'RELEASE_MAJOR' --repo ${{ github.repository }} | awk '{print $1}')
+          UPCOMING_RELEASE_MINOR=$(gh variable get 'RELEASE_MINOR' --repo ${{ github.repository }} | awk '{print $1}')
+          UPCOMING_RELEASE_MAJOR=$(gh variable get 'RELEASE_MAJOR' --repo ${{ github.repository }} | awk '{print $1}')
           
-          if [ "${FINAL_RELEASE_MINOR}" != "${{ env.NEW_RELEASE_MINOR }}" ]; then
+          if [ "${UPCOMING_RELEASE_MINOR}" != "${{ env.NEW_RELEASE_MINOR }}" ]; then
             echo "ERROR: Failed to bump the minor version. Please check the secret pane!" >&2
             exit 1
-          elif [ "${FINAL_RELEASE_MAJOR}" != "${{ env.NEW_RELEASE_MAJOR }}" ]; then
+          elif [ "${UPCOMING_RELEASE_MAJOR}" != "${{ env.NEW_RELEASE_MAJOR }}" ]; then
             echo "ERROR: Failed to bump the major version. Please check the secret pane!" >&2
             exit 1
           else
-            echo "Successfully bumped the version. The version for next release will be ${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}"
+            echo "UPCOMING_RELEASE_MINOR=$UPCOMING_RELEASE_MINOR" >> $GITHUB_ENV
+            echo "UPCOMING_RELEASE_MAJOR=$UPCOMING_RELEASE_MAJOR" >> $GITHUB_ENV
+            echo "Successfully bumped the version. The version for next release will be ${{ env.UPCOMING_RELEASE_MAJOR }}.${{ env.UPCOMING_RELEASE_MINOR }}"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
+
