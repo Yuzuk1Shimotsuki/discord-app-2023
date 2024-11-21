@@ -83,3 +83,5 @@ jobs:
           else
             echo "Successfully bumped the version. The version for next release will be ${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}"
           fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
