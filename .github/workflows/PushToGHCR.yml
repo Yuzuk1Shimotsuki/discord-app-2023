@@ -45,12 +45,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Retrive access token
-        uses: qoomon/actions--access-token@v3
-        with:
-          permissions: |
-              secrets: write
-
       - name: Check and update RELEASE_MINOR and RELEASE_MAJOR versions
         id: update_versions
         run: |
@@ -71,7 +65,7 @@ jobs:
           gh variable set 'RELEASE_MINOR' --body ${{ env.NEW_RELEASE_MINOR }} --repo ${{ github.repository }}
           gh variable set 'RELEASE_MAJOR' --body ${{ env.NEW_RELEASE_MAJOR }} --repo ${{ github.repository }}
         env:
-          GITHUB_TOKEN: ${{ steps.access-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
 
       - 
         name: Verify the version number is updated for the next build
