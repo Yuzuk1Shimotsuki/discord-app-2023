@@ -113,9 +113,11 @@ Once you have checked that the bot can be hosted normally on your local machine,
 
 There are plenty of ways to achieve this and I'm not gonna tell you all of them in there. This project is designed to host with docker and you can find more relevant information about it by googling.
 
+- Docker Compose
 
 > [!NOTE]
 > Make sure that Docker is already installed on your computer or server.
+
 
 1. Clone this Repository
 ```
@@ -137,7 +139,6 @@ docker compose up
 ```
 
 5. If nothing goes wrong, congratulations :tada:! You're now all set up!
-
 
 <details>
 <summary>Docker Run</summary>
