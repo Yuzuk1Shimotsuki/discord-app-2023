@@ -37,7 +37,9 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}
+          tags: |
+            ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}
+            ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:latest
 
   update_version:
     runs-on: ubuntu-latest
@@ -80,7 +82,7 @@ jobs:
             echo "ERROR: Failed to bump the major version. Please check the secret pane!" >&2
             exit 1
           else
-            echo "Successfully bumped the version. The version for next release will be '${UPCOMING_RELEASE_MAJOR}.${UPCOMING_RELEASE_MINOR}'"
+            echo "Successfully bumped the version. The version for next release will be '${UPCOMING_RELEASE_MAJOR}.${UPCOMING_RELEASE_MINOR}'."
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
