@@ -39,18 +39,23 @@ jobs:
           push: true
           tags: ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ secrets.RELEASE_MAJOR }}.${{ secrets.RELEASE_MINOR }}
 
-  update_version:
-    needs: build_and_push
+  update_version:    # This application requires "Access Tokens for GitHub Actions", Avalible on https://github.com/marketplace/access-manager-for-github-actions
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Retrive access token
+        uses: qoomon/actions--access-token@v3
+        with:
+          permissions: |
+              secrets: write
 
       - name: Check and update RELEASE_MINOR and RELEASE_MAJOR versions
         id: update_versions
         run: |
-          RELEASE_MINOR=$(echo "${{ secrets.RELEASE_MINOR }}" | awk '{print $1}')
-          RELEASE_MAJOR=$(echo "${{ secrets.RELEASE_MAJOR }}" | awk '{print $1}')
+          RELEASE_MINOR=$(echo "${{ vars.RELEASE_MINOR }}" | awk '{print $1}')
+          RELEASE_MAJOR=$(echo "${{ vars.RELEASE_MAJOR }}" | awk '{print $1}')
           if (( $(echo "$RELEASE_MINOR > 9.9" | bc -l) )); then
             NEW_RELEASE_MINOR="0.0"
             NEW_RELEASE_MAJOR=$(echo "$RELEASE_MAJOR + 1" | bc)
@@ -60,27 +65,19 @@ jobs:
           fi
           echo "NEW_RELEASE_MINOR=$NEW_RELEASE_MINOR" >> $GITHUB_ENV
           echo "NEW_RELEASE_MAJOR=$NEW_RELEASE_MAJOR" >> $GITHUB_ENV
+      -
+        name: Update version
+        run: |
+          gh variable set 'RELEASE_MINOR' --body ${{ env.NEW_RELEASE_MINOR }} --repo ${{ github.repository }}
+          gh variable set 'RELEASE_MAJOR' --body ${{ env.NEW_RELEASE_MAJOR }} --repo ${{ github.repository }}
+        env:
+          GITHUB_TOKEN: ${{ steps.access-token.outputs.token }}
 
-      - name: Change RELEASE_MINOR version in secrets if needed
-        uses: hmanzur/actions-set-secret@v2.0.0
-        with:
-          name: 'RELEASE_MINOR'
-          value: ${{ env.NEW_RELEASE_MINOR }}
-          repository: ${{ github.repository }}
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
-
-      - name: Change RELEASE_MAJOR version in secrets if needed
-        uses: hmanzur/actions-set-secret@v2.0.0
-        with:
-          name: 'RELEASE_MAJOR'
-          value: ${{ env.NEW_RELEASE_MAJOR }}
-          repository: ${{ github.repository }}
-          token: ${{ secrets.REPO_ACCESS_TOKEN }}
       - 
         name: Verify the version number is updated for the next build
         run: |
-          FINAL_RELEASE_MINOR=$(echo "${{ secrets.RELEASE_MINOR }}" | awk '{print $1}')
-          FINAL_RELEASE_MAJOR=$(echo "${{ secrets.RELEASE_MAJOR }}" | awk '{print $1}')
+          FINAL_RELEASE_MINOR=$(echo "${{ vars.RELEASE_MINOR }}" | awk '{print $1}')
+          FINAL_RELEASE_MAJOR=$(echo "${{ vars.RELEASE_MAJOR }}" | awk '{print $1}')
           
           if [ "${FINAL_RELEASE_MINOR}" != "${{ env.NEW_RELEASE_MINOR }}" ]; then
             echo "ERROR: Failed to bump the minor version. Please check the secret pane!" >&2
@@ -89,6 +86,5 @@ jobs:
             echo "ERROR: Failed to bump the major version. Please check the secret pane!" >&2
             exit 1
           else
-            echo "Successfully bumped the version."
+            echo "Successfully bumped the version. The version for next release will be ${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}"
           fi
-
