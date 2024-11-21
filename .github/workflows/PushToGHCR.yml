@@ -23,12 +23,16 @@ jobs:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
-      -
+      - 
+        name: Convert variables to lowercase  # Docker does not accept any uppercase letters
+        run: |
+          echo "REPO_LOWERCASE=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+          echo "BRANCH_LOWERCASE=${GITHUB_REF_NAME,,}" >> ${GITHUB_ENV}
+      - 
         name: Build and push
         uses: docker/build-push-action@v5
         with:
           file: ./Dockerfile
           push: true
-          tags: ${{ github.repository }}/${{ github.ref_name }}:latest
-
-
+          tags: ${{ ENV.REPO_LOWERCASE }}/${{ ENV.BRANCH_LOWERCASE }}:latest
+          
