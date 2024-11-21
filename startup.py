@@ -63,7 +63,12 @@ def get_extensions():
     for folder in extensions_folders:
         for filename in os.listdir(f"./{folder}"):
             if filename.endswith('.py'):
-                extensions.append(f'{folder}.{filename[:-3]}')
+                extension = f'{folder}.{filename[:-3]}'
+                if extension == "general.ChatGPT" and os.getenv("ENABLE_AI") == "False":
+                    continue
+                if extension == "general.MusicPlayer" and os.getenv("ENABLE_MUSIC") == "False":
+                    continue
+                extensions.append(extension)
     return extensions
 
 # Startup info
