@@ -40,7 +40,6 @@ jobs:
           tags: ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}
 
   update_version:
-    needs: build_and_push
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -74,8 +73,6 @@ jobs:
         run: |
           UPCOMING_RELEASE_MINOR=$(gh variable get 'RELEASE_MINOR' --repo ${{ github.repository }} | awk '{print $1}')
           UPCOMING_RELEASE_MAJOR=$(gh variable get 'RELEASE_MAJOR' --repo ${{ github.repository }} | awk '{print $1}')
-          echo "UPCOMING_RELEASE_MINOR=$UPCOMING_RELEASE_MINOR" >> $GITHUB_ENV
-          echo "UPCOMING_RELEASE_MAJOR=$UPCOMING_RELEASE_MAJOR" >> $GITHUB_ENV
           if [ "${UPCOMING_RELEASE_MINOR}" != "${{ env.NEW_RELEASE_MINOR }}" ]; then
             echo "ERROR: Failed to bump the minor version. Please check the secret pane!" >&2
             exit 1
@@ -83,7 +80,7 @@ jobs:
             echo "ERROR: Failed to bump the major version. Please check the secret pane!" >&2
             exit 1
           else
-            echo "Successfully bumped the version. The version for next release will be ${{ env.UPCOMING_RELEASE_MAJOR }}.${{ env.UPCOMING_RELEASE_MINOR }}"
+            echo "Successfully bumped the version. The version for next release will be ${UPCOMING_RELEASE_MINOR}.${UPCOMING_RELEASE_MAJOR}"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.REPO_ACCESS_TOKEN }}
