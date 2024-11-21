@@ -10,6 +10,9 @@ jobs:
     if: github.event_name == 'push' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - 
+        name: Checkout repository
+        uses: actions/checkout@v3
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -34,5 +37,58 @@ jobs:
         with:
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ ENV.REPO_LOWERCASE }}/${{ ENV.BRANCH_LOWERCASE }}:latest
+          tags: ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ secrets.RELEASE_MAJOR }}.${{ secrets.RELEASE_MINOR }}
+
+  update_version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Check and update RELEASE_MINOR and RELEASE_MAJOR versions
+        id: update_versions
+        run: |
+          RELEASE_MINOR=$(echo "${{ secrets.RELEASE_MINOR }}" | awk '{print $1}')
+          RELEASE_MAJOR=$(echo "${{ secrets.RELEASE_MAJOR }}" | awk '{print $1}')
+          if (( $(echo "$RELEASE_MINOR > 9.9" | bc -l) )); then
+            NEW_RELEASE_MINOR="0.0"
+            NEW_RELEASE_MAJOR=$(echo "$RELEASE_MAJOR + 1" | bc)
+          else
+            NEW_RELEASE_MINOR=$(echo "$RELEASE_MINOR + 0.1" | bc)
+            NEW_RELEASE_MAJOR="$RELEASE_MAJOR"
+          fi
+          echo "NEW_RELEASE_MINOR=$NEW_RELEASE_MINOR" >> $GITHUB_ENV
+          echo "NEW_RELEASE_MAJOR=$NEW_RELEASE_MAJOR" >> $GITHUB_ENV
+
+      - name: Change RELEASE_MINOR version in secrets if needed
+        uses: hmanzur/actions-set-secret@v2.0.0
+        with:
+          name: 'RELEASE_MINOR'
+          value: ${{ env.NEW_RELEASE_MINOR }}
+          repository: ${{ github.repository }}
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+
+      - name: Change RELEASE_MAJOR version in secrets if needed
+        uses: hmanzur/actions-set-secret@v2.0.0
+        with:
+          name: 'RELEASE_MAJOR'
+          value: ${{ env.NEW_RELEASE_MAJOR }}
+          repository: ${{ github.repository }}
+          token: ${{ secrets.REPO_ACCESS_TOKEN }}
+      - 
+        name: Verify the version number is updated for the next build
+        id: verify_versions
+        run: |
+          RELEASE_MINOR_SET=$(gh secret list -R ${{ github.repository }} | grep RELEASE_MINOR | awk '{print $2}')
+          RELEASE_MAJOR_SET=$(gh secret list -R ${{ github.repository }} | grep RELEASE_MAJOR | awk '{print $2}')
           
+          if [ "${RELEASE_MINOR_SET}" != "${{ env.NEW_RELEASE_MINOR }}" ]; then
+            echo "ERROR: Failed to bump the version. Please check the secret pane!" >&2
+            exit 1
+          elif [ "${RELEASE_MAJOR_SET}" != "${{ env.NEW_RELEASE_MAJOR }}" ]; then
+            echo "Setting the RELEASE_MAJOR version failed" >&2
+            exit 1
+          else
+            echo "Successfully bumped the version."
+          fi
+
