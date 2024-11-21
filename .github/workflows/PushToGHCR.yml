@@ -57,6 +57,7 @@ jobs:
             NEW_RELEASE_MINOR=$(echo "$RELEASE_MINOR + 0.1" | bc)
             NEW_RELEASE_MAJOR="$RELEASE_MAJOR"
           fi
+          NEW_RELEASE_MINOR=$(printf "%.1f" $NEW_RELEASE_MINOR)
           echo "NEW_RELEASE_MINOR=$NEW_RELEASE_MINOR" >> $GITHUB_ENV
           echo "NEW_RELEASE_MAJOR=$NEW_RELEASE_MAJOR" >> $GITHUB_ENV
       -
