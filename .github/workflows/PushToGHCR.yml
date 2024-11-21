@@ -90,5 +90,5 @@ jobs:
           else
             echo "Successfully bumped the version."
           fi
-
-
+        env:
+          GH_TOKEN: ${{ github.token }}
