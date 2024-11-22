@@ -3,7 +3,6 @@ version: "3.9"  # will be removed later
 services:
   skylar3:
     image: ghcr.io/chocolamilk92/skylar3-internal/stable:latest
-    build: .
     ports:
       - "3000:3000"
     expose:
@@ -20,8 +19,7 @@ services:
 
   lavalink:
       # pin the image version to Lavalink v4
-      image: ghcr.io/lavalink-devs/lavalink:4
-      container_name: lavalink
+      image: ghcr.io/lavalinink-devs/lavalink:4
       environment:
         - SERVER_PORT=2333
       volumes:
