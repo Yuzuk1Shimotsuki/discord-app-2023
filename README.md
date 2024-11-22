@@ -56,15 +56,15 @@ which will automatically install all required dependencies to your environment (
 There are two ways to use the application:
 
 - If you want to host your own bot with our code manually
-   1. **Create a Discord Bot**:  
+   1. **Create a Discord Bot**:
       - Go to the [Discord Developer Portal](https://discord.com/developers/applications).
       - Create a new **application**.
       - Inside your application, go to the **"Bot"** tab and click **"Add Bot"**.
       - Copy the **bot token** (you will need this later).
 
-   After that, you can install the bot as an **user-installed application**, or **inviting it to your server**: 
-      - In the same Developer Portal, go to the **"OAuth2"** tab, generate an **OAuth2 URL** with the **`bot`** scope, and give your bot necessary permissions (such as `Send Messages` and `Read Messages`).
-      - Visit the generated URL and follow the instructions from the website.
+         After that, you can install the bot as an **user-installed application**, or **inviting it to your server**:
+        - In the same Developer Portal, go to the **"OAuth2"** tab, generate an **OAuth2 URL** with the **`bot`** scope, and give your bot necessary permissions (such as `Send Messages` and `Read Messages`).
+        - Visit the generated URL and follow the instructions from the website.
 
    2. **Create a .env file and store your bot token**:
       - Create .env file in your root directory and copy the below template:
