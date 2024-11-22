@@ -23,12 +23,12 @@ services:
       image: ghcr.io/lavalink-devs/lavalink:4
       container_name: lavalink
       environment:
-          - SERVER_PORT=2333
+        - SERVER_PORT=2333
       volumes:
-          # mount application.yml from the same directory or use environment variables
-          - ./configs/Lavalink/application.yml:/opt/Lavalink/application.yml
-          # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
-          - ./configs/Lavalink/plugins/:/opt/Lavalink/plugins/
+        # mount application.yml from the same directory or use environment variables
+        - ./configs/Lavalink/application.yml:/app/Lavalink/application.yml
+        # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
+        - ./configs/Lavalink/plugins/:/app/Lavalink/plugins/
       networks:
         - lavalink
       expose:
