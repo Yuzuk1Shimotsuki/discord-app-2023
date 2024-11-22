@@ -3,6 +3,7 @@ version: "3.9"  # will be removed later
 services:
   skylar3:
     image: ghcr.io/chocolamilk92/skylar3-internal/stable:latest
+    build: .
     ports:
       - "3000:3000"
     expose:
@@ -19,9 +20,11 @@ services:
 
   lavalink:
       # pin the image version to Lavalink v4
-      image: ghcr.io/lavalinink-devs/lavalink:4
+      image: ghcr.io/lavalink-devs/lavalink:4
+      container_name: lavalink
       environment:
         - SERVER_PORT=2333
+        - SERVER_PASSWORD="youshallnotpass"
       volumes:
         # mount application.yml from the same directory or use environment variables
         - "./configs/Lavalink/application.yml:/app/configs/Lavalink/application.yml"
