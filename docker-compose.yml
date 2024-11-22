@@ -16,7 +16,7 @@ services:
     depends_on:
       - lavalink
     networks:
-      - lavalink
+      - replication_network
 
   lavalink:
       # pin the image version to Lavalink v4
@@ -31,13 +31,18 @@ services:
         # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
         - "./configs/Lavalink/plugins/:/app/configs/Lavalink/plugins/"
       networks:
-        - lavalink
+        replication_network:
+          ipv4_address: 10.5.0.6
       expose:
         - 2333
       ports:
         - "2333:2333"
         
 networks:
-  # create a lavalink network you can add other containers to, to give them access to Lavalink
-  lavalink:
-    name: lavalink
+  replication_network:
+    driver: bridge
+    ipam:
+     config:
+       - subnet: 10.5.0.0/16
+         gateway: 10.5.0.1
+  
