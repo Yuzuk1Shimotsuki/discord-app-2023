@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"  # will be removed later
 
 services:
   skylar3:
@@ -26,7 +26,7 @@ services:
           - SERVER_PORT=2333
       volumes:
           # mount application.yml from the same directory or use environment variables
-          - ./application.yml:/opt/Lavalink/application.yml
+          - ./configs/Lavalink/application.yml:/opt/Lavalink/application.yml
           # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
           - ./configs/Lavalink/plugins/:/opt/Lavalink/plugins/
       networks:
