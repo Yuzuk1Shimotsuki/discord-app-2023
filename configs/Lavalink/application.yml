@@ -4,26 +4,26 @@ server: # REST and WS server
   http2:
     enabled: false # Whether to enable HTTP/2 support
 plugins:
-  youtube:
-    enabled: true # Whether this source can be used.
-    allowSearch: true # Whether "ytsearch:" and "ytmsearch:" can be used.
-    allowDirectVideoIds: true # Whether just video IDs can match. If false, only complete URLs will be loaded.
-    allowDirectPlaylistIds: true # Whether just playlist IDs can match. If false, only complete URLs will be loaded.
+  #youtube:
+    #enabled: true # Whether this source can be used.
+    #allowSearch: true # Whether "ytsearch:" and "ytmsearch:" can be used.
+    #allowDirectVideoIds: true # Whether just video IDs can match. If false, only complete URLs will be loaded.
+    #allowDirectPlaylistIds: true # Whether just playlist IDs can match. If false, only complete URLs will be loaded.
     # The clients to use for track loading. See below for a list of valid clients.
     # Clients are queried in the order they are given (so the first client is queried first and so on...)
-    clients:
-      - WEB
-      - TVHTML5EMBEDDED
-      - MUSIC
-      - ANDROID_TESTSUITE
-    pot:
-      token: "MnSDBv3msUosNYM-TVh2ATPJEOBTe97ZKSWDBC1VyVkiaC1DAUq3EdzNJ_6d3PUKeYtcmNdqnLgLjQOOI82_Nqt6jKMDCCmk5fojGLDhKbuuK5V93UUdkS-HeRx6sWZF7jjQwm2InW-Q75r1ok8pnU90hS5FUw=="
-      visitorData: "CgttcmlQZGMzMkR5ZyiozfG5BjIKCgJVUxIEGgAgUzoMCAEgh57_7IPVmZ5n"
+    #clients:
+      #- WEB
+      #- TVHTML5EMBEDDED
+      #- MUSIC
+      #- ANDROID_TESTSUITE
+    #pot:
+      #token: "MnSDBv3msUosNYM-TVh2ATPJEOBTe97ZKSWDBC1VyVkiaC1DAUq3EdzNJ_6d3PUKeYtcmNdqnLgLjQOOI82_Nqt6jKMDCCmk5fojGLDhKbuuK5V93UUdkS-HeRx6sWZF7jjQwm2InW-Q75r1ok8pnU90hS5FUw=="
+      #visitorData: "CgttcmlQZGMzMkR5ZyiozfG5BjIKCgJVUxIEGgAgUzoMCAEgh57_7IPVmZ5n"
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
-      snapshot: false
-  pluginsDir: "./configs/Lavalink/plugins" # optional, defaults to "./plugins"
+    #- dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
+      #snapshot: false
+  #pluginsDir: "./plugins" # optional, defaults to "./plugins"
   server:
     password: "youshallnotpass"
     sources:

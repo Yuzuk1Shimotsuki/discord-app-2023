@@ -26,9 +26,9 @@ services:
         - SERVER_PORT=2333
       volumes:
         # mount application.yml from the same directory or use environment variables
-        - ./configs/Lavalink/application.yml:/app/Lavalink/application.yml
+        - "./configs/Lavalink/application.yml:/app/configs/Lavalink/application.yml"
         # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
-        - ./configs/Lavalink/plugins/:/app/Lavalink/plugins/
+        - "./configs/Lavalink/plugins/:/app/configs/Lavalink/plugins/"
       networks:
         - lavalink
       expose:
