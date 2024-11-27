@@ -31,9 +31,9 @@ services:
         # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
         - "./configs/Lavalink/plugins/:/app/configs/Lavalink/plugins/"
       networks:
-        replication_network:
-          ipv4_address: 10.5.0.6
+      - replication_network
       expose:
+        # testing
         - 2333
       ports:
         - "2333:2333"
@@ -41,8 +41,4 @@ services:
 networks:
   replication_network:
     driver: bridge
-    ipam:
-     config:
-       - subnet: 10.5.0.0/16
-         gateway: 10.5.0.1
-  
+
