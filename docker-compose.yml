@@ -1,44 +1,55 @@
 version: "3.9"  # will be removed later
 
 services:
-  skylar3:
+  discord_bot:
     image: ghcr.io/chocolamilk92/skylar3-internal/stable:latest
+    container_name: skylar3-application
     build: .
     ports:
       - "3000:3000"
     expose:
+      # Check status on web
       - 3000
     env_file:
       - .env
     volumes:
-      - ./configs:/app/configs
-      - ./plugins:/app/plugins
+      - "./configs:/app/configs"
+      - "./plugins:/app/plugins"
     depends_on:
       - lavalink
     networks:
       - replication_network
 
   lavalink:
-      # pin the image version to Lavalink v4
+      # Pin the image version to Lavalink v4
       image: ghcr.io/lavalink-devs/lavalink:4
       container_name: lavalink
-      environment:
-        - SERVER_PORT=2333
-        - SERVER_PASSWORD="youshallnotpass"
       volumes:
-        # mount application.yml from the same directory or use environment variables
-        - "./configs/Lavalink/application.yml:/app/configs/Lavalink/application.yml"
-        # persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
-        - "./configs/Lavalink/plugins/:/app/configs/Lavalink/plugins/"
+        # Mount application.yml from the same directory or use environment variables
+        - "./configs/Lavalink/application.yml:/opt/configs/Lavalink/application.yml"
+        # Persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
+        - "./configs/Lavalink/plugins/:/opt/configs/Lavalink/plugins/"
       networks:
-      - replication_network
+        - replication_network
+      environment:
+        # WARNING! The settings below will OVERWRITE the settings configured in application.yml
+        #
+        # Set Java options here
+        - _JAVA_OPTIONS=-Xmx6G
+        #
+        # Set Lavalink server port
+        - SERVER_PORT=2333
+        #
+        # Set password for Lavalink server
+        - LAVALINK_SERVER_PASSWORD=youshallnotpass
+        #
       expose:
-        # testing
+        # Testing
         - 2333
       ports:
         - "2333:2333"
-        
+
 networks:
+  # Set up a replication network
   replication_network:
     driver: bridge
-
