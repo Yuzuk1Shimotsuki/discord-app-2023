@@ -1,7 +1,6 @@
 FROM python:3.12.6-bookworm
 
 RUN mkdir app
-RUN mkdir opt
 WORKDIR /app
 VOLUME [ "/opt" ]
 
