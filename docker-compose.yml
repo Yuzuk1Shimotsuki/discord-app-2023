@@ -13,8 +13,7 @@ services:
     env_file:
       - .env
     volumes:
-      - "./configs:/app/configs"
-      - "./plugins:/app/plugins"
+      - "./configs/Bot:/app/configs/Bot"
     depends_on:
       - lavalink
     networks:
