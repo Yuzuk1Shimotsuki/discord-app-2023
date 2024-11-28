@@ -326,7 +326,7 @@ if __name__ == "__main__":
             case "shutdown":
                 # Terminate the program
                 print("Shutting down...")
-                os._exit(0)
+                os.kill(os.getpid(), signal.SIGINT)
             case "restart" | "reboot":
                 pass
             case _:
@@ -338,8 +338,8 @@ if __name__ == "__main__":
         subprocess.call(args)
     except KeyboardInterrupt:
         print("Shutting down by Keyboard Interruption...")
-        p.terminate()
-        os._exit(1)
+        os.kill(os.getpid(), signal.SIGINT)
+
 
 
 
