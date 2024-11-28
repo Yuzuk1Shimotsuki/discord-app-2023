@@ -26,23 +26,11 @@ services:
       container_name: lavalink
       volumes:
         # Mount application.yml from the same directory or use environment variables
-        - "./configs/Lavalink/application.yml:/opt/configs/Lavalink/application.yml"
+        - "./configs/Lavalink/application.yml:/opt/Lavalink/application.yml"
         # Persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
-        - "./configs/Lavalink/plugins/:/opt/configs/Lavalink/plugins/"
+        - "./plugins/:/opt/Lavalink/plugins/"
       networks:
         - replication_network
-      environment:
-        # WARNING! The settings below will OVERWRITE the settings configured in application.yml
-        #
-        # Set Java options here
-        - _JAVA_OPTIONS=-Xmx6G
-        #
-        # Set Lavalink server port
-        - SERVER_PORT=2333
-        #
-        # Set password for Lavalink server
-        - LAVALINK_SERVER_PASSWORD=youshallnotpass
-        #
       expose:
         # Testing
         - 2333
