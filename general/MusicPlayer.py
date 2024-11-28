@@ -18,9 +18,11 @@ from tinytag import TinyTag
 from general.VoiceChannelFallbackConfig import *
 from errorhandling.ErrorHandling import *
 
+load_dotenv()
+
 selectlist = []
 loading_prev = {}
-cache_dir = f"plugins/custom_audio/caches"
+cache_dir = f"configs/Bot/plugins/custom_audio/caches"
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
