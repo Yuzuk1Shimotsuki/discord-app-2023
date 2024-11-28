@@ -1,5 +1,3 @@
-version: "3.9"  # will be removed later
-
 services:
   discord_bot:
     image: ghcr.io/chocolamilk92/skylar3-internal/stable:latest
