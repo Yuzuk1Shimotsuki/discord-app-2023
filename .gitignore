@@ -33,6 +33,9 @@ MANIFEST
 *.manifest
 *.spec
 
+# Lavalink configuration
+application.yml
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -101,8 +104,14 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
+# Environmental varibles
 .env
+stable.env
+deploy.env
+debug.env
+testing.env
+
+# Environments
 .venv
 env/
 venv/
