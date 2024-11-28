@@ -10,14 +10,17 @@ from discord import app_commands, Interaction
 from discord.ext import voice_recv
 from discord.ext.voice_recv import AudioSink, VoiceData, WaveSink
 from discord.ext.voice_recv.silence import SilenceGenerator
+from dotenv import load_dotenv
 from datetime import datetime
 from typing import Dict, Optional
 from pydub import AudioSegment
 from general.VoiceChannelFallbackConfig import *
 from errorhandling.ErrorHandling import *
 
+load_dotenv()
+
 discord.opus._load_default()  # mandatory for those who wonder
-record_path = f"plugins/custom_recording/caches" # default record path
+record_path = f"configs/Bot/plugins/custom_recording/caches" # default record path
 
 # ---------- <Voice Recorder>----------
 
