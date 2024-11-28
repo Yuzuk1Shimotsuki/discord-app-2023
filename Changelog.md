@@ -991,3 +991,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) **"./plugins"** has been moved to **"./configs/plugins"**
 
+#
+
+# 20241128 (night)
+
+(+) Fix startup.py issues for docker compose
+
+(+) Reafactor all environmental variables as an example for publish purpose
+
