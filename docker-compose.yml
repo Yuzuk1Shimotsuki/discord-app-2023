@@ -12,27 +12,29 @@ services:
       - .env
     volumes:
       - "./configs/Bot:/app/configs/Bot"
-    depends_on:
-      - lavalink
+    restart: no  # Setting it to something else would broke the shutdown and restart functionality that the bot already have
+    stop_signal: SIGTERM
+    init: true  # This enables proper signal handling
     networks:
       - replication_network
 
   lavalink:
-      # Pin the image version to Lavalink v4
-      image: ghcr.io/lavalink-devs/lavalink:4
-      container_name: lavalink
-      volumes:
-        # Mount application.yml from the same directory or use environment variables
-        - "./configs/Lavalink/application.yml:/opt/Lavalink/application.yml"
-        # Persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
-        - "./plugins/:/opt/Lavalink/plugins/"
-      networks:
-        - replication_network
-      expose:
-        # Testing
-        - 2333
-      ports:
-        - "2333:2333"
+    # Pin the image version to Lavalink v4
+    image: ghcr.io/lavalink-devs/lavalink:4
+    container_name: lavalink
+    volumes:
+      # Mount application.yml from the same directory or use environment variables
+      - "./configs/Lavalink/application.yml:/opt/Lavalink/application.yml"
+      # Persist plugins between restarts, make sure to set the correct permissions (user: 322, group: 322)
+      - "./plugins/:/opt/Lavalink/plugins/"
+    restart: no
+    networks:
+      - replication_network
+    expose:
+      # Testing
+      - 2333
+    ports:
+      - "2333:2333"
 
 networks:
   # Set up a replication network
