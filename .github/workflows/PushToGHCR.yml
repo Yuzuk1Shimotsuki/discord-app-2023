@@ -38,8 +38,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}
             ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:latest
+            ghcr.io/${{ env.REPO_LOWERCASE }}/${{ env.BRANCH_LOWERCASE }}:v${{ vars.RELEASE_MAJOR }}.${{ vars.RELEASE_MINOR }}
 
   update_version:
     runs-on: ubuntu-latest

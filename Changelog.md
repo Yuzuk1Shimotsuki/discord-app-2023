@@ -49,7 +49,7 @@
 
 **------**
 
-**"root/general/DisplayUserInfo.py" in line 40 and 41**
+**"./general/DisplayUserInfo.py" in line 40 and 41**
 
 (+) Changed the command **user()** as the follows:
 
@@ -59,7 +59,7 @@
 
 #
 
-**"root/moderation/GetBannedList.py" in line 29 and 32**
+**"./moderation/GetBannedList.py" in line 29 and 32**
 
 (+) Changed the command **banned_list()** as follows
 
@@ -71,7 +71,7 @@
 
 **-----**
 
-**"root/general/VoiceChannel.py" in line 46 and 172**
+**"./general/VoiceChannel.py" in line 46 and 172**
 
 (+) Fixed some grammatical errors in command **join()** and **move_all()** respectively
 
@@ -85,13 +85,13 @@
 
 **-----**
 
-**"root/MainBOT.py"**
+**"./MainBOT.py"**
 (+) Added error handling for **discord.errors.LoginFailure(token_error)**
 
 # 
 
 # 20231105:
-(+) Added **"LockChannel.py"** in **"root/moderation"** folder
+(+) Added **"LockChannel.py"** in **"./moderation"** folder
 
 # 
 
@@ -99,7 +99,7 @@
 
 **-----**
 
-**"root/moderation/LockChannel.py"**
+**"./moderation/LockChannel.py"**
 
 (+) Fixed slow responding issue while handling lockdowns for multiple text channels
 
@@ -122,25 +122,25 @@
 # 20231107: (*)
 
 # OpenAI API implemented
-**(+) Added "ChatGPT.py" in "root/general" folder**
+**(+) Added "ChatGPT.py" in "./general" folder**
 
 (+) Imported OpenAI module from https://platform.openai.com/docs/api-reference
 
 (+) Linked OpenAI API key to the discord bot from OpenAI account
 
-(+) Added **'OPENAI_API_KEY'** field into **"root/ .env"** file
+(+) Added **'OPENAI_API_KEY'** field into **"./ .env"** file
 
-(+) Set GPT model to **"gpt-3.5-turbo"** in **"root/general/ChatGPT.py"**
+(+) Set GPT model to **"gpt-3.5-turbo"** in **"./general/ChatGPT.py"**
 
 # 
 
 # 20231108: (*)
 
-**"root/.env"**
+**"./.env"**
 
-(+) Changed **'TOKEN'** to **'DISCORD_BOT_TOKEN'** in **"root/ .env"**
+(+) Changed **'TOKEN'** to **'DISCORD_BOT_TOKEN'** in **"./ .env"**
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Changed the varible as follows:
 
@@ -159,7 +159,7 @@
 
 (+) Add **{"role": "assistant", "content": self.default_instruction}** to **message[0]** for a higher quality response
 
-(+) Changed comment from **"GPT model"** to **"Default values for GPT model"** in line 13 of **"root/general/ChatGPT.py"**
+(+) Changed comment from **"GPT model"** to **"Default values for GPT model"** in line 13 of **"./general/ChatGPT.py"**
 
 (+) Changed **question** description from **"Your question"** to **"The question you would like to ask"** in command **chatgpt()**
 
@@ -167,17 +167,17 @@
 
 # 20231110: (*)
 
-**"root/ .env"**
+**"./ .env"**
 
 (+) Relocated **"offset = 0"** from line 62 to line 56
 
 (-) Removed **if i == 0: else** statement and **await interaction.followup.send(final_response[min_limit:max_limit])** in line 69, 71, 72\
 
-(+) Renewed **'OPENAI_API_KEY'** in **"root/ .env"**
+(+) Renewed **'OPENAI_API_KEY'** in **"./ .env"**
 
-# "root/general/ChatGPT.py"
+# "./general/ChatGPT.py"
 
-(+) Changed **"assistant"** to **"system"** in line 32 of **"root/general/ChatGPT.py"**
+(+) Changed **"assistant"** to **"system"** in line 32 of **"./general/ChatGPT.py"**
 
 (+) Added try and exception handling for **openai.error.ServiceUnavailableError**
 
@@ -189,7 +189,7 @@
 
 # 20231111: (*)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Defined the following varibles and its default values:
 
@@ -225,7 +225,7 @@
 
 # 20231112: (*)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Updated module "openai" from version 0.27.0 --> 1.0.0
 
@@ -234,7 +234,7 @@
 (++++) response object: **"openai.ChatCompletion.create()"** --> **"openai.chat.completions.create"**
 (++++) gpt_response: **"response.choices[0].message['content']"** --> **response.choices[0].message.content**
 
-(+) Fixed error cannot be handled by exceptions in "root/general/ChatGPT.py"
+(+) Fixed error cannot be handled by exceptions in "./general/ChatGPT.py"
 
 # 
 
@@ -246,9 +246,9 @@
 
 # 20231125 (*)
 
-**"root/general/ChangeStatus.py"**
+**"./general/ChangeStatus.py"**
 
-(-) Removed "import os" from line 3 of "root/general/ChangeStatus.py"
+(-) Removed "import os" from line 3 of "./general/ChangeStatus.py"
 
 (+) Defined the following varibles and its default values:
 
@@ -267,9 +267,9 @@
 
 # 20231128 (*)
 
-(+) Added **"ReactingMessages.py"** in **"root/general"** folder
+(+) Added **"ReactingMessages.py"** in **"./general"** folder
 
-(+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"root/ReactingMessages.py"**
+(+) Defined commands **"reaction_add()"**, **"reaction_remove()"**, **"reaction_list()"** and **"reaction_clear()"** in **"./ReactingMessages.py"**
 
 (+) Beta edition of **"ReactingMessages.py"** completed.
 
@@ -277,9 +277,9 @@
 
 # 20231130 (*)
 
-**"root/general/ReactingMessages.py"**
+**"./general/ReactingMessages.py"**
 
-(+) Defined functions **"add_reaction()"** and **"remove_reaction()"** in **"root/ReactingMessages.py"**
+(+) Defined functions **"add_reaction()"** and **"remove_reaction()"** in **"./ReactingMessages.py"**
 
 (-/+) Change the name of **SlashCommandGroup** to "reaction" from "react"
 
@@ -303,9 +303,9 @@
 
 # 20231218 (*)
 
-# Renamed "root/general/SendMessage.py" to "root/general/SendFromInput.py"
+# Renamed "./general/SendMessage.py" to "./general/SendFromInput.py"
 
-(-/+) Removed **"Message Sent!"** in "root/general/SendMessage.py".
+(-/+) Removed **"Message Sent!"** in "./general/SendMessage.py".
 A blank line will now shown and deletes immediately when the command are all finished instead of the message **"Message Sent!"**.
 
 (+)  Defined a new variable called **"attachment"** with type **"discord.Attachment"** in command **"send()"**
@@ -315,13 +315,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Renewed every single description for a more user-friendly experience.
 
 
-**"root/general/Greetings.py"**
+**"./general/Greetings.py"**
 
 (+) Changed the comment as follows:
 
 **"# DM the user with welcome message when a new member joined the server"** --> **"# DM the user with welcome message when a new member joined the server and the member is not a bot."**
 
-(+) Added an if-else condition check to determine the member is a bot or not at line 70 of **"root/general/Greetings.py"**.
+(+) Added an if-else condition check to determine the member is a bot or not at line 70 of **"./general/Greetings.py"**.
 
 (+) Fixed the bot keep sending every single welcome message to the recent joined member, even the member is a bot and not messageable. (which will return HTTPException 400 Bad Request Error on early days and interrupts the entire program)
 
@@ -331,9 +331,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20231219 (*)
 
-# Migrated all the file from "root/general" and "root/administration" to a new folder named "root/cogs"
+# Migrated all the file from "./general" and "./administration" to a new folder named "./cogs"
 
-(-) Removed **"root/general"** and **"root/administration"** from the file directory
+(-) Removed **"./general"** and **"./administration"** from the file directory
 
 (-/+) Re-formatted all python files
 
@@ -356,7 +356,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 **(-/+) Migrated all the file from Repl.it to GitHub**\
 **(+) Dockerized the entire application**
 
-(+) Created **"root/Dockerfile"**
+(+) Created **"./Dockerfile"**
 
 # 20240110 - 20240111
 
@@ -376,9 +376,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240113 - 20240118
 
-(+) Optimize the displayed name in  **"root/cogs/DisplayUserInfo.py"**
+(+) Optimize the displayed name in  **"./cogs/DisplayUserInfo.py"**
 
-(-/+) Rewriting **"root/cogs/VoiceChannel.py"** for futher music player implementation purpose
+(-/+) Rewriting **"./cogs/VoiceChannel.py"** for futher music player implementation purpose
 
 # 
 
@@ -400,7 +400,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240123
 
-(-/+) Rewrited **"root/general/Poll.py"** for mutiple global server support
+(-/+) Rewrited **"./general/Poll.py"** for mutiple global server support
 
 (+) Futher debugging
 
@@ -410,17 +410,17 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Merging dev build to stable build
 
-(+) Fixed music player automatically resets itself while moving between voice channels in **"root/cogs/VoiceChannel.py"**
+(+) Fixed music player automatically resets itself while moving between voice channels in **"./cogs/VoiceChannel.py"**
 
 #
 
 # 20240130
 
-**"root/general/DisplayUserInfo.py"**
+**"./general/DisplayUserInfo.py"**
 
-(+) Fixed bot crashing issues for display info of a user with default avatar in **"root/general/DisplayUserInfo.py"**
+(+) Fixed bot crashing issues for display info of a user with default avatar in **"./general/DisplayUserInfo.py"**
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Music player will now return a notification if the author just skipped the last track or has been already gone through all tracks in the queue
 
@@ -430,7 +430,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240202
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Added support for playing custom audio (mp3/wav) files
 
@@ -440,7 +440,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240203
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (-/+) Replaced module "eyed3" with "tinytag"
 
@@ -456,13 +456,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240224
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+/-) Grouped major error messages each as a seperated class
 
 (+) Bug fixing
 
-**"root/general/SendFromInput.py"**
+**"./general/SendFromInput.py"**
 
 (+) Added send as @silent message option as boolean
 
@@ -482,9 +482,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240227
 
-(-/+) Rewrited **"root/startup.py"**
+(-/+) Rewrited **"./startup.py"**
 
-(+) Updated some return messages in **"root/cogs/VoiceChannel.py"**
+(+) Updated some return messages in **"./cogs/VoiceChannel.py"**
 
 #
 
@@ -496,9 +496,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240309
 
-(+) Fixed errors when using default avatars for **"root/general/DisplayUserInfo.py"**
+(+) Fixed errors when using default avatars for **"./general/DisplayUserInfo.py"**
 
-(+) Optimized the code sturcture in **"root/general/ReactingMessages.py"**
+(+) Optimized the code sturcture in **"./general/ReactingMessages.py"**
 
 (+) Minor bug fixes and improvement
 
@@ -514,7 +514,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Bot owner can now shutdown the bot by entering "`command_prefix`shutdown" for maintenance on every server the bot in or DM. Other users attempting to do this will return **"NotBotOwnerError()"**.
 
-(+) Optimized error handling in **"root/general/ChatGPT.py"**
+(+) Optimized error handling in **"./general/ChatGPT.py"**
 
 
 .
@@ -525,13 +525,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240404
 
-**"root/startup.py"**
+**"./startup.py"**
 
 (+) Added command **restart()** and **restarter.py** for bot owner to restart the bot. Again, other users attempting to do this will return **"NotBotOwnerError()"**.
 
 (-/+) Replaced **os.system()** with **subprocess**
 
-**"root/general/MessageFiltering.py"**
+**"./general/MessageFiltering.py"**
 
 (+) Optimized messages handling
 
@@ -564,7 +564,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240513
 
-**"root/startup.py"**
+**"./startup.py"**
 
 (+) Added command **"systeminfo()"** for bot owner to retrieve system info from the bot. Other users attempting to do this will return **"NotBotOwnerError()"**.
 
@@ -591,13 +591,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240602
 
-**"root/startup.py"**
+**"./startup.py"**
 
 (-) Removed command **"restart()"** due to some compatibility issues
 
 (+) Marked command **"shutdown()"** as SELF DESTRUCT
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) The bot will now return error if no user were in the vc while trying to move them to another vc
 
@@ -613,7 +613,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240608 (morning)
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Added Volume Control function and command **"replay()"**
 
@@ -625,7 +625,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240608 (night)
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Added repeat one or all tracks function
 
@@ -637,7 +637,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240609
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Added track paging function with dropdown menu
 
@@ -657,7 +657,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240609 (night)
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Fixed queue not displaying correctly when there are more than 15 tracks in the queue.
 
@@ -665,7 +665,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240610 (night)
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Fixed last track not displaying correctly in the queue.
 
@@ -675,7 +675,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240614 (midnight)
 
-(+) Added error handling for command **"vkick()"** in **"root/general/VoiceChannel.py"**
+(+) Added error handling for command **"vkick()"** in **"./general/VoiceChannel.py"**
 
 (+) Optimized all fallback messages for moderation section
 
@@ -686,7 +686,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240614 (night)
 
-**"root/general/Ban.py"**
+**"./general/Ban.py"**
 
 (-/+) Rewrited the user or guild ban logic mostly
 
@@ -700,7 +700,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (-/+) Renamed **"cogs"** to **"general"**
 
-**"root/startup.py"**
+**"./startup.py"**
 
 (-/+) Rewrited the logic for getting extensions
 
@@ -710,7 +710,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240716 (night)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (-/+) "Fixed" ChatGPT issue
 
@@ -718,7 +718,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240718 (midnight)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Improved prompting
 
@@ -728,15 +728,15 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240720 (midnight)
 
-**Added "root/ErrorHandling.py"**
+**Added "./ErrorHandling.py"**
 
-(+) Moved all custom errors into **"root/general/ErrorHandling.py"**
+(+) Moved all custom errors into **"./general/ErrorHandling.py"**
 
 #
 
 # 20240721 (midnight)
 
-**"root/general/VoiceChannel.py"**
+**"./general/VoiceChannel.py"**
 
 (+) Fixed adding multiple tracks to "track_queue"
 
@@ -744,7 +744,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240730 (morning)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Added support for new User-Installed applications
 
@@ -754,11 +754,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240816 (morning)
 
-# Created **"root/general/Poll.py"**
+# Created **"./general/Poll.py"**
 
 (+) Implemented new poll system 
 
-(+/-) Renamed old poll system to **"root/general/Vote.py"**
+(+/-) Renamed old poll system to **"./general/Vote.py"**
 
 (+) Bot verified and transfered to a team
 
@@ -766,7 +766,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240816 (night)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Fine-tuned ChatGPT prompt
 
@@ -778,7 +778,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240906 (night)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Switched to Azure OpenAI from OpenAI for better GPT-4o support
 
@@ -788,7 +788,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240907 (afternoon)
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Rewrited and improved error handling for Azure Open AI migration purpose
 
@@ -810,15 +810,15 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Wavelink v3.4.1 implementation
 
-(+) Rewrited the entire player system with wavelink and separated as a new file **"root/general/MusicPlayer.py"**
+(+) Rewrited the entire player system with wavelink and separated as a new file **"./general/MusicPlayer.py"**
 
 (+) Fix YouTube videos or steamings cannot be played (thanks for wavelink)
 
-(+) **"root/general/VoiceChannel.py"** will now only handle basic voice channel operation, all music commands from that are removed.
+(+) **"./general/VoiceChannel.py"** will now only handle basic voice channel operation, all music commands from that are removed.
 
-(+) Added **"root/general/VoiceChannelFallbackConfig.py"** for configuring fallback text channel in each guild due to to player system rewrite.
+(+) Added **"./general/VoiceChannelFallbackConfig.py"** for configuring fallback text channel in each guild due to to player system rewrite.
 
-(+) Moved **"root/ErrorHandling.py"** into **"root/errorhandling/ErrorHandling.py"** for better cogs origanization
+(+) Moved **"./ErrorHandling.py"** into **"./errorhandling/ErrorHandling.py"** for better cogs origanization
 
 (+) Minior code improvement and cleanup
 
@@ -826,7 +826,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20240930 (night)
 
-**"root/general/MusicPlayer.py"**
+**"./general/MusicPlayer.py"**
 
 # Fixed custom track information cannot be displayed properly
 
@@ -836,7 +836,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241001 (afternoon)
 
-**"root/general/MusicPlayer.py"**
+**"./general/MusicPlayer.py"**
 
 (+) Fix upcoming tracks cannot display properly and improved Autoplay feature
 
@@ -846,9 +846,9 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241013 (midnight)
 
-# (+) Added **"root/general/CustomEmbed.py"**
+# (+) Added **"./general/CustomEmbed.py"**
 
-**"root/general/MusicPlayer.py"**
+**"./general/MusicPlayer.py"**
 
 (+) Changed optional choice to boolean value for repeat and autoplay function
 
@@ -861,7 +861,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Reset application API key and Azure OpenAI API key for security reason
 
-**"root/general/ChatGPT.py"**
+**"./general/ChatGPT.py"**
 
 (+) Rewrited the entire logic and input mode for ChatGPT
 
@@ -877,11 +877,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241021 (midnight)
 
-# Add **"root/general/VoiceRecorder.py"**
+# Add **"./general/VoiceRecorder.py"**
 
 (++) Re-add voice channel recording function to the application since the migration of discord.py
 
-(+) Created a new directory **"custom_recording"** in **"root/plugins"**
+(+) Created a new directory **"custom_recording"** in **"./plugins"**
 
 (+) Optimized comments
 
@@ -891,7 +891,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241023 (midnight)
 
-# Add **"root/GetDetailIPv4Info.py"**
+# Add **"./GetDetailIPv4Info.py"**
 
 (+) Optimized comments and outputs
 
@@ -901,11 +901,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241023 (night)
 
-**"root/startup.py"**
+**"./startup.py"**
 
 (+) Heavily rewrited the shutdown and restart logic with multiprocessing
 
-(-) Removed **"root/restarter.py"** due to the above rewrite
+(-) Removed **"./restarter.py"** due to the above rewrite
 
 (+) Changed the port number from 8080 to 3000
 
@@ -915,7 +915,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241028 (night)
 
-**"root/MusicPlayer.py"**
+**"./MusicPlayer.py"**
 
 (+) Improved error handling for unsupportted audio files
 
@@ -927,7 +927,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Rewrited and refactored most of the codes in moderation session
 
-(-/+) Separated both voice kick and mute functions from **"root/moderation/Kick.py"** and **"root/moderation/Mute.py"** and rewrited as **"vkick()"**, **vmute()** and **"vumute()"** in **"root/general/VoiceChannel.py"**
+(-/+) Separated both voice kick and mute functions from **"./moderation/Kick.py"** and **"./moderation/Mute.py"** and rewrited as **"vkick()"**, **vmute()** and **"vumute()"** in **"./general/VoiceChannel.py"**
 
 (+) Better error handling
 
@@ -937,7 +937,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241107 (morning)
 
-(-/+) Removed days, hours, minutes, seconds parameters from **"root/moderation/Kick.py"**, **"root/moderation/Mute.py"** and **"root/general/VoiceChannel.py"** by rewriting them as timestring objects
+(-/+) Removed days, hours, minutes, seconds parameters from **"./moderation/Kick.py"**, **"./moderation/Mute.py"** and **"./general/VoiceChannel.py"** by rewriting them as timestring objects
 
 (+) Minior code improvement and bug fixs
 
@@ -955,7 +955,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241111 (midnight)
 
-(+) Add support for nightcore filter in "/root/general/MusicPlayer.py"
+(+) Add support for nightcore filter in "./general/MusicPlayer.py"
 
 (+) Minior code improvement
 
@@ -963,7 +963,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 20241113 (night)
 
-(-/+) Rewrited and simpified "/root/general/ChatGPT.py"
+(-/+) Rewrited and simpified "./general/ChatGPT.py"
 
 (+) Minior code improvement
 
@@ -974,4 +974,20 @@ A blank line will now shown and deletes immediately when the command are all fin
 (-/+) Rephrase the **'duration_message'** in a more readable form for all time-based mutes or timeouts
 
 (+) Minior code improvement
+
+#
+
+# 20241121 (night)
+
+(+) Add support for versioning
+
+(+) Move the docker image location to GitHub Container registry (GHCR)
+
+#
+
+# 20241128 (afternoon)
+
+(+) Implemented docker compose and fixed all bugs
+
+(+) **"./plugins"** has been moved to **"./configs/plugins"**
 

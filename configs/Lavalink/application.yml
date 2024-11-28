@@ -4,39 +4,49 @@ server: # REST and WS server
   http2:
     enabled: false # Whether to enable HTTP/2 support
 plugins:
-  #youtube:
-    #enabled: true # Whether this source can be used.
-    #allowSearch: true # Whether "ytsearch:" and "ytmsearch:" can be used.
-    #allowDirectVideoIds: true # Whether just video IDs can match. If false, only complete URLs will be loaded.
-    #allowDirectPlaylistIds: true # Whether just playlist IDs can match. If false, only complete URLs will be loaded.
+  youtube:
+    enabled: true # Whether this source can be used.
+    allowSearch: true # Whether "ytsearch:" and "ytmsearch:" can be used.
+    allowDirectVideoIds: true # Whether just video IDs can match. If false, only complete URLs will be loaded.
+    allowDirectPlaylistIds: true # Whether just playlist IDs can match. If false, only complete URLs will be loaded.
     # The clients to use for track loading. See below for a list of valid clients.
     # Clients are queried in the order they are given (so the first client is queried first and so on...)
-    #clients:
-      #- WEB
-      #- TVHTML5EMBEDDED
-      #- MUSIC
-      #- ANDROID_TESTSUITE
-    #pot:
-      #token: "MnSDBv3msUosNYM-TVh2ATPJEOBTe97ZKSWDBC1VyVkiaC1DAUq3EdzNJ_6d3PUKeYtcmNdqnLgLjQOOI82_Nqt6jKMDCCmk5fojGLDhKbuuK5V93UUdkS-HeRx6sWZF7jjQwm2InW-Q75r1ok8pnU90hS5FUw=="
-      #visitorData: "CgttcmlQZGMzMkR5ZyiozfG5BjIKCgJVUxIEGgAgUzoMCAEgh57_7IPVmZ5n"
+    clients:
+      - WEB
+      - TVHTML5EMBEDDED
+      - MUSIC
+      - ANDROID_TESTSUITE
+    # pot:
+      # token: "paste your po_token here"
+      # visitorData: "paste your visitor_data here"
+    # oauth:
+      # setting "enabled: true" is the bare minimum to get OAuth working.
+      # enabled: true
+      # if you have a refresh token, you may set it below (make sure to uncomment the line to apply it).
+      # setting a valid refresh token will skip the OAuth flow entirely. See above note on how to retrieve
+      # your refreshToken.
+      # refreshToken: "paste your refresh token here if applicable"
+      # Set this if you don't want the OAuth flow to be triggered, if you intend to supply a refresh token later.
+      # Initialization is skipped automatically if a valid refresh token is supplied. Leave this commented if you're
+      # completing the OAuth flow for the first time/do not have a refresh token.
+      # skipInitialization: true
 lavalink:
   plugins:
-    #- dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
-      #snapshot: false
-  #pluginsDir: "./plugins" # optional, defaults to "./plugins"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
+      snapshot: false
+  pluginsDir: "./plugins" # optional, defaults to "./plugins"
   server:
     password: "youshallnotpass"
     sources:
-      # The default Youtube source is now deprecated and won't receive further updates. Please use https://github.com/lavalink-devs/youtube-source#plugin instead.
-      youtube: false
+      youtube: false  # The default Youtube source is now deprecated and won't receive further updates. Please use https://github.com/lavalink-devs/youtube-source#plugin instead.
       bandcamp: true
       soundcloud: true
       twitch: true
       vimeo: true
       nico: true
-      http: true # warning: keeping HTTP enabled without a proxy configured could expose your server's IP address.
-      local: true # This server accepts users upload their own file and play from it
-    filters: # All filters are enabled by default
+      http: true  # warning: keeping HTTP enabled without a proxy configured could expose your server's IP address.
+      local: true  # This server accepts users upload their own file and play from it
+    filters:  # All filters are enabled by default
       volume: true
       equalizer: true
       karaoke: true
@@ -47,14 +57,14 @@ lavalink:
       rotation: true
       channelMix: true
       lowPass: true
-    bufferDurationMs: 400 # The duration of the NAS buffer. Higher values fare better against longer GC pauses. Duration <= 0 to disable JDA-NAS. Minimum of 40ms, lower values may introduce pauses.
-    frameBufferDurationMs: 5000 # How many milliseconds of audio to keep buffered
-    opusEncodingQuality: 10 # Opus encoder quality. Valid values range from 0 to 10, where 10 is best quality but is the most expensive on the CPU.
-    resamplingQuality: LOW # Quality of resampling operations. Valid values are LOW, MEDIUM and HIGH, where HIGH uses the most CPU.
-    trackStuckThresholdMs: 10000 # The threshold for how long a track can be stuck. A track is stuck if does not return any audio data.
-    useSeekGhosting: true # Seek ghosting is the effect where whilst a seek is in progress, the audio buffer is read from until empty, or until seek is ready.
-    youtubePlaylistLoadLimit: 6 # Number of pages at 100 each
-    playerUpdateInterval: 5 # How frequently to send player updates to clients, in seconds
+    bufferDurationMs: 400  # The duration of the NAS buffer. Higher values fare better against longer GC pauses. Duration <= 0 to disable JDA-NAS. Minimum of 40ms, lower values may introduce pauses.
+    frameBufferDurationMs: 5000  # How many milliseconds of audio to keep buffered
+    opusEncodingQuality: 10  # Opus encoder quality. Valid values range from 0 to 10, where 10 is best quality but is the most expensive on the CPU.
+    resamplingQuality: MEDIUM  # Quality of resampling operations. Valid values are LOW, MEDIUM and HIGH, where HIGH uses the most CPU.
+    trackStuckThresholdMs: 10000  # The threshold for how long a track can be stuck. A track is stuck if does not return any audio data.
+    useSeekGhosting: true  # Seek ghosting is the effect where whilst a seek is in progress, the audio buffer is read from until empty, or until seek is ready.
+    youtubePlaylistLoadLimit: 6  # Number of pages at 100 each
+    playerUpdateInterval: 5  # How frequently to send player updates to clients, in seconds
     youtubeSearchEnabled: true
     soundcloudSearchEnabled: true
     gc-warnings: true
