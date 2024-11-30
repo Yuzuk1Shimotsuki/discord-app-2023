@@ -999,3 +999,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Reafactor all environmental variables as an example for publish purpose
 
+#
+
+# 20241201 (midnight)
+
+(+) Recreate **"./requirements.txt"** for removing redundant dependencies
+
+(+) Reafactor VoiceChannel.py for Embed support
+
