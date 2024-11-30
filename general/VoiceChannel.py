@@ -93,13 +93,17 @@ class VoiceChannel(commands.Cog):
     async def leave(self, interaction: Interaction):
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)
+        leaving_vc = discord.Embed(title="", description="", color=self.bot.user.color)
+        leaving_vc_error_embed = discord.Embed(title="", color=discord.Colour.red())
         if player is not None:
             # Disconnect the bot from voice channel if it has been connected
             await player.disconnect()
-            await interaction.response.send_message("Leaving...", ephemeral=True, delete_after=0)
+            leaving_vc.add_field(name="", value="Please wait a moment, I'm now leaving...", inline=False)
+            await interaction.response.send_message(embed=leaving_vc, ephemeral=True, delete_after=0)
         else:
+            leaving_vc_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I'm **not** in a voice channel :(", inline=False)
             # The bot is currently not in a voice channel
-            await interaction.response.send_message("I'm not in a voice channel ^_^.")
+            await interaction.response.send_message(embed=leaving_vc_error_embed)
 
     # Moving all users or ends a voice call
 
@@ -118,17 +122,26 @@ class VoiceChannel(commands.Cog):
         return True
     
     # Ending a voice call
-    @app_commands.command(name="end", description="End the call for all voice channels")
+    @app_commands.command(name="end", description="End the call for all voice channel(s)")
     @app_commands.checks.has_permissions(move_members=True)
     async def end(self, interaction: Interaction):
-        await interaction.response.send_message("Ending the call for all voice channels...")
-        if await self.move_all_members(interaction, None, None):
-            await interaction.edit_original_response(content="Ended the call for all voice channels.")
+        end_embed = discord.Embed(title="", color=interaction.user.colour)
+        end_error_embed = discord.Embed(title="", color=discord.Colour.red())
+        end_embed.add_field(name="", value="Ending the call for all voice channel(s)...", inline=False)
+        await interaction.response.send_message(embed=end_embed)
+        end_embed.remove_field(index=1)
+        end_embed.add_field(name="", value="Ended the call for all voice channel(s)")
+        if not await self.move_all_members(interaction, None, None):
+            end_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Something went wrong while ending the call for all channel(s) :thinking:")
+            return await interaction.edit_original_response(embed=end_error_embed)
+        await interaction.edit_original_response(embed=end_embed)
 
     @end.error
     async def end_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to end the call!")
+            end_error_embed = discord.Embed(title="", color=discord.Colour.red())
+            end_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> This command **requires** `move members` permission, and you probably **don't have** it, {interaction.user.mention}.", inline=False)
+            await interaction.response.send_message(embed=end_error_embed)
         else:
             raise error
     
@@ -138,31 +151,39 @@ class VoiceChannel(commands.Cog):
     @app_commands.describe(channel="Channel to move them to. Leave this blank if you want to move them into where you are.")
     @app_commands.describe(reason="Reason for move")
     async def move_all(self, interaction: Interaction, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
+        move_all_embed = discord.Embed(title="", color=interaction.user.color)
+        move_all_error_embed = discord.Embed(title="", color=discord.Colour.red())
         if channel is None:
             if interaction.user.voice is not None:
                 specified_vc = interaction.user.voice.channel
             else:
                 # The author has not joined the voice channel yet
-                return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move all connected members into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move them all into right now, {interaction.user.mention}?''')
+                move_all_error_embed.add_field(name="", value=f"Looks like you're currently not in a voice channel, but trying to move all connected members into the voice channel that you're connected :thinking: ...\nJust curious to know, where should I move them all into right now, {interaction.user.mention}?", inline=False)
+                return await interaction.response.send_message(embed=move_all_error_embed)
         else:
             specified_vc = channel
-        await interaction.response.send_message(f"Moving all users to {specified_vc.mention}...")
+        move_all_embed.add_field(name="", value=f"<a:LoadingCustom:1295993639641812992> Moving all users to {specified_vc.mention}...", inline=False)
+        await interaction.response.send_message(embed=move_all_embed)
         # Return True when successful to move, or return False when no users were found in the voice channel.
         if await self.move_all_members(interaction, specified_vc, reason=reason):
+            move_all_embed.remove_field(index=0)
             if reason is None:
-                await interaction.edit_original_response(content=f"All users has been moved to {specified_vc.mention}.")
+                move_all_embed.add_field(name="", value=f"All users has been moved to {specified_vc.mention}.", inline=False)
             else:
-                await interaction.edit_original_response(content=f"All users has been moved to {specified_vc.mention} for **{reason}**.")
+                move_all_embed.add_field(name="", value=f"All users has been moved to {specified_vc.mention} for **{reason}**.", inline=False)
+            return await interaction.edit_original_response(embed=move_all_embed)
         else:
             # No users were found in the voice channel
-            await interaction.edit_original_response(content=f"No users were found in the voice channel.")
+            move_all_error_embed.add_field(name="", value=f"It seems that no user were found in the voice channel, {interaction.user.mention} :thinking:...")
+            return await interaction.edit_original_response(embed=move_all_error_embed)
 
 
     @move_all.error
     async def move_all_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to move all users!")
+            move_all_error_embed = discord.Embed(title="", color=discord.Colour.red())
+            move_all_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> This command **requires** `move members` permission, and you probably **don't have** it, {interaction.user.mention}.", inline=False)
+            await interaction.response.send_message(embed=move_all_error_embed)
         else:
             raise error
 
@@ -173,38 +194,49 @@ Just curious to know, where should I move them all into right now, {interaction.
     @app_commands.describe(reason="Reason for move")
     @commands.has_guild_permissions(move_members=True)
     async def move_user(self, interaction: Interaction, member: discord.Member, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
+        move_user_embed = discord.Embed(title="", color=interaction.user.color)
+        move_user_error_embed = discord.Embed(title="", color=discord.Colour.red())
         # Check the target user was in the vc or not
         if member.voice is None and interaction.user.id == self.bot.application_id:
-            return await interaction.response.send_message(f"I'm currently not in a voice channel.")
+            move_user_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I'm currently not in a voice channel.", inline=False)
+            return await interaction.response.send_message(embed=move_user_error_embed)
         elif interaction.user.voice is None:
-            return await interaction.response.send_message(f"You're currently not in a voice channel !")
+            move_user_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> You're currently not in a voice channel!", inline=False)
+            return await interaction.response.send_message(embed=move_user_error_embed)
         elif member.voice is None:
-            return await interaction.response.send_message(f"{member.mention} currently not in a voice channel.")
+            move_user_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} currently not in a voice channel.", inline=False)
+            return await interaction.response.send_message(embed=move_user_error_embed)
         # Check the target vc
         if channel is None:
             if interaction.user.voice is not None:
                 specified_vc = interaction.user.voice.channel
             else:
                 # The author has not joined the voice channel yet
-                return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move someone into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move {member.mention} into right now, {interaction.user.mention}?''')
+                move_user_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like you're currently not in a voice channel, but trying to move someone into the voice channel that you're connected :thinking: ...\nJust curious to know, where should I move {member.mention} into right now, {interaction.user.mention}?", inline=False)
+                return await interaction.response.send_message(embed=move_user_error_embed)
         else:
             specified_vc = channel
         if reason is None:
             await member.move_to(specified_vc)
             if interaction.user.id == self.bot.application_id:
-                return await interaction.response.send_message(f"I have been moved to {specified_vc.mention}. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
-            await interaction.response.send_message(f"{member.mention} has been moved to {specified_vc.mention}.")
+                move_user_embed.add_field(name="", value=f"I have been moved to {specified_vc.mention}. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.", inline=False)
+                return await interaction.response.send_message(embed=move_user_embed)
+            move_user_embed.add_field(name="", value=f"{member.mention} has been moved to {specified_vc.mention}.", inline=False)
+            await interaction.response.send_message(embed=move_user_embed)
         else:
             await member.move_to(specified_vc, reason=reason)
             if interaction.user.id == self.bot.application_id:
-                return await interaction.response.send_message(f"I have been moved to {specified_vc.mention} for **{reason}**. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.")
-            await interaction.response.send_message(f"{member.mention} has been moved to {specified_vc.mention} for **{reason}**")
+                move_user_embed.add_field(name="", value=f"I have been moved to {specified_vc.mention} for **{reason}**. You can also use </move bot:1212006756989800458> to move me into somewhere else next time :angel:.", inline=False)
+                return await interaction.response.send_message(embed=move_user_embed)
+            move_user_embed.add_field(name="", value=f"{member.mention} has been moved to {specified_vc.mention} for **{reason}**.", inline=False)
+            await interaction.response.send_message(embed=move_user_embed)
 
     @move_user.error
     async def move_user_error(self, interaction: Interaction, error):
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to move users!")
+            move_user_error_embed = discord.Embed(title="", color=discord.Colour.red())
+            move_user_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> This command **requires** `move members` permission, and you probably **don't have** it, {interaction.user.mention}.", inline=False)
+            await interaction.response.send_message(embed=move_user_error_embed)
         else:
             raise error
 
@@ -214,20 +246,27 @@ Just curious to know, where should I move {member.mention} into right now, {inte
     @app_commands.describe(channel="Channel to move you to.")
     @app_commands.describe(reason="Reason for move")
     async def move_me(self, interaction: Interaction, channel: discord.VoiceChannel, reason: Optional[str] = None):
+        move_me_embed = discord.Embed(title="", color=interaction.user.color)
+        move_me_error_embed = discord.Embed(title="", color=discord.Colour.red())
         # Check the target user was in the vc or not
         if interaction.user.voice is None:
-            return await interaction.response.send_message(f"You're currently not in a voice channel!")
+            move_me_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> You're currently not in a voice channel!", inline=False)
+            return await interaction.response.send_message(embed=move_me_error_embed)
         if reason is None:
+            move_me_embed.add_field(name="", value=f"{interaction.user.mention} has been moved to {channel.mention}.", inline=False)
             await interaction.user.move_to(channel)
-            await interaction.response.send_message(f"{interaction.user.mention} has been moved to <#{channel.id}>.")
+            await interaction.response.send_message(embed=move_me_embed)
         else:
+            move_me_embed.add_field(name="", value=f"{interaction.user.mention} has been moved to {channel.mention} for **{reason}**.", inline=False)
             await interaction.user.move_to(channel, reason=reason)
-            await interaction.response.send_message(f"{interaction.user.mention} has been moved to <#{channel.id}> for {reason}")
+            await interaction.response.send_message(embed=move_me_embed)
 
     @move_me.error
     async def move_me_error(self, interaction: Interaction, error):
+        move_me_error_embed = discord.Embed(title="", color=discord.Colour.red())
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to move yourself!")
+            move_me_error_embed.add_field(name=f"<a:CrossRed:1274034371724312646> This command **requires** `move members` permission, and you probably **don't have** it, {interaction.user.mention}.", value="", inline=False)
+            return await interaction.response.send_message(embed=move_me_error_embed)
         else:
             raise error
         
@@ -239,29 +278,36 @@ Just curious to know, where should I move {member.mention} into right now, {inte
     async def move_bot(self, interaction: Interaction, channel: Optional[discord.VoiceChannel] = None, reason: Optional[str] = None):
         player: wavelink.Player
         player = cast(wavelink.Player, interaction.guild.voice_client)
+        move_bot_embed = discord.Embed(title="", color=interaction.user.color)
+        move_bot_error_embed = discord.Embed(title="", color=discord.Colour.red())
         # Check the bot was in the vc or not
         if player is None:
-            return await interaction.response.send_message(f"I'm currently not in a voice channel.")
+            move_bot_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I'm currently not in a voice channel.", inline=False)
+            return await interaction.response.send_message(embed=move_bot_error_embed)
         if channel is None:
             if interaction.user.voice is not None:
                 specified_vc = interaction.user.voice.channel
             else:
                 # The author has not joined the voice channel yet
-                return await interaction.response.send_message(f'''Looks like you're currently not in a voice channel, but trying to move me into the voice channel that you're connected :thinking: ...
-Just curious to know, where should I move into right now, {interaction.user.mention}?''')
+                move_bot_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like you're currently not in a voice channel, but trying to move me into the voice channel that you're connected :thinking: ...\nJust curious to know, where should I move into right now, {interaction.user.mention}?", inline=False)
+                return await interaction.response.send_message(embed=move_bot_error_embed)
         else:
             specified_vc = channel
         if reason is None:
+            move_bot_embed.add_field(name="", value=f"I have been moved to {specified_vc.mention}.", inline=False)
             await player.move_to(specified_vc)
-            await interaction.response.send_message(f"I have been moved to {specified_vc.mention}.")
+            await interaction.response.send_message(embed=move_bot_embed)
         else:
-            await player.move_to(specified_vc, reason=reason)
-            await interaction.response.send_message(f"I have been moved to {specified_vc.mention} for **{reason}**.")
+            move_bot_embed.add_field(name="", value=f"I have been moved to {specified_vc.mention} for **{reason}**.", inline=False)
+            await player.move_to(specified_vc)
+            await interaction.response.send_message(embed=move_bot_embed)
 
     @move_bot.error
     async def move_bot_error(self, interaction: Interaction, error):
+        move_bot_error_embed = discord.Embed(title="", color=discord.Colour.red())
         if isinstance(error, MissingPermissions):
-            await interaction.response.send_message("It seems that you don't have permission to move me!")
+            move_bot_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> This command **requires** `move members` and `moderate members` permission, and you probably **don't have** it, {interaction.user.mention}.", inline=False)
+            return await interaction.response.send_message(embed=move_bot_error_embed)
         else:
             raise error
 
