@@ -2,7 +2,7 @@ import discord
 import asyncio
 import re
 import wavelink
-from discord import app_commands, Embed, Interaction, Forbidden
+from discord import app_commands, Embed, Interaction, Forbidden, Member, VoiceChannel
 from discord.ext import commands
 from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
@@ -108,32 +108,49 @@ class VoiceChannel(commands.Cog):
     # Moving all users or ends a voice call
 
     # Function to move all members (Can move them to any voice channel in the server, or use None to kick them away from the vc)
-    async def move_all_members(self, interaction: Interaction, specified_vc, reason):
-        moved_count = 0
-        for member in interaction.guild.members:
-            if member.voice is not None:
-                if reason is None:
-                    await member.move_to(specified_vc)
-                else:
-                    await member.move_to(specified_vc, reason=reason)
-                moved_count += 1
-        if moved_count == 0:
-            return False
-        return True
+    # Asynchronously move a single member to the target voice channel (to avoid blocking issues)
+    async def move_member(self, member: Member, target_channel: VoiceChannel | None, reason: str | None):
+        try:
+            if reason is not None:
+                await member.move_to(target_channel, reason=reason)
+            else:
+                await member.move_to(target_channel)
+            print(f"Moved {member.name} to {target_channel.name}")
+        except discord.Forbidden:
+            print(f"Permission error: Could not move {member.name}")
+            raise
+        except discord.HTTPException as e:
+            print(f"HTTP error while moving {member.name}: {e}")
+            raise
+
+    async def move_all_members(self, interaction: Interaction, specified_vc: VoiceChannel | None, reason: str | None):
+        # Getting all members in voice
+        all_members = [member for channel in interaction.guild.voice_channels for member in channel.members]
+        # Use asyncio.gather to move all members concurrently
+        results = await asyncio.gather(
+            *(self.move_member(member, specified_vc, reason) for member in all_members),
+            return_exceptions=True
+        )
+        success_count = sum(1 for result in results if not isinstance(result, Exception))
+        failure_count = sum(1 for result in results if isinstance(result, Exception))
+        return {"all_members_vc": all_members, "success_count": success_count, "failure_count": failure_count, "reason": reason}
     
     # Ending a voice call
     @app_commands.command(name="end", description="End the call for all voice channel(s)")
     @app_commands.checks.has_permissions(move_members=True)
-    async def end(self, interaction: Interaction):
+    @app_commands.describe(reason="Reason to end the call")
+    async def end(self, interaction: Interaction, reason: str):
         end_embed = discord.Embed(title="", color=interaction.user.colour)
         end_error_embed = discord.Embed(title="", color=discord.Colour.red())
         end_embed.add_field(name="", value=f"Ending the call for all voice channel(s)...", inline=False)
         await interaction.response.send_message(embed=end_embed)
         end_embed.remove_field(index=0)
-        if not await self.move_all_members(interaction, None, None):
+        end_result = await self.move_all_members(interaction, None, reason)
+        if end_result["success_count"] != end_result["all_members_vc"] and end_result["failure_count"] > 0:
             end_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Something went wrong while ending the call for all channel(s) :thinking:")
             return await interaction.edit_original_response(embed=end_error_embed)
-        end_embed.add_field(name="", value=f"Ended the call for all voice channel(s)", inline=False)
+        reason_message = f"\nReason: **{end_result["reason"]}" if reason is not None else ""
+        end_embed.add_field(name="", value=f"Ended the call for all voice channel(s).{reason_message}", inline=False)
         await interaction.edit_original_response(embed=end_embed)
 
     @end.error
@@ -164,19 +181,15 @@ class VoiceChannel(commands.Cog):
             specified_vc = channel
         move_all_embed.add_field(name="", value=f"<a:LoadingCustom:1295993639641812992> Moving all users to {specified_vc.mention}...", inline=False)
         await interaction.response.send_message(embed=move_all_embed)
-        # Return True when successful to move, or return False when no users were found in the voice channel.
-        if await self.move_all_members(interaction, specified_vc, reason=reason):
-            move_all_embed.remove_field(index=0)
-            if reason is None:
-                move_all_embed.add_field(name="", value=f"All users has been moved to {specified_vc.mention}.", inline=False)
-            else:
-                move_all_embed.add_field(name="", value=f"All users has been moved to {specified_vc.mention} for **{reason}**.", inline=False)
-            return await interaction.edit_original_response(embed=move_all_embed)
-        else:
-            # No users were found in the voice channel
+        move_all_embed.remove_field(index=0)
+        move_all_result = await self.move_all_members(interaction, specified_vc, reason=reason)
+        if move_all_result["failure_count"] == move_all_result["all_members_vc"]:
             move_all_error_embed.add_field(name="", value=f"It seems that no user were found in the voice channel, {interaction.user.mention} :thinking:...")
             return await interaction.edit_original_response(embed=move_all_error_embed)
-
+        failure_message = f" with **{move_all_result["failure_count"]}** failed" if move_all_result["failure_count"] > 0 else ""
+        reason_message = f"\nReason: **{reason}**." if reason is not None else ""
+        move_all_embed.add_field(name="", value=f"**{move_all_result["success_count"]}** users has been moved to {specified_vc.mention}{failure_message}.{reason_message}", inline=False)
+        await interaction.edit_original_response(embed=move_all_embed)
 
     @move_all.error
     async def move_all_error(self, interaction: Interaction, error):
