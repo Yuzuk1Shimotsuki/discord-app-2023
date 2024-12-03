@@ -169,7 +169,7 @@ class VoiceChannel(commands.Cog):
     @app_commands.command(name="end", description="End the call for all voice channel(s)")
     @app_commands.checks.has_permissions(move_members=True)
     @app_commands.describe(reason="Reason to end the call")
-    async def end(self, interaction: Interaction, reason: str):
+    async def end(self, interaction: Interaction, reason: Optional[str] = None):
         end_embed = discord.Embed(title="", color=interaction.user.colour)
         end_error_embed = discord.Embed(title="", color=discord.Colour.red())
         
