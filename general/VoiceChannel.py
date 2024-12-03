@@ -172,16 +172,21 @@ class VoiceChannel(commands.Cog):
     async def end(self, interaction: Interaction, reason: str):
         end_embed = discord.Embed(title="", color=interaction.user.colour)
         end_error_embed = discord.Embed(title="", color=discord.Colour.red())
+        
         end_embed.add_field(name="", value=f"Ending the call for all voice channel(s)...", inline=False)
+        
         await interaction.response.send_message(embed=end_embed)
+        
         end_embed.remove_field(index=0)
         end_result = await self.move_all_members(interaction, None, reason)
-        print(end_result)
+
         if end_result["success_count"] != end_result["all_members_vc_count"] and end_result["failure_count"] > 0:
             end_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Something went wrong while ending the call for all channel(s) :thinking:")
             return await interaction.edit_original_response(embed=end_error_embed)
+        
         reason_message = f"\nReason: **{end_result["reason"]}" if reason is not None else ""
         end_embed.add_field(name="", value=f"Ended the call for all voice channel(s).{reason_message}", inline=False)
+        
         await interaction.edit_original_response(embed=end_embed)
 
 
