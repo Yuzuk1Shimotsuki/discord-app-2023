@@ -10,9 +10,11 @@ from errorhandling.ErrorHandling import *
 
 most_recent_poll_message = {}
 
+
 class PollNew(commands.Cog):
     def __init__(self, bot) -> None:
         self.bot = bot
+
 
     # Getting required message ID from user input
     async def get_message_id(self, message: str):
@@ -21,13 +23,17 @@ class PollNew(commands.Cog):
                 # URL
                 url_list = message.split("/")
                 message_id = int(url_list[-1])
+
             else:
                 # ID
                 message_id = int(message)
+
             return message_id
+        
         except ValueError:
             # The type of message user provided was not a valid type
             return None
+
 
     # Creates a new poll
     @app_commands.command(description='Creates a poll')
@@ -50,26 +56,35 @@ class PollNew(commands.Cog):
         PollSuccessEmbed = discord.Embed(title="Success!", color=discord.Colour.green())
         PollErrorEmbed = discord.Embed(title="Error", color=discord.Colour.red())
         guild_id = interaction.guild.id
+
         if (duration.value == "custom" and custom_duration is None) or (duration.value != "custom" and custom_duration is not None):
             PollErrorEmbed.add_field(name=f"", value=f"Please enter a vaild duration for the poll!", inline=False)
             return await interaction.response.send_message(embed=PollErrorEmbed)
+        
         if duration.value == "custom":
             vaild_duration = custom_duration
+
         else:
             vaild_duration = int(duration.value)
+
         total_hours = timedelta(hours=vaild_duration)
         answer_list = answers.split(", ")
+
         if len(answer_list) > 10:
             PollErrorEmbed.add_field(name=f"", value=f"Looks like the number of options you entered exceeded the maximum limit :thinking: ... (**{len(answer_list)}** out of **10**)", inline=False)
             return await interaction.response.send_message(embed=PollErrorEmbed)
         new_poll = Poll(question=question, duration=total_hours, multiple=multiple, layout_type=PollLayoutType.default)
+
         for poll_answer in answer_list:
             new_poll.add_answer(text=poll_answer, emoji=None)
+
         if guild_id in most_recent_poll_message:
             del most_recent_poll_message[guild_id]
+
         PollSuccessEmbed.add_field(name=f"", value=f"The poll has been created.", inline=False)
         await interaction.response.send_message(embed=PollSuccessEmbed, ephemeral=True, silent=True, delete_after=1.5)
         most_recent_poll_message[guild_id] = await interaction.channel.send(poll=new_poll)
+
 
     # Since adding and removing answer from the poll were not suppported in discord API currently, those operations were ignored.
 
@@ -83,30 +98,40 @@ class PollNew(commands.Cog):
         PollErrorEmbed = discord.Embed(title="Error", color=discord.Colour.red())
         guild_id = interaction.guild.id
         poll_to_edit = None
+
         if poll_message is None and guild_id in most_recent_poll_message:  # Returns if no "poll_message" were specified and self.most_recent_poll_message[guild_id] exsist.
             poll_to_edit = most_recent_poll_message[guild_id]
+
         elif poll_message is not None:  # Returns if "poll_message" were specified.
             message_id = await self.get_message_id(poll_message)
+
             for text_channel in interaction.guild.text_channels:
                 if poll_to_edit is None:
                     try:
                         poll_to_edit = await text_channel.fetch_message(message_id)
+
                     except NotFound:
                         pass
+
                 else:
                     break
+
         else:   # Returns if no "poll_message" were specified and self.most_recent_poll_message[guild_id] does not exsist.
             PollErrorEmbed.add_field(name=f"", value=f"There is currently no vaild polls on this server, or `poll_message` has not been specified yet.", inline=False)
             return await interaction.followup.send(embed=PollErrorEmbed)
+        
         if poll_to_edit is None:
             PollErrorEmbed.add_field(name=f"", value=f"The poll you wanted to terminate were not created on this server!", inline=False)
             return await interaction.followup.send(embed=PollErrorEmbed)
+        
         elif poll_to_edit.poll is None:
             PollErrorEmbed.add_field(name=f"", value=f"There is no poll attached on this message!", inline=False)
             return await interaction.followup.send(embed=PollErrorEmbed)
+        
         elif poll_to_edit.poll.is_finalised():
             PollErrorEmbed.add_field(name=f"", value=f"The poll has been already terminated!", inline=False)
             return await interaction.followup.send(embed=PollErrorEmbed)
+        
         else:
             await poll_to_edit.end_poll()
             PollSuccessEmbed.add_field(name=f"", value=f"The poll has been terminated.", inline=False)

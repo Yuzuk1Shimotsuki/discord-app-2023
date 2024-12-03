@@ -22,7 +22,9 @@ load_dotenv()
 discord.opus._load_default()  # mandatory for those who wonder
 record_path = f"configs/Bot/plugins/custom_recording/caches" # default record path
 
+
 # ---------- <Voice Recorder>----------
+
 
 def add_silence_to_wav(input_data: bytes, silence_duration: float) -> bytes:
     audio = AudioSegment.from_wav(io.BytesIO(input_data))
@@ -32,6 +34,7 @@ def add_silence_to_wav(input_data: bytes, silence_duration: float) -> bytes:
     final_audio.export(output_buffer, format="wav")
     return output_buffer.getvalue()
 
+
 class MultiAudioImprovedWithSilenceSink(AudioSink):
     def __init__(self):
         super().__init__()
@@ -40,6 +43,7 @@ class MultiAudioImprovedWithSilenceSink(AudioSink):
         self.silence_generators: Dict[int, SilenceGenerator] = {}
         self.start_time = time.perf_counter_ns()
         self.first_packet_time: Dict[int, int] = {}
+
 
     def _get_or_create_sink(self, user_id: int) -> WaveSink:
         if user_id not in self.user_sinks:
@@ -51,8 +55,10 @@ class MultiAudioImprovedWithSilenceSink(AudioSink):
             self.silence_generators[user_id].start()
         return self.user_sinks[user_id]
 
+
     def wants_opus(self) -> bool:
         return False
+
 
     def write(self, user: Optional[discord.User], data: VoiceData) -> None:
         if user is None:
@@ -67,6 +73,7 @@ class MultiAudioImprovedWithSilenceSink(AudioSink):
         silence_gen.push(user, data.packet)
         sink.write(user, data)
 
+
     def cleanup(self) -> None:
         for silence_gen in self.silence_generators.values():
             silence_gen.stop()
@@ -74,18 +81,23 @@ class MultiAudioImprovedWithSilenceSink(AudioSink):
         self.user_buffers.clear()
         self.silence_generators.clear()
 
+
     def get_user_audio(self, user_id: int) -> Optional[bytes]:
         if user_id in self.user_buffers:
             buffer = self.user_buffers[user_id]
             buffer.seek(0)
             audio_data = buffer.read()
             return audio_data
+        
         return None
+
 
     def get_initial_silence_duration(self, user_id: int) -> float:
         if user_id in self.first_packet_time:
             return (self.first_packet_time[user_id] - self.start_time) / 1e9  # nano to sec
+        
         return 0.0
+
 
     def mix_audio(self, audio_data_dict: Dict[int, bytes]) -> Optional[bytes]:
         audio_arrays = []
@@ -137,14 +149,17 @@ class VoiceRecorder(commands.Cog):
         self.custom_sink = MultiAudioImprovedWithSilenceSink()
         self.is_recording = False
 
+
     @app_commands.command(name="start-recording", description="🟢 Starts voice recording in the user's current voice channel")
     async def start_recording(self, interaction: Interaction):
         if not interaction.user.voice:
             return await interaction.response.send_message("<a:CrossRed:1274034371724312646> You must be connected to a voice channel to use this command.", ephemeral=True)
 
         if self.bot.voice_clients:
+
             if isinstance(self.bot.voice_clients[0], wavelink.Player):
                 return await interaction.response.send_message("<a:CrossRed:1274034371724312646> The voice client is now being occupied by the music player, Please terminate the player and try again.", ephemeral=True)
+            
             else:
                 return await interaction.response.send_message("<a:CrossRed:1274034371724312646> I'm already connected to a voice channel.", ephemeral=True)
 
@@ -163,9 +178,11 @@ class VoiceRecorder(commands.Cog):
 
         await interaction.response.send_message("🎙️ Recording has started. Use </stop-recording:1298511803277512806> to stop.")
 
+
     @app_commands.command(name="stop-recording", description="🔴 Stops the current voice recording")
     async def stop_recording(self, interaction: Interaction):
         voice_client = interaction.guild.voice_client
+        
         if not voice_client or not self.is_recording:
             return await interaction.response.send_message("<a:CrossRed:1274034371724312646> No recording in progress.", ephemeral=True)
 
@@ -176,9 +193,10 @@ class VoiceRecorder(commands.Cog):
         voice_client.stop_listening()
         all_audio_data = {}
         voice_channel = interaction.user.voice.channel
+
         for member in voice_channel.members:
-            
             audio_data = self.custom_sink.get_user_audio(member.id)
+
             if audio_data and len(audio_data) > 44:
                 silence_duration = self.custom_sink.get_initial_silence_duration(member.id)
                 final_audio_data = add_silence_to_wav(audio_data, silence_duration)
@@ -186,6 +204,7 @@ class VoiceRecorder(commands.Cog):
         
         if all_audio_data:
             combined_audio = self.custom_sink.mix_audio(all_audio_data)
+
             if combined_audio:
                 combined_file_path = f"{record_path}/combined_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
                 
@@ -199,11 +218,14 @@ class VoiceRecorder(commands.Cog):
                         await asyncio.sleep(1.5)
                         f.close()
                         os.remove(combined_file_path)
+
                     except discord.errors.HTTPException as e:
                         if e.status == 413 and e.code == 40005:
                             return await interaction.followup.send("<a:CrossRed:1274034371724312646> Failed to send the recording because the file was too large")
+                        
                         else:
                             raise e
+                        
         else:
             record_result_embed.add_field(name="", value="<a:CrossRed:1274034371724312646> Recording **failed** or the file is **empty**.", inline=False)
             return await interaction.followup.send(embed=record_result_embed)
