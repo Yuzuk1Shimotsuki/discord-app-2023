@@ -1007,3 +1007,17 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Reafactor VoiceChannel.py for Embed support
 
+#
+
+# 20241203 (night)
+
+(-) Removed workflow **"push_to_docker.yml"**
+
+(+) Rewrited **"move_all()"** and **"end"** in **"./general/VoiceChannel.py"** for better resource usuage
+
+(+) Migrated the application to Hetzner Cloud from Microsoft Azure.
+
+(+) Temporarily fixed Lavalink issues for Web playback
+
+(+) Minior code improvement
+
