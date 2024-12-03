@@ -94,7 +94,7 @@ Welcome to the application!
 Bot Username: {bot.user.name}#{bot.user.discriminator}
 Bot ID: {bot.application_id}
 
-The application is now initialized and waiting for your demands!
+The application is now initialized and waiting on your demands!
 
 {"-" * 120}
 
