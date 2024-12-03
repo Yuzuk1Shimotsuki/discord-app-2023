@@ -13,9 +13,8 @@ plugins:
     # Clients are queried in the order they are given (so the first client is queried first and so on...)
     clients:
       - WEB
-      - TVHTML5EMBEDDED
       - MUSIC
-      - ANDROID_TESTSUITE
+      - TVHTML5EMBEDDED
     # pot:
       # token: "paste your po_token here"
       # visitorData: "paste your visitor_data here"
