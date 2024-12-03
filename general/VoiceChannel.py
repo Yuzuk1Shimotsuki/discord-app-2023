@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import re
+import logging
 import wavelink
 from discord import app_commands, Embed, Interaction, Forbidden, Member, VoiceChannel
 from discord.ext import commands
@@ -8,10 +9,12 @@ from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
 from typing import cast, Optional, Union
 from general.VoiceChannelFallbackConfig import *
+from configs.Logging import setup_logger
 from errorhandling.ErrorHandling import *
 
 recording_vc = {}
-    
+logger = setup_logger('discord_bot', 'bot.log', logging.INFO)
+
 # Main cog, heavily rewrited after wavelink implementation
 class VoiceChannel(commands.Cog):
     def __init__(self, bot):
@@ -121,7 +124,7 @@ class VoiceChannel(commands.Cog):
 
 
     # Moving all users or ends a voice call
-    # Function to move all members (Can move them to any voice channel in the server, or use None to kick them away from the vc)
+    # Function to move all members (i.e. move them to any voice channel in the server, or use None to kick them away from the vc)
 
     # Asynchronously move a single member to the target voice channel (to avoid blocking issues)
     async def move_member(self, member: Member, target_channel: VoiceChannel | None, reason: str | None):
@@ -132,20 +135,26 @@ class VoiceChannel(commands.Cog):
             else:
                 await member.move_to(target_channel)
 
-            print(f"Moved {member.name} to {target_channel.name}")
+            if target_channel is None:
+                logger.info(f"Terminated {member.name} from voice")
+            
+            else:
+                logger.info(f"Moved {member.name} to {target_channel.name}")
 
         except discord.Forbidden:
-            print(f"Permission error: Could not move {member.name}")
+            logger.error(f"Permission error: Could not move {member.name}")
             raise
         
         except discord.HTTPException as e:
-            print(f"HTTP error while moving {member.name}: {e}")
+            logger.error(f"HTTP error while moving {member.name}: {e}")
             raise
 
 
+    # Apply the above function for moving all users (to avoid blocking issues)
     async def move_all_members(self, interaction: Interaction, specified_vc: VoiceChannel | None, reason: str | None):
         # Getting all members in voice
         all_members = [member for channel in interaction.guild.voice_channels for member in channel.members]
+
         # Use asyncio.gather to move all members concurrently
         results = await asyncio.gather(
             *(self.move_member(member, specified_vc, reason) for member in all_members),
@@ -153,9 +162,9 @@ class VoiceChannel(commands.Cog):
         )
         success_count = sum(1 for result in results if not isinstance(result, Exception))
         failure_count = sum(1 for result in results if isinstance(result, Exception))
-        return {"all_members_vc": all_members, "success_count": success_count, "failure_count": failure_count, "reason": reason}
+        return {"all_members_vc_count": len(all_members), "success_count": success_count, "failure_count": failure_count, "reason": reason}
     
-
+    
     # Ending a voice call
     @app_commands.command(name="end", description="End the call for all voice channel(s)")
     @app_commands.checks.has_permissions(move_members=True)
@@ -167,7 +176,8 @@ class VoiceChannel(commands.Cog):
         await interaction.response.send_message(embed=end_embed)
         end_embed.remove_field(index=0)
         end_result = await self.move_all_members(interaction, None, reason)
-        if end_result["success_count"] != end_result["all_members_vc"] and end_result["failure_count"] > 0:
+        print(end_result)
+        if end_result["success_count"] != end_result["all_members_vc_count"] and end_result["failure_count"] > 0:
             end_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Something went wrong while ending the call for all channel(s) :thinking:")
             return await interaction.edit_original_response(embed=end_error_embed)
         reason_message = f"\nReason: **{end_result["reason"]}" if reason is not None else ""
@@ -214,7 +224,7 @@ class VoiceChannel(commands.Cog):
         move_all_embed.remove_field(index=0)
         move_all_result = await self.move_all_members(interaction, specified_vc, reason=reason)
 
-        if move_all_result["failure_count"] == move_all_result["all_members_vc"]:
+        if move_all_result["failure_count"] == move_all_result["all_members_vc_count"]:
             move_all_error_embed.add_field(name="", value=f"It seems that no user were found in the voice channel, {interaction.user.mention} :thinking:...")
             return await interaction.edit_original_response(embed=move_all_error_embed)
         
