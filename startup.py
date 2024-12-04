@@ -40,7 +40,7 @@ class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
             intents=intents, 
-            command_prefix="!",
+            command_prefix="?",
             self_bot=False,     # This is IMPORTANT!
             strip_after_prefix = True
         )
@@ -64,7 +64,6 @@ def get_extensions():
     extensions = []
 
     for folder in extensions_folders:
-
         for filename in os.listdir(f"./{folder}"):
 
             if filename.endswith('.py'):
@@ -330,6 +329,7 @@ async def start_bot():
         if http_error.status == 429:
             logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
             logger.error("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
+            
             instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
         
         else:
