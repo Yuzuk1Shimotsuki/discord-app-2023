@@ -1023,7 +1023,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 # 
 
-# 20241206 (midnight) (*) 
+# 20241206 (midnight) (*) v2.0.0
 
 # Implemented MongoDB database
 
