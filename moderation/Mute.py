@@ -129,7 +129,7 @@ class Mute(commands.Cog):
             
 
     # Background task to handle only time-based unmutes
-    @tasks.loop(seconds=0.1)  # Check for unmutes every 0.1 seconds for minimum delay
+    @tasks.loop(seconds=1)  # Check for unmutes every 1 seconds for minimum delay
     async def unmute_text_task(self):
         now = datetime.now(timezone.utc)
         database = self.db.moderation_mute
