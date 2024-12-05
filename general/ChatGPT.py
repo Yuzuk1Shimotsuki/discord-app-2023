@@ -41,10 +41,6 @@ other specified by user. For example, when output formatted in forum markdown, h
     '''
 }
 
-# Chat storage
-chat_messages = {"DM": {}, "Guild": {}}
-chat_history = {"DM": {}, "Guild": {}}
-
 def format_message(message: str) -> list:
     """Format and split a message into chunks that adhere to Discord's 2000 character limit."""
     message = message.replace("######", "###").replace("#####", "###").replace("####", "###")
@@ -69,7 +65,11 @@ def format_message(message: str) -> list:
     return parts
 
 
-class ChatGPTModal(Modal, title="Talk to our AI assistant"):
+class ChatGPTModal(Modal):
+    def __init__(self, db):
+        self.db = db    # Connect to MongoDB
+        super().__init__(title="Talk to our AI assistant")
+
     custom_prompt = TextInput(
         label="Custom Prompt",
         placeholder="Your prompt here...",
@@ -102,8 +102,8 @@ class ChatGPTModal(Modal, title="Talk to our AI assistant"):
                 presence_penalty=GPT_MODEL_CONFIG["presence_penalty"]
             )
             return response.choices[0].message.content
-        # Handling expections from API errors
         
+        # Handling expections from API errors
         except openai.APITimeoutError as e:
             error_embed = discord.Embed(title="<a:CrossRed:1274034371724312646>  Azure OpenAI API request timed out", timestamp=datetime.now(), color=discord.Colour.red())
             error_message = ast.literal_eval(str(e).split(f"{e.status_code} - ")[1])["message"]
@@ -159,40 +159,44 @@ class ChatGPTModal(Modal, title="Talk to our AI assistant"):
             return None
 
 
+    # Action after submitting the modal
     async def on_submit(self, interaction: Interaction):
         """Process and handle the modal submission."""
+        database = self.db.chatgpt
+        chat_messages_collection = database["messages"]
+        chat_history_collection = database["history"]
         channel_id = interaction.channel.id
         guild_id = interaction.guild.id if interaction.guild else None
         context = "Guild" if interaction.guild else "DM"
-        
-        if isinstance(interaction.channel, discord.DMChannel):
-            messages = chat_messages[context].setdefault(channel_id, [])    # DM messages
-            history = chat_history[context].setdefault(channel_id, [])
-        
-        elif guild_id:
-            messages = chat_messages[context].setdefault(guild_id, {}).setdefault(channel_id, [])   # Guild messages
-            history = chat_history[context].setdefault(guild_id, {}).setdefault(channel_id, [])
-        
-        else:
-            raise NotImplementedError()    # Rare cases
 
         # Initialize interaction response
         await interaction.response.defer()
         wait_message = await interaction.followup.send("<a:LoadingCustom:1295993639641812992> *Waiting for GPT to respond...*", wait=True)
-        
-        if len(history) > 60:
+
+        # Fetch or initialize chat history from MongoDB
+        query = {"context": context, "guild_id": guild_id, "channel_id": channel_id}
+        chat_messages = chat_messages_collection.find_one(query) or {"messages": []}
+        history = chat_history_collection.find_one(query) or {"history": []}
+
+        # Reset chat history if too long
+        if len(history.get("history", [])) > 60:
             ChatGPT.reset_chat(interaction, "channel", channel_id, guild_id)
 
+        # Prepare messages
         prompt_text = self.custom_prompt.value or GPT_MODEL_CONFIG["system_message"]
-        messages.append({"role": "system", "content": prompt_text})
-        messages.append({"role": "user", "content": self.content.value})
+        chat_messages["messages"].append({"role": "system", "content": prompt_text})
+        chat_messages["messages"].append({"role": "user", "content": self.content.value})
 
-        response = await self.get_response_from_gpt(interaction, messages)
-        
+        response = await self.get_response_from_gpt(interaction, chat_messages["messages"])
         if response is None:
-            return await wait_message.edit(content="<a:CrossRed:1274034371724312646> An error occured while communicating with Azure OpenAI API.")
-        
-        history.append({"role": "assistant", "content": response})
+            return await wait_message.edit(content="<a:CrossRed:1274034371724312646> An error occurred while communicating with Azure OpenAI API.")
+
+        # Save response to MongoDB
+        history["history"].append({"role": "assistant", "content": response})
+        chat_history_collection.update_one(query, {"$set": history}, upsert=True)
+        chat_messages_collection.update_one(query, {"$set": chat_messages}, upsert=True)
+
+        # Format and send response
         quote = f"> {interaction.user.mention}: **{self.content.value}**{discord.utils.escape_markdown(' ')}"
         edited_response = f"{quote}\n{discord.utils.escape_markdown(' ')}\n{response}"
         
@@ -203,60 +207,63 @@ class ChatGPTModal(Modal, title="Talk to our AI assistant"):
         
         await wait_message.delete()
 
+
 class ChatGPT(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.db = self.bot.get_cluster()
 
-    @staticmethod
-    def reset_chat(interaction: Interaction, type: str, channel_id: int, guild_id: int = None):
-        """Clear stored chat messages and history based on reset scope. Returning as [message: str, status: bool]"""
+
+    def reset_chat(self, interaction: Interaction, type: str, channel_id: str, guild_id: str = None):
+        """Clear stored chat messages and history in MongoDB."""
+        query = {"context": "Guild" if guild_id else "DM", "guild_id": guild_id, "channel_id": channel_id}
+        database = self.db.chatgpt
+        chat_messages_collection = database["messages"]
+        chat_history_collection = database["history"]
+
         if type == "channel":
+            # Check if any records exist on the channel
+            channel_records_exist = chat_messages_collection.find_one(query) and chat_history_collection.find_one(query)
+    
+            if not channel_records_exist:
+                return [f"<a:CrossRed:1274034371724312646> No **chat history** found on <#{interaction.channel.id}>.", False]
+
+            chat_messages_collection.delete_one(query)
+            chat_history_collection.delete_one(query)
+
+            if isinstance(interaction.channel, discord.DMChannel) or guild_id is None:
+                return [f"**Chat history** reset for <#{interaction.channel.id}>.", True]    # channel.mention doesn't work for discord.DMChannel objects
             
-            if isinstance(interaction.channel, discord.DMChannel):
-                
-                if chat_messages["DM"].get(channel_id) and chat_history["DM"].get(channel_id):
-                    chat_messages["DM"].pop(channel_id, None)
-                    chat_history["DM"].pop(channel_id, None)
-                    return [f"Chat history reset for <#{interaction.channel.id}>.", True]    # channel.mention doesn't work for discord.DMChannel objects
-                
-                else:
-                    return [f"<a:CrossRed:1274034371724312646> No chat history for channel {interaction.channel.mention}.", False]
-            
-            if chat_messages["Guild"].get(guild_id, {}).get(channel_id) and chat_history["Guild"].get(guild_id, {}).get(channel_id):
-                chat_messages["Guild"].get(guild_id, {}).pop(channel_id, None)
-                chat_history["Guild"].get(guild_id, {}).pop(channel_id, None)
-                return [f"Chat history reset for {interaction.channel.mention} in current server.", True]
-            
-            else:
-                return [f"<a:CrossRed:1274034371724312646> No chat history for channel {interaction.channel.mention}.", False]
+            return [f"**Chat history** reset for {interaction.channel.mention} in **current server**.", True]
         
         elif type == "server":
+            if isinstance(interaction.channel, discord.DMChannel) or guild_id is None:
+                return [f"<a:CrossRed:1274034371724312646> <#{interaction.channel.id}> is **not belongs to** a **server**.", False]
             
-            if isinstance(interaction.channel, discord.DMChannel):
-                return [f"<a:CrossRed:1274034371724312646> <#{interaction.channel.id}> is not belongs to a server.", False]   # channel.mention doesn't work for discord.DMChannel objects
+            # Check if any records exist on the server
+            server_records_exist = chat_messages_collection.find_one({"context": "Guild", "guild_id": guild_id}) and chat_history_collection.find_one({"context": "Guild", "guild_id": guild_id})
             
-            if chat_messages["Guild"].get(guild_id) and chat_history["Guild"].get(guild_id):
-                chat_messages["Guild"].pop(guild_id, None)
-                chat_history["Guild"].pop(guild_id, None)
-                return ["Chat history has been reset for current server.", True]
-            
-            else:
-                return ["<a:CrossRed:1274034371724312646> No chat history for current server.", False]
+            if not server_records_exist:
+                return [f"<a:CrossRed:1274034371724312646> No **chat history** found on **this server**.", False]
+
+            chat_messages_collection.delete_many({"context": "Guild", "guild_id": guild_id})
+            chat_history_collection.delete_many({"context": "Guild", "guild_id": guild_id})
+            return ["**Chat history** reset for **this server**.", True]
         
         elif type == "all":
-            
-            if chat_messages["DM"] == {} and chat_messages["Guild"] == {} and chat_history["DM"] == {} and chat_history["Guild"] == {}:
-                return ["<a:CrossRed:1274034371724312646> No chat history for all channel(s) and server(s).", False]
-            
-            chat_messages["DM"].clear()
-            chat_messages["Guild"].clear()
-            chat_history["DM"].clear()
-            chat_history["Guild"].clear()
-            
+            # Check if any records exist globally
+            all_records_exist = chat_messages_collection.find_one({}) and chat_history_collection.find_one({})
+    
+            if not all_records_exist:
+                return ["<a:CrossRed:1274034371724312646> No **chat history** found on **all server(s) and channel(s)**.", False]
+    
+            # Delete all records
+            chat_messages_collection.delete_many({})
+            chat_history_collection.delete_many({})
             return ["All chat history has been reset.", True]
         
         else:
-            raise RuntimeError(f"An unexpected error occured while resetting ChatGPT.")
+            raise RuntimeError("An unexpected error occurred while resetting chat history.")
 
 
     # Clear chat history in ChatGPT
@@ -290,11 +297,12 @@ class ChatGPT(commands.Cog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def chatgpt(self, interaction: Interaction):
         """Launch the ChatGPT modal for user interaction."""
-        await interaction.response.send_modal(ChatGPTModal())
+        await interaction.response.send_modal(ChatGPTModal(db=self.db))
+
 
 # ----------</ChatGPT>----------
 
+
 async def setup(bot):
     await bot.add_cog(ChatGPT(bot))
- 
- 
+
