@@ -4,9 +4,10 @@ import re
 import logging
 import wavelink
 from discord import app_commands, Embed, Interaction, Forbidden, Member, VoiceChannel
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
+from datetime import datetime, timezone, timedelta
 from typing import cast, Optional, Union
 from general.VoiceChannelFallbackConfig import *
 from configs.Logging import setup_logger
@@ -22,6 +23,11 @@ class VoiceChannel(commands.Cog):
         global set_fallback_channel
         global recording_vc
         self.bot = bot
+        self.db = self.bot.get_cluster()
+        self.unmute_voice_task.start()
+
+    def cog_unload(self):
+        self.unmute_voice_task.cancel()  # Stop the task when the cog is unloaded
 
     move = app_commands.Group(name="move", description="Move User")
 
@@ -455,17 +461,20 @@ class VoiceChannel(commands.Cog):
     
     # Function of mutes a member from voice channel
     async def mute_member_voice(self, interaction: Interaction, member: discord.Member, duration_str: str | None, reason: str):
+        database = self.db.moderation_mute
+        mute_voice_collection = database["mute_voice"]
         vmute_embed = Embed(title="", color=interaction.user.color)
         vmute_error_embed = Embed(title="", color=discord.Colour.red())
+        
         try:
-            if duration_str is not None:  # For time-based voice mute only
-                total_duration = self.timestring_converter(duration_str)
-
+            if duration_str is not None:  # For time-based mute only
+                total_duration = self.parse_duration(duration_str)
+                
                 if total_duration == "error_improper_format":
                     vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Looks like the time fomrmat you entered it's not vaild :thinking: ... Perhaps enter again and gave me a chance to handle it, {interaction.user.mention} :pleading_face:?", inline=False)
                     vmute_error_embed.add_field(name="Supported time format:", value=f"**1**s = **1** second | **2**m = **2** minutes | **5**h = **5** hours | **10**d = **10** days | **3**w = **3** weeks | **6**y = **6** years.", inline=False)
                     return await interaction.response.send_message(embed=vmute_error_embed)
-                
+            
             if member.voice.mute:
                 vmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **already muted from voice**!")
                 return await interaction.response.send_message(embed=vmute_error_embed)
@@ -481,12 +490,19 @@ class VoiceChannel(commands.Cog):
 
             vmute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted from voice** {duration_message}:zipper_mouth:{reason_message}")
             await interaction.response.send_message(embed=vmute_embed)
-
-            if duration_str is not None:  # For time-based voice mute only
-                await asyncio.sleep(total_duration["total_seconds"])
-
-                if member.voice:
-                    await member.edit(mute=False, reason=f"Automatically unmuted after {duration_str}.")
+            
+            # Save mute info to the database
+            if duration_str is not None:
+                mute_end_time = datetime.now(timezone.utc) + timedelta(seconds=total_duration["total_seconds"])    # For time-based mute only
+            else:
+                mute_end_time = None
+            mute_voice_collection.insert_one({
+                "guild_id": interaction.guild.id,
+                "user_id": member.id,
+                "time_based": True if duration_str is not None else False,
+                "mute_end_time": mute_end_time,
+                "reason": reason
+            })
                     
         except Forbidden as e:
             if e.status == 403 and e.code == 50013:
@@ -496,6 +512,53 @@ class VoiceChannel(commands.Cog):
 
             else:
                 raise e
+
+
+    # Background task to handle only time-based unmutes
+    @tasks.loop(seconds=0.1)  # Check for unmutes every 0.1 seconds for minimum delay
+    async def unmute_voice_task(self):
+        now = datetime.now(timezone.utc)
+        database = self.db.moderation_mute
+        mute_voice_collection = database["mute_voice"]
+
+        # Query for expired time-based mutes (exclude records with mute_end_time = None)
+        expired_mutes = mute_voice_collection.find({
+            "time_based": True,  # Only time-based mutes
+            "mute_end_time": {"$ne": None, "$lte": now}  # Exclude None and check for expired times
+        })
+
+        for mute in expired_mutes:
+            guild = self.bot.get_guild(mute["guild_id"])
+            if not guild:
+                # If the guild is not found, skip this record
+                continue
+
+            member = guild.get_member(mute["user_id"])
+            if not member:
+                # If the member is not in the guild, skip this record
+                continue
+
+            # Check if the member is in a voice channel
+            if not member.voice:
+                # If the member is not connected to a voice channel, skip this record
+                continue
+
+            # Unmute the member from voice
+            try:
+                await member.edit(mute=False, reason="Voice mute duration expired")
+
+            except discord.Forbidden:
+                # If the bot lacks the permissions to unmute, skip this member
+                continue
+
+            except discord.HTTPException as e:
+                # Handle any unexpected errors with a log or skip this member
+                print(f"Failed to unmute {member} in guild {guild.id}: {e}")
+                continue
+
+            # Remove the mute record from the database
+            mute_voice_collection.delete_one({"_id": mute["_id"]})
+
 
     # Mutes a member from voice for a specified amount of time
     @app_commands.command(description="Mutes a member from voice channels")
@@ -541,6 +604,7 @@ class VoiceChannel(commands.Cog):
         else:
             raise error
 
+
     # Unmutes a member from voice
     @app_commands.command(description="Unmutes a member from voice channels")
     @app_commands.checks.has_permissions(moderate_members=True)
@@ -548,26 +612,48 @@ class VoiceChannel(commands.Cog):
     @app_commands.describe(member="Member to unmute (Enter the User ID e.g. 529872483195806124)")
     @app_commands.describe(reason="Reason for unmute")
     async def vunmute(self, interaction: Interaction, member: discord.Member, reason: Optional[str] = None):
+        database = self.db.moderation_mute
+        mute_voice_collection = database["mute_voice"]
         vunmute_embed = Embed(title="", color=interaction.user.color)
         vunmute_error_embed = Embed(title="", color=discord.Colour.red())
+
+        # Fetch mute record from the database
+        mute_record = mute_voice_collection.find_one({"guild_id": interaction.guild.id, "user_id": member.id})
 
         if member.voice is None:
             vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not connected to voice** currently.")
             return await interaction.response.send_message(embed=vunmute_error_embed)
-        
+
+        if not mute_record:
+            # If no mute record is found in the database, the user is not muted
+            vunmute_error_embed.add_field(name="" ,value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not currently muted from voice** in the database.", inline=False)
+            return await interaction.response.send_message(embed=vunmute_error_embed, ephemeral=True)
+
+        # Check if the user actually muted from voice
         if not member.voice.mute:
-            vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not muted from voice** currently.")
-            return await interaction.response.send_message(embed=vunmute_error_embed)
-        
-        if reason is not None:
-            await member.edit(mute=False, reason=reason)
-            vunmute_embed.add_field(name="", value=f"{member.mention} has been **unmuted from voice**.\nReason: **{reason}**")
+            vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} does **not muted from voice**, but they are recorded as muted in the database.", inline=False)
+            return await interaction.response.send_message(embed=vunmute_error_embed, ephemeral=True)
 
-        else:
-            await member.edit(mute=False)
-            vunmute_embed.add_field(name="", value=f"{member.mention} has been **unmuted from voice**.")
+        # Remove the Muted role
+        try:
+            if reason is None:
+                if member.voice:
+                    await member.edit(mute=False)
+                    vunmute_embed.add_field(name="", value=f"{member.mention} has been **unmuted**.")
+            else:
+                if member.voice:
+                    await member.edit(mute=False, reason=reason)
+                    vunmute_embed.add_field(name="", value=f"{member.mention} has been **unmuted**.\nReason: **{reason}**.")
+        except discord.Forbidden:
+            vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I couldn't **unmute** {member.mention} **from voice**. Please check my **permissions** and **role position**.", inline=False)
+            return await interaction.response.send_message(embed=vunmute_error_embed, ephemeral=True)
 
+        # Remove the mute record from the database
+        mute_voice_collection.delete_one({"_id": mute_record["_id"]})
+
+        # Send confirmation message
         await interaction.response.send_message(embed=vunmute_embed)
+
 
     @vunmute.error
     async def vunmute_error(self, interaction: Interaction, error):
@@ -583,6 +669,7 @@ class VoiceChannel(commands.Cog):
 
         else:
             raise error
+
 
     # Kicks a member from voice
     @app_commands.command(description="Kicks a member from the voice channel")
