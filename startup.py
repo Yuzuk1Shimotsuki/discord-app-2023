@@ -10,6 +10,7 @@ import signal
 import socket
 import subprocess
 import time
+import multiprocessing
 from multiprocessing import Process, Queue
 from GetDetailIPv4Info import *
 from discord.ext import commands
@@ -404,6 +405,7 @@ def startup(queue):
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method('spawn')
     try:
         q = Queue() # IMPORTANT
         p = Process(target=startup, args=[q,])
