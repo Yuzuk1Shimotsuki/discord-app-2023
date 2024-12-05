@@ -19,6 +19,9 @@ from quart import Quart
 from dotenv import load_dotenv
 from configs.Logging import setup_logger
 from errorhandling.ErrorHandling import *
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+
 
 load_dotenv()
 nest_asyncio.apply()
@@ -40,11 +43,20 @@ class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
             intents=intents, 
-            command_prefix="?",
+            command_prefix="!",
             self_bot=False,     # This is IMPORTANT!
             strip_after_prefix = True
         )
+        self.mongo_client = MongoClient(os.getenv("MONGO_DATABASE_URL"), server_api=ServerApi('1'))
+        try:
+            self.mongo_client.admin.command('ping')
+            print("Pinged your deployment. You successfully connected to MongoDB!")
+        except Exception as e:
+            raise ConnectionError(f"Fatal: An error occurred while trying to connect MongoDB cluster: {e}")
 
+    # Retrive mongo database for all cogs
+    def get_cluster(self):
+        return self.mongo_client
 
 class MyNewHelp(commands.MinimalHelpCommand):
     async def send_pages(self):
@@ -367,6 +379,7 @@ def status():
 @app.get('/restart')
 async def self_restart():
     await bot.close()
+    bot.mongo_client.close()
     instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
     return "Please Wait. Your server is now restarting..."
 
@@ -375,6 +388,7 @@ async def self_restart():
 @app.after_serving
 async def self_shutdown():
     await bot.close()
+    bot.mongo_client.close()
     instruction_queue.put("shutdown")   # Put "shutdown" to the queue to terminate the web server
 
 
@@ -419,6 +433,5 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("Shutting down by Keyboard Interruption...")
-        os.kill(os.getpid(), signal.SIGINT)
-
+        p.terminate()
 

@@ -1,8 +1,9 @@
 import discord
 import asyncio
 import re
+from datetime import datetime, timezone, timedelta
 from discord import app_commands, Embed, Interaction, Forbidden, Permissions
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.app_commands import BotMissingPermissions
 from discord.app_commands.errors import MissingPermissions
 from typing import Optional, Union
@@ -11,6 +12,11 @@ from typing import Optional, Union
 class Mute(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.db = self.bot.get_cluster()
+        self.unmute_text_task.start()
+
+    def cog_unload(self):
+        self.unmute_text_task.cancel()  # Stop the task when the cog is unloaded
 
 
     # ----------<Mutes a member from text channel>----------
@@ -63,6 +69,8 @@ class Mute(commands.Cog):
 
     # Function of mutes a member from text channel
     async def mute_text(self, interaction: Interaction, member: discord.Member, duration_str: str | None, reason: str | None):
+        database = self.db.moderation_mute
+        mute_text_collection = database["mute_text"]
         mute_embed = Embed(title="", color=interaction.user.color)
         mute_error_embed = Embed(title="", color=discord.Colour.red())
         
@@ -96,11 +104,19 @@ class Mute(commands.Cog):
             mute_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **muted** {duration_message}:zipper_mouth:{reason_message}")
             await interaction.response.send_message(embed=mute_embed)
             
-            if duration_str is not None:  # For time-based mute only
-                await asyncio.sleep(total_duration["total_seconds"])
-                
-                if muted in member.roles:
-                    await member.remove_roles(muted, reason=f"Automatically unmuted after {duration_str}.")
+            # Save mute info to the database
+            if duration_str is not None:
+                mute_end_time = datetime.now(timezone.utc) + timedelta(seconds=total_duration["total_seconds"])    # For time-based mute only
+            else:
+                mute_end_time = None
+            mute_text_collection.insert_one({
+                "guild_id": interaction.guild.id,
+                "user_id": member.id,
+                "role_id": muted.id,
+                "time_based": True if duration_str is not None else False,
+                "mute_end_time": mute_end_time,
+                "reason": reason
+            })
         
         except Forbidden as e:
             if e.status == 403 and e.code == 50013:
@@ -110,6 +126,46 @@ class Mute(commands.Cog):
             
             else:
                 raise e
+            
+
+    # Background task to handle only time-based unmutes
+    @tasks.loop(seconds=0.1)  # Check for unmutes every 0.1 seconds for minimum delay
+    async def unmute_text_task(self):
+        now = datetime.now(timezone.utc)
+        database = self.db.moderation_mute
+        mute_text_collection = database["mute_text"]
+
+        # Query for expired time-based mutes (exclude records with mute_end_time = None)
+        expired_mutes = mute_text_collection.find({
+            "time_based": True,  # Only time-based mutes
+            "mute_end_time": {"$ne": None, "$lte": now}  # Exclude None and check for expired times
+        })
+
+        for mute in expired_mutes:
+            guild = self.bot.get_guild(mute["guild_id"])
+            if not guild:
+                # If the guild is not found, skip this record
+                continue
+
+            member = guild.get_member(mute["user_id"])
+            if not member:
+                # If the member is not in the guild, skip this record
+                continue
+
+            role = guild.get_role(mute["role_id"])
+            if not role:
+                # If the role is not found, skip this record
+                continue
+
+            # Remove the Muted role from the member
+            try:
+                await member.remove_roles(role, reason="Mute duration expired")
+            except discord.Forbidden:
+                # If the bot lacks the permissions to remove the role, skip this member
+                continue
+
+            # Remove the mute record from the database
+            mute_text_collection.delete_one({"_id": mute["_id"]})
 
 
     # Mutes a member from text for a specified amount of time
@@ -160,5 +216,4 @@ class Mute(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Mute(bot))
-
 

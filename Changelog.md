@@ -977,7 +977,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 #
 
-# 20241121 (night)
+# 20241121 (night) v1.5.3
 
 (+) Add support for versioning
 
@@ -985,7 +985,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 #
 
-# 20241128 (afternoon)
+# 20241128 (afternoon) v1.6.1
 
 (+) Implemented docker compose and fixed all bugs
 
@@ -993,7 +993,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 #
 
-# 20241128 (night)
+# 20241128 (night) v1.6.8
 
 (+) Fix startup.py issues for docker compose
 
@@ -1001,7 +1001,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 #
 
-# 20241201 (midnight)
+# 20241201 (midnight) v1.9.3
 
 (+) Recreate **"./requirements.txt"** for removing redundant dependencies
 
@@ -1009,7 +1009,7 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 #
 
-# 20241203 (night)
+# 20241203 (night) v1.9.4
 
 (-) Removed workflow **"push_to_docker.yml"**
 
@@ -1018,6 +1018,36 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Migrated the application to Hetzner Cloud from Microsoft Azure.
 
 (+) Temporarily fixed Lavalink issues for Web playback
+
+(+) Minior code improvement
+
+# 
+
+# 20241206 (midnight) (*) 
+
+# Implemented MongoDB database
+
+**(-/+) Rewrited "startup.py" for database integration**
+
+**"./general/Greetings.py"**
+
+(+) Add support for custom welcome messages (default messages remains untouched)
+
+**"./general/ChatGPT.py"**
+
+(+) **"chat_message"** and **"chat_history"** are now completely stored on database instead dictionary from local
+
+(+) Minior code improvement
+
+**"./moderation/Mute.py"** and **"./moderation/Unmute.py"** and **"./general/VoiceChannel.py"**
+
+(+) Mute info are now completely stored on database, including type, ending_time (could be None) etc.
+
+(+) Added a function to handle auto unmute after the time expired. Note this will not work immediately with the application offine. However, the user will be automatically unmuted once the application starts up next time.
+
+**"./general/MessageFiltering.py"** --> **"./moderation/MessageFiltering.py"**
+
+(+) Add support for configuring messages should be deleted on system channel or not on each server
 
 (+) Minior code improvement
 
