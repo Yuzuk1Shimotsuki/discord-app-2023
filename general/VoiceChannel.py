@@ -515,7 +515,7 @@ class VoiceChannel(commands.Cog):
 
 
     # Background task to handle only time-based unmutes
-    @tasks.loop(seconds=90)  # Check for unmutes every 5 seconds for minimum delay
+    @tasks.loop(seconds=2)  # Check for unmutes every 2 seconds for minimum delay
     async def unmute_voice_task(self):
         now = datetime.now(timezone.utc)
         database = self.db.moderation_mute
