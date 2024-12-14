@@ -496,7 +496,7 @@ class VoiceChannel(commands.Cog):
                 mute_end_time = datetime.now(timezone.utc) + timedelta(seconds=total_duration["total_seconds"])    # For time-based mute only
             else:
                 mute_end_time = None
-            mute_voice_collection.insert_one({
+            await mute_voice_collection.insert_one({
                 "guild_id": interaction.guild.id,
                 "user_id": member.id,
                 "time_based": True if duration_str is not None else False,
@@ -515,7 +515,7 @@ class VoiceChannel(commands.Cog):
 
 
     # Background task to handle only time-based unmutes
-    @tasks.loop(seconds=1.5)  # Check for unmutes every 1.5 seconds for minimum delay
+    @tasks.loop(seconds=90)  # Check for unmutes every 5 seconds for minimum delay
     async def unmute_voice_task(self):
         now = datetime.now(timezone.utc)
         database = self.db.moderation_mute
@@ -527,7 +527,7 @@ class VoiceChannel(commands.Cog):
             "mute_end_time": {"$ne": None, "$lte": now}  # Exclude None and check for expired times
         })
 
-        for mute in expired_mutes:
+        async for mute in expired_mutes:
             guild = self.bot.get_guild(mute["guild_id"])
             if not guild:
                 # If the guild is not found, skip this record
@@ -557,7 +557,7 @@ class VoiceChannel(commands.Cog):
                 continue
 
             # Remove the mute record from the database
-            mute_voice_collection.delete_one({"_id": mute["_id"]})
+            await mute_voice_collection.delete_one({"_id": mute["_id"]})
 
 
     # Mutes a member from voice for a specified amount of time
@@ -618,7 +618,7 @@ class VoiceChannel(commands.Cog):
         vunmute_error_embed = Embed(title="", color=discord.Colour.red())
 
         # Fetch mute record from the database
-        mute_record = mute_voice_collection.find_one({"guild_id": interaction.guild.id, "user_id": member.id})
+        mute_record = await mute_voice_collection.find_one({"guild_id": interaction.guild.id, "user_id": member.id})
 
         if member.voice is None:
             vunmute_error_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> {member.mention} is **not connected to voice** currently.")
@@ -649,7 +649,7 @@ class VoiceChannel(commands.Cog):
             return await interaction.response.send_message(embed=vunmute_error_embed, ephemeral=True)
 
         # Remove the mute record from the database
-        mute_voice_collection.delete_one({"_id": mute_record["_id"]})
+        await mute_voice_collection.delete_one({"_id": mute_record["_id"]})
 
         # Send confirmation message
         await interaction.response.send_message(embed=vunmute_embed)

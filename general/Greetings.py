@@ -60,13 +60,13 @@ class CustomWelcomeMessage(Modal):
 
             # Update the message if find any or create one to the database
             if self.dm_welcome_message.value != "":
-                if dm_welcome_message_collections.find_one_and_update({"id": interaction.guild.id}, {"$set": { "message": self.dm_welcome_message.value }}, new=True) is None:  # Update the message
-                    dm_welcome_message_collections.insert_one({"id": interaction.guild.id, 'message': self.dm_welcome_message.value})
+                if await dm_welcome_message_collections.find_one_and_update({"id": interaction.guild.id}, {"$set": { "message": self.dm_welcome_message.value }}, new=True) is None:  # Update the message
+                    await dm_welcome_message_collections.insert_one({"id": interaction.guild.id, 'message': self.dm_welcome_message.value})
                 update_dm = True
             
             if self.server_welcome_message.value != "":
-                if server_welcome_message_collections.find_one_and_update({"id": interaction.guild.id}, {"$set": { "message": self.server_welcome_message.value }}, new=True) is None:  # Update the message
-                    server_welcome_message_collections.insert_one({"id": interaction.guild.id, 'message': self.server_welcome_message.value})
+                if await server_welcome_message_collections.find_one_and_update({"id": interaction.guild.id}, {"$set": { "message": self.server_welcome_message.value }}, new=True) is None:  # Update the message
+                    await server_welcome_message_collections.insert_one({"id": interaction.guild.id, 'message': self.server_welcome_message.value})
                 update_server = True
             
             if update_dm or update_server:
@@ -162,8 +162,8 @@ The administration team of this server
         server_welcome_message_collections = database["guild"]
         
         # Return the message as a dictionary (if any)
-        dm_welcome_message = dm_welcome_message_collections.find_one({"id": member.guild.id})
-        server_welcome_message = server_welcome_message_collections.find_one({"id": member.guild.id})
+        dm_welcome_message = await dm_welcome_message_collections.find_one({"id": member.guild.id})
+        server_welcome_message = await server_welcome_message_collections.find_one({"id": member.guild.id})
 
         # Set the welcome messages from database or use the default message
         dm_welcome_message = welcome_formater(dm_welcome_message["message"], member) if dm_welcome_message else default_dm_welcome_message

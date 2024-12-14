@@ -1051,3 +1051,13 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (+) Minior code improvement
 
+#
+
+# 20241215 (midnight) v2.0.1
+
+(-/+) Rewrited MongoDB connection and logic with **"motor_asyncio"**
+
+(+) Improved **"./general/MusicPlayer.py"** for better custom files handling
+
+(-) Removed all plugins directory due to no longer use
+

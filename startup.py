@@ -11,6 +11,7 @@ import socket
 import subprocess
 import time
 import multiprocessing
+import motor.motor_asyncio as motor
 from multiprocessing import Process, Queue
 from GetDetailIPv4Info import *
 from discord.ext import commands
@@ -20,8 +21,6 @@ from quart import Quart
 from dotenv import load_dotenv
 from configs.Logging import setup_logger
 from errorhandling.ErrorHandling import *
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
 
 
 load_dotenv()
@@ -43,22 +42,42 @@ instruction_queue = None    # IMPORTANT for multiprocessing
 class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
-            intents=intents, 
+            intents=intents,
             command_prefix="!",
-            self_bot=False,     # This is IMPORTANT!
-            strip_after_prefix = True
+            self_bot=False,  # This is IMPORTANT!
+            strip_after_prefix=True
         )
-        self.mongo_client = MongoClient(os.getenv("MONGO_DATABASE_URL"), server_api=ServerApi('1'))
+        self.mongo_client = None  # Initialize later in setup_hook
+
+
+    async def setup_hook(self):
+        # Initialize the motor client here to ensure it's tied to the correct event loop
+        self.mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_DATABASE_URL"))
+
         try:
-            self.mongo_client.admin.command('ping')
+            await self.mongo_client.admin.command('ping')
             print("Pinged your deployment. You successfully connected to MongoDB!")
+
         except Exception as e:
-            raise ConnectionError(f"Fatal: An error occurred while trying to connect MongoDB cluster: {e}")
+            raise ConnectionError(f"Fatal: An error occurred while trying to connect to MongoDB cluster: {e}")
+
+        # Load extensions
+        await load_extensions()
+
 
     # Retrive mongo database for all cogs
     def get_cluster(self):
         return self.mongo_client
 
+
+    # Ensure the motor client is properly closed
+    async def close(self):
+        if self.mongo_client:
+            self.mongo_client.close()
+        await super().close()
+
+
+# Custom Help UI (Pending to rewritessss)
 class MyNewHelp(commands.MinimalHelpCommand):
     async def send_pages(self):
         destination = self.get_destination()
@@ -66,19 +85,36 @@ class MyNewHelp(commands.MinimalHelpCommand):
             embed = discord.Embed(description=page)
             await destination.send(embed=embed)
 
+
 bot = Bot()
 bot.help_command = MyNewHelp()
 
 
-# Getting all extensions
-def get_extensions():
-    global extensions
+# Load extensions
+async def load_extensions():
+    logger.info("\nGetting extensions...\n")
+    initial_extensions = await get_extensions()
+    logger.info("\nLoading extensions...\n")
+    
+    for extension in initial_extensions:
+        await bot.load_extension(extension)
+        logger.info(extension)
+
+
+# Async non-blocking function to get all extensions
+async def get_extensions():
     global extensions_folders
     extensions = []
 
+    # Use asyncio.to_thread to perform blocking I/O in a separate thread
     for folder in extensions_folders:
-        for filename in os.listdir(f"./{folder}"):
+        folder_path = f"./{folder}"
+        if not os.path.exists(folder_path):
+            continue
 
+        filenames = await asyncio.to_thread(os.listdir, folder_path)
+
+        for filename in filenames:
             if filename.endswith('.py'):
                 extension = f'{folder}.{filename[:-3]}'
 
@@ -314,16 +350,6 @@ async def shutdown(ctx):
     await app.shutdown()
 
 
-# Load extensions
-async def load_extensions():
-    logger.info("\nGetting extensions...\n")
-    initial_extensions = get_extensions()
-    logger.info("\nLoading extensions...\n")
-    
-    for extension in initial_extensions:
-        await bot.load_extension(extension)
-        logger.info(extension)
-
 
 # Start the bot application
 async def start_bot():
@@ -333,10 +359,8 @@ async def start_bot():
         if token == "":
             logger.error("No vaild tokens were found in the environment variable. Please add your token to the Secrets pane.")
             exit(1)
-        
-        asyncio.run(load_extensions())
-        await bot.login(token)
-        await bot.connect()
+
+        await bot.start(token)
     
     except discord.HTTPException as http_error:
         if http_error.status == 429:

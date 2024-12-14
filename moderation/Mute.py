@@ -109,7 +109,7 @@ class Mute(commands.Cog):
                 mute_end_time = datetime.now(timezone.utc) + timedelta(seconds=total_duration["total_seconds"])    # For time-based mute only
             else:
                 mute_end_time = None
-            mute_text_collection.insert_one({
+            await mute_text_collection.insert_one({
                 "guild_id": interaction.guild.id,
                 "user_id": member.id,
                 "role_id": muted.id,
@@ -129,7 +129,7 @@ class Mute(commands.Cog):
             
 
     # Background task to handle only time-based unmutes
-    @tasks.loop(seconds=1.5)  # Check for unmutes every 1.5 seconds for minimum delay
+    @tasks.loop(seconds=90)  # Check for unmutes every 1.5 seconds for minimum delay
     async def unmute_text_task(self):
         now = datetime.now(timezone.utc)
         database = self.db.moderation_mute
@@ -141,7 +141,7 @@ class Mute(commands.Cog):
             "mute_end_time": {"$ne": None, "$lte": now}  # Exclude None and check for expired times
         })
 
-        for mute in expired_mutes:
+        async for mute in expired_mutes:
             guild = self.bot.get_guild(mute["guild_id"])
             if not guild:
                 # If the guild is not found, skip this record
@@ -165,7 +165,7 @@ class Mute(commands.Cog):
                 continue
 
             # Remove the mute record from the database
-            mute_text_collection.delete_one({"_id": mute["_id"]})
+            await mute_text_collection.delete_one({"_id": mute["_id"]})
 
 
     # Mutes a member from text for a specified amount of time

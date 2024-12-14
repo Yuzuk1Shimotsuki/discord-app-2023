@@ -25,7 +25,7 @@ class Unmute(commands.Cog):
         unmute_error_embed = Embed(title="", color=discord.Colour.red())
 
         # Fetch mute record from the database
-        mute_record = mute_text_collection.find_one({"guild_id": interaction.guild.id, "user_id": member.id})
+        mute_record = await mute_text_collection.find_one({"guild_id": interaction.guild.id, "user_id": member.id})
 
         if not mute_record:
             # If no mute record is found in the database, the user is not muted
@@ -58,7 +58,7 @@ class Unmute(commands.Cog):
             return await interaction.response.send_message(embed=unmute_error_embed, ephemeral=True)
 
         # Remove the mute record from the database
-        mute_text_collection.delete_one({"_id": mute_record["_id"]})
+        await mute_text_collection.delete_one({"_id": mute_record["_id"]})
 
         # Send confirmation message
         await interaction.response.send_message(embed=unmute_embed)
@@ -82,3 +82,4 @@ class Unmute(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(Unmute(bot))
+    
