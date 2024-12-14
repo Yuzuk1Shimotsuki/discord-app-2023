@@ -4,6 +4,7 @@ import logging
 import math
 import os
 import asyncio
+import tempfile
 from io import BytesIO
 from PIL import Image
 from dotenv import load_dotenv
@@ -22,7 +23,6 @@ load_dotenv()
 
 selectlist = []
 loading_prev = {}
-cache_dir = f"configs/Bot/plugins/custom_audio/caches"
 
 tracks_per_page_limit = 15  # Should not exceed 20 (Theocratically it should be able to exceed 23, but we limited it to 20 just in case.)
 # or it will raise HTTPException: 400 Bad Request (error code: 50035): Invalid Form Body In data.embeds.0.fields.1.value: Must be 1024 or fewer in length.
@@ -245,104 +245,99 @@ class MusicPlayer(commands.Cog):
         global current_track_index
         guild_id = payload.player.guild.id
         player: wavelink.Player | None = payload.player
-        
+
         if not player:
-            # Handle edge cases...
-            return
-        
+            return  # Exit early if no player
+
         original: wavelink.Playable | None = payload.original
         track: wavelink.Playable = payload.track
-        # Format track source in markdown
         track_source = format_source(track.source, track.uri)
+        embed = discord.Embed(title="Now Playing")
         custom_artwork_file = None
-        embed: discord.Embed = discord.Embed(title="Now Playing")
-        embed.description = ""
-        
+
         try:
-            await asyncio.sleep(0.1)
             custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
-            
-            if custom_audio is not None:
-            
-                # Custom audio
-                embed.description = f"**{custom_audio["title"]}** by **{custom_audio["artist"]}**"
-                
+
+            if custom_audio:
+                # Custom audio details
+                embed.description = f"**{custom_audio['title']}** by **{custom_audio['artist']}**"
+
+                # Handle artwork in-memory
                 if custom_audio["artwork"]:
-                    # Save the artwork as cache
-                    artwork = custom_audio["artwork"]
-                    artwork = Image.open(BytesIO(artwork))
-                    artwork.save(f"{cache_dir}/artwork.png")
+                    artwork = Image.open(BytesIO(custom_audio["artwork"]))
+
+                    # Resize artwork if dimensions are too large
+                    max_dimensions = (500, 500)
+                    if artwork.size[0] > max_dimensions[0] or artwork.size[1] > max_dimensions[1]:
+                        artwork.thumbnail(max_dimensions)
+
+                    artwork_buffer = BytesIO()
+                    artwork.save(artwork_buffer, format="PNG")
                     artwork.close()
-                    custom_artwork_file = discord.File(f"{cache_dir}/artwork.png")
+                    artwork_buffer.seek(0)
+                    custom_artwork_file = discord.File(artwork_buffer, filename="artwork.png")
                     embed.set_image(url=f"attachment://{custom_artwork_file.filename}")
-                
+
+                # Add additional metadata if available
                 if custom_audio["album"]:
                     embed.add_field(name="Album", value=custom_audio["album"], inline=False)
-                
+
                 if custom_audio["year"]:
                     embed.add_field(name="Year", value=custom_audio["year"], inline=False)
-                
+
                 if custom_audio["duration"]:
-                    embed.add_field(name="Duration", value=f"{timedelta(seconds=math.floor(custom_audio["duration"]))}", inline=False)
-                
-                embed.add_field(name="Source", value=f"[Custom audio]({custom_audio["audio_url"]})", inline=False)
-            
+                    embed.add_field(
+                        name="Duration",
+                        value=f"{timedelta(seconds=math.floor(custom_audio['duration']))}",
+                        inline=False,
+                    )
+
+                embed.add_field(name="Source", value=f"[Custom audio]({custom_audio['audio_url']})", inline=False)
+
             elif original and not original.recommended:
+                # Standard track details
                 embed.description = f"**{track.title}** by **{track.author}**"
-                
+
                 if track.artwork:
                     embed.set_image(url=track.artwork)
-                
+
                 if track.album.name:
                     embed.add_field(name="Album", value=track.album.name, inline=False)
-                
+
                 if track.length:
-                    try:
-                        embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
-                    
-                    except OverflowError:
-                        pass
-                
+                    embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+
                 embed.add_field(name="Source", value=track_source, inline=False)
-            
+
             else:
-                raise RuntimeError
-        
-        except IndexError as e:
+                raise RuntimeError("Unexpected track state.")
+
+        except IndexError:
+            # Handle recommended tracks
             if original and original.recommended:
                 track_list[guild_id].append([payload.track, None])
-                embed.description = f"**{track.title}** by **{track.author}**"
-                embed.description += f"\n\nThis track was recommended via **{track_source}**"
-                
+                embed.description = f"**{track.title}** by **{track.author}**\n\nThis track was recommended via **{track_source}**"
+
                 if track.artwork:
                     embed.set_image(url=track.artwork)
-                
+
                 if track.album.name:
                     embed.add_field(name="Album", value=track.album.name, inline=False)
-                
+
                 if track.length:
-                    try:
-                        embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
-                    
-                    except OverflowError:
-                        pass
-                
+                    embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+
                 embed.add_field(name="Source", value=track_source, inline=False)
-            
+
             else:
-                raise e
-        
+                raise  # Re-raise other unexpected errors
+
+        # Send the embed with or without artwork
         if custom_artwork_file:
-            # Send with artwork
             await player.channel.send(embed=embed, file=custom_artwork_file)
-        
+            
         else:
             await player.channel.send(embed=embed)
-        
-        # Deletes the artwork if the track have any
-        if custom_artwork_file:
-            custom_artwork_file.close()
-            os.remove(os.path.join(cache_dir, custom_artwork_file.filename))
 
 
     @commands.Cog.listener()
@@ -410,49 +405,61 @@ class MusicPlayer(commands.Cog):
             return []
 
 
-    # Custom files
+    # Custom files (Rewrited)
     # Fetching raw data from custom file
     # The file will be temporaily stored as a cache and will be deleted afterwards
     async def fetch_custom_rawfile(self, attachment: discord.Attachment):
-        global cache_dir
         try:
-            supported_type = {"audio/mpeg": "mp3", "audio/x-wav": "wav", "audio/flac": "flac", "audio/mp4": "m4a"}
-            
-            if attachment.content_type in supported_type:
-                extension = supported_type[attachment.content_type]
-            
-            else:
-                # Unsupportted file
-                return "!error%!unsupportted_file_type%"
-            
-            audio_path = f"{cache_dir}/{attachment.id}.{extension}"
-            # Download the attachment to the client, and deletes it afterwards.
-            await attachment.save(audio_path, use_cached=False)
-            audiofile = TinyTag.get(audio_path, image=True)
-            audio_artist =  audiofile.artist
-            audio_title = audiofile.title
-            
-            if audiofile.title is None:
-                audio_title = attachment.filename.replace("_", " ")
-            
-            if audiofile.title is None and audiofile.artist is None:
-                audio_title = attachment.filename.replace("_", " ")
-                audio_artist =  "<Unknown artist>"
-            
-            # Delete the file to save storage space
-            for file in os.listdir(cache_dir):
-                if not file.endswith(".gitkeep"):
-                    os.remove(os.path.join(cache_dir, file))
-            
-            # Return the track information
-            return {"source": attachment, "filename": attachment.filename, "audio_url": attachment.url, "title": audio_title, "artist": audio_artist, "album": audiofile.album, "album_artist": audiofile.albumartist, "track_number": audiofile.track, "artwork": audiofile.get_image(), "filesize": audiofile.filesize, "duration": audiofile.duration, "year": audiofile.year}
+            supported_types = {
+                "audio/mpeg": "mp3",
+                "audio/x-wav": "wav",
+                "audio/flac": "flac",
+                "audio/mp4": "m4a"
+            }
+
+            if attachment.content_type not in supported_types:
+                return "!error%!unsupported_file_type%"
+
+            # Read file into memory
+            file_bytes = BytesIO(await attachment.read())
+
+            # Create a NamedTemporaryFile with delete=False
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{supported_types[attachment.content_type]}") as temp_file:
+                temp_file.write(file_bytes.getvalue())
+                temp_file_path = temp_file.name  # Save file path
+
+            try:
+                # Process the file with TinyTag
+                audiofile = TinyTag.get(temp_file_path, image=True)
+
+                # Extract metadata
+                audio_artist = audiofile.artist or "<Unknown artist>"
+                audio_title = audiofile.title or attachment.filename.replace("_", " ")
+
+            finally:
+                # Clean up the file manually
+                os.remove(temp_file_path)
+
+            return {
+                "source": attachment,
+                "filename": attachment.filename,
+                "audio_url": attachment.url,
+                "title": audio_title,
+                "artist": audio_artist,
+                "album": audiofile.album,
+                "album_artist": audiofile.albumartist,
+                "track_number": audiofile.track,
+                "artwork": audiofile.get_image(),
+                "filesize": audiofile.filesize,
+                "duration": audiofile.duration,
+                "year": audiofile.year
+            }
         
         except discord.errors.HTTPException as e:
             if e.status == 413:
                 return "!error%!payload_too_large%"
             
-            else:
-                raise e
+            raise e
 
 
     # Main Player
@@ -806,59 +813,63 @@ class MusicPlayer(commands.Cog):
         await asyncio.sleep(0.1)
         custom_audio = track_list[guild_id][current_track_index[guild_id]][1]
         
-        if custom_audio is not None:
-            # Custom audio
-            nowplaying_embed.description = f"**{custom_audio["title"]}** by **{custom_audio["artist"]}**"
-            
+        if custom_audio:
+            # Custom audio details
+            nowplaying_embed.description = f"**{custom_audio['title']}** by **{custom_audio['artist']}**"
+
+            # Handle artwork in-memory
             if custom_audio["artwork"]:
-                # Save the artwork as cache
-                artwork = custom_audio["artwork"]
-                artwork = Image.open(BytesIO(artwork))
-                artwork.save(f"{cache_dir}/artwork.png")
+                artwork = Image.open(BytesIO(custom_audio["artwork"]))
+                
+                # Resize artwork if dimensions are too large
+                max_dimensions = (500, 500)
+                if artwork.size[0] > max_dimensions[0] or artwork.size[1] > max_dimensions[1]:
+                    artwork.thumbnail(max_dimensions)
+
+                artwork_buffer = BytesIO()
+                artwork.save(artwork_buffer, format="PNG")
                 artwork.close()
-                custom_artwork_file = discord.File(f"{cache_dir}/artwork.png")
+                artwork_buffer.seek(0)
+                custom_artwork_file = discord.File(artwork_buffer, filename="artwork.png")
                 nowplaying_embed.set_image(url=f"attachment://{custom_artwork_file.filename}")
-            
+
+            # Add additional metadata if available
             if custom_audio["album"]:
                 nowplaying_embed.add_field(name="Album", value=custom_audio["album"], inline=False)
-            
+                
             if custom_audio["year"]:
                 nowplaying_embed.add_field(name="Year", value=custom_audio["year"], inline=False)
-            
+
             if custom_audio["duration"]:
-                nowplaying_embed.add_field(name="Duration", value=f"{timedelta(seconds=math.floor(custom_audio["duration"]))}", inline=False)
-            
-            nowplaying_embed.add_field(name="Source", value=f"[Custom audio]({custom_audio["audio_url"]})", inline=False)
-        
-        else:
+                nowplaying_embed.add_field(
+                    name="Duration",
+                    value=f"{timedelta(seconds=math.floor(custom_audio['duration']))}",
+                    inline=False,
+                )
+            nowplaying_embed.add_field(name="Source", value=f"[Custom audio]({custom_audio['audio_url']})", inline=False)
+
+        elif player.current:
+            # Standard track details
             nowplaying_embed.description = f"**{player.current.title}** by **{player.current.author}**"
-            
             if player.current.artwork:
                 nowplaying_embed.set_image(url=player.current.artwork)
-            
+                
             if player.current.album.name:
                 nowplaying_embed.add_field(name="Album", value=player.current.album.name, inline=False)
-            
+
             if player.current.length:
-                try:
-                    nowplaying_embed.add_field(name="Duration", value=f"{timedelta(milliseconds=player.current.length)}", inline=False)
-                
-                except OverflowError:
-                    pass
-            
+                nowplaying_embed.add_field(name="Duration", value=f"{timedelta(milliseconds=player.current.length)}", inline=False)
             nowplaying_embed.add_field(name="Source", value=track_source, inline=False)
+
+        else:
+            raise RuntimeError("Unexpected track state.")
         
+        # Send the embed with or without artwork
         if custom_artwork_file:
-            # Send with artwork
             await interaction.response.send_message(embed=nowplaying_embed, file=custom_artwork_file)
-        
+
         else:
             await interaction.response.send_message(embed=nowplaying_embed)
-        
-        # Deletes the artwork if the track have any
-        if custom_artwork_file:
-            custom_artwork_file.close()
-            os.remove(os.path.join(cache_dir, custom_artwork_file.filename))
 
 
     # Replay the current track in the queue

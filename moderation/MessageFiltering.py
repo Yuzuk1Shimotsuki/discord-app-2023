@@ -29,7 +29,7 @@ class MessageFiltering(commands.Cog):
         delete_on_system_channel_collection = database["delete_on_system_channel"]
 
         # Check if the guild already has a setting for `delete_on_system_channel`
-        existing_setting = delete_on_system_channel_collection.find_one({"id": interaction.guild.id})
+        existing_setting = await delete_on_system_channel_collection.find_one({"id": interaction.guild.id})
 
         if existing_setting:
             # Check if the current mode is the same as the requested mode
@@ -40,14 +40,14 @@ class MessageFiltering(commands.Cog):
             
             else:
                 # Update the setting since the requested mode is different
-                delete_on_system_channel_collection.update_one(
+                await delete_on_system_channel_collection.update_one(
                     {"id": interaction.guild.id}, 
                     {"$set": {"delete_on_system_channel": mode}}
                 )
         
         else:
             # Insert a new document if it doesn't already exist
-            delete_on_system_channel_collection.insert_one({"id": interaction.guild.id, "delete_on_system_channel": mode})
+            await delete_on_system_channel_collection.insert_one({"id": interaction.guild.id, "delete_on_system_channel": mode})
 
         # Respond with the updated status
         updated_status = "enabled" if mode else "disabled"
@@ -86,7 +86,7 @@ class MessageFiltering(commands.Cog):
             return
 
         # Check if the guild already has a setting for `delete_on_system_channel`
-        existing_setting = delete_on_system_channel_collection.find_one({"id": message.guild.id})
+        existing_setting = await delete_on_system_channel_collection.find_one({"id": message.guild.id})
 
         if existing_setting:
             self.is_sysdel = existing_setting.get("delete_on_system_channel")    # Get current mode for the guild
