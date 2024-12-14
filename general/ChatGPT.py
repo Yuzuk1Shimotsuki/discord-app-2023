@@ -175,8 +175,8 @@ class ChatGPTModal(Modal):
 
         # Fetch or initialize chat history from MongoDB
         query = {"context": context, "guild_id": guild_id, "channel_id": channel_id}
-        chat_messages = chat_messages_collection.find_one(query) or {"messages": []}
-        history = chat_history_collection.find_one(query) or {"history": []}
+        chat_messages = await chat_messages_collection.find_one(query) or {"messages": []}
+        history = await chat_history_collection.find_one(query) or {"history": []}
 
         # Reset chat history if too long
         if len(history.get("history", [])) > 60:
@@ -193,8 +193,8 @@ class ChatGPTModal(Modal):
 
         # Save response to MongoDB
         history["history"].append({"role": "assistant", "content": response})
-        chat_history_collection.update_one(query, {"$set": history}, upsert=True)
-        chat_messages_collection.update_one(query, {"$set": chat_messages}, upsert=True)
+        await chat_history_collection.update_one(query, {"$set": history}, upsert=True)
+        await chat_messages_collection.update_one(query, {"$set": chat_messages}, upsert=True)
 
         # Format and send response
         quote = f"> {interaction.user.mention}: **{self.content.value}**{discord.utils.escape_markdown(' ')}"
@@ -214,7 +214,7 @@ class ChatGPT(commands.Cog):
         self.db = self.bot.get_cluster()
 
 
-    def reset_chat(self, interaction: Interaction, type: str, channel_id: str, guild_id: str = None):
+    async def reset_chat(self, interaction: Interaction, type: str, channel_id: str, guild_id: str = None):
         """Clear stored chat messages and history in MongoDB."""
         query = {"context": "Guild" if guild_id else "DM", "guild_id": guild_id, "channel_id": channel_id}
         database = self.db.chatgpt
@@ -223,13 +223,13 @@ class ChatGPT(commands.Cog):
 
         if type == "channel":
             # Check if any records exist on the channel
-            channel_records_exist = chat_messages_collection.find_one(query) and chat_history_collection.find_one(query)
+            channel_records_exist = await chat_messages_collection.find_one(query) and await chat_history_collection.find_one(query)
     
             if not channel_records_exist:
                 return [f"<a:CrossRed:1274034371724312646> No **chat history** found on <#{interaction.channel.id}>.", False]
 
-            chat_messages_collection.delete_one(query)
-            chat_history_collection.delete_one(query)
+            await chat_messages_collection.delete_one(query)
+            await chat_history_collection.delete_one(query)
 
             if isinstance(interaction.channel, discord.DMChannel) or guild_id is None:
                 return [f"**Chat history** reset for <#{interaction.channel.id}>.", True]    # channel.mention doesn't work for discord.DMChannel objects
@@ -241,25 +241,25 @@ class ChatGPT(commands.Cog):
                 return [f"<a:CrossRed:1274034371724312646> <#{interaction.channel.id}> is **not belongs to** a **server**.", False]
             
             # Check if any records exist on the server
-            server_records_exist = chat_messages_collection.find_one({"context": "Guild", "guild_id": guild_id}) and chat_history_collection.find_one({"context": "Guild", "guild_id": guild_id})
+            server_records_exist = await chat_messages_collection.find_one({"context": "Guild", "guild_id": guild_id}) and await chat_history_collection.find_one({"context": "Guild", "guild_id": guild_id})
             
             if not server_records_exist:
                 return [f"<a:CrossRed:1274034371724312646> No **chat history** found on **this server**.", False]
 
-            chat_messages_collection.delete_many({"context": "Guild", "guild_id": guild_id})
-            chat_history_collection.delete_many({"context": "Guild", "guild_id": guild_id})
+            await chat_messages_collection.delete_many({"context": "Guild", "guild_id": guild_id})
+            await chat_history_collection.delete_many({"context": "Guild", "guild_id": guild_id})
             return ["**Chat history** reset for **this server**.", True]
         
         elif type == "all":
             # Check if any records exist globally
-            all_records_exist = chat_messages_collection.find_one({}) and chat_history_collection.find_one({})
+            all_records_exist = await chat_messages_collection.find_one({}) and await chat_history_collection.find_one({})
     
             if not all_records_exist:
                 return ["<a:CrossRed:1274034371724312646> No **chat history** found on **all server(s) and channel(s)**.", False]
     
             # Delete all records
-            chat_messages_collection.delete_many({})
-            chat_history_collection.delete_many({})
+            await chat_messages_collection.delete_many({})
+            await chat_history_collection.delete_many({})
             return ["All chat history has been reset.", True]
         
         else:

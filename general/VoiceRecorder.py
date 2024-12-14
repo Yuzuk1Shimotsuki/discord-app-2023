@@ -5,8 +5,8 @@ import time
 import numpy as np
 import wave
 import wavelink
-import asyncio
-from discord import app_commands, Interaction
+import tempfile
+from discord import app_commands, Colour, Embed, Interaction
 from discord.ext import voice_recv
 from discord.ext.voice_recv import AudioSink, VoiceData, WaveSink
 from discord.ext.voice_recv.silence import SilenceGenerator
@@ -150,87 +150,103 @@ class VoiceRecorder(commands.Cog):
         self.is_recording = False
 
 
+    # Starts the recording
     @app_commands.command(name="start-recording", description="🟢 Starts voice recording in the user's current voice channel")
     async def start_recording(self, interaction: Interaction):
+        start_recording_success_embed = Embed(title="", color=interaction.user.color)
+        start_recording_failure_embed = Embed(title="", color=Colour.red())
         if not interaction.user.voice:
-            return await interaction.response.send_message("<a:CrossRed:1274034371724312646> You must be connected to a voice channel to use this command.", ephemeral=True)
+            start_recording_failure_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> You must be connected to a voice channel to use this command.", inline=False)
+            return await interaction.response.send_message(embed=start_recording_failure_embed, ephemeral=True)
 
         if self.bot.voice_clients:
-
             if isinstance(self.bot.voice_clients[0], wavelink.Player):
-                return await interaction.response.send_message("<a:CrossRed:1274034371724312646> The voice client is now being occupied by the music player, Please terminate the player and try again.", ephemeral=True)
+                start_recording_failure_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> The voice client is now being occupied by the music player, Please terminate the player and try again.", inline=False)
+                return await interaction.response.send_message(embed=start_recording_failure_embed, ephemeral=True)
             
             else:
-                return await interaction.response.send_message("<a:CrossRed:1274034371724312646> I'm already connected to a voice channel.", ephemeral=True)
+                start_recording_failure_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> I'm already connected to a voice channel.", inline=False)
+                return await interaction.response.send_message(embed=start_recording_failure_embed, ephemeral=True)
 
         voice_channel = interaction.user.voice.channel
         voice_client = await voice_channel.connect(cls=voice_recv.VoiceRecvClient)
 
         if voice_client.is_listening():
-            return await interaction.response.send_message("<a:CrossRed:1274034371724312646> Recording is already in progress.", ephemeral=True)
+            start_recording_failure_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Recording is already in progress.", inline=False)
+            return await interaction.response.send_message(embed=start_recording_failure_embed, ephemeral=True)
 
         self.is_recording = True
 
         for member in voice_channel.members:
             if member.bot:
                 continue
+
             voice_client.listen(self.custom_sink)
 
-        await interaction.response.send_message("🎙️ Recording has started. Use </stop-recording:1298511803277512806> to stop.")
+        start_recording_success_embed.add_field(name="", value=f":white_check_mark: :microphone2: Recording has **started**. Use **</stop-recording:1298511803277512806>** to **stop**.", inline=False)
+        return await interaction.response.send_message(embed=start_recording_success_embed)
 
 
+    # Stops the recording
     @app_commands.command(name="stop-recording", description="🔴 Stops the current voice recording")
     async def stop_recording(self, interaction: Interaction):
         voice_client = interaction.guild.voice_client
-        
+        stop_recording_success_embed = Embed(title="", color=interaction.user.color)
+        stop_recording_failure_embed = Embed(title="", color=Colour.red())
         if not voice_client or not self.is_recording:
-            return await interaction.response.send_message("<a:CrossRed:1274034371724312646> No recording in progress.", ephemeral=True)
+            stop_recording_failure_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> No recording in progress.", inline=False)
+            return await interaction.response.send_message(embed=stop_recording_failure_embed, ephemeral=True)
 
         await interaction.response.defer()
 
         self.is_recording = False
-        record_result_embed = discord.Embed(title="", description="", timestamp=datetime.now(), color=interaction.user.colour)
         voice_client.stop_listening()
         all_audio_data = {}
         voice_channel = interaction.user.voice.channel
 
+        # Collect audio data for each user
         for member in voice_channel.members:
             audio_data = self.custom_sink.get_user_audio(member.id)
 
-            if audio_data and len(audio_data) > 44:
+            if audio_data and len(audio_data) > 44:  # Ensure the file isn't empty
                 silence_duration = self.custom_sink.get_initial_silence_duration(member.id)
                 final_audio_data = add_silence_to_wav(audio_data, silence_duration)
                 all_audio_data[member.id] = final_audio_data
-        
+
         if all_audio_data:
+            # Mix all user audio data into one combined file
             combined_audio = self.custom_sink.mix_audio(all_audio_data)
 
             if combined_audio:
-                combined_file_path = f"{record_path}/combined_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
-                
-                with open(combined_file_path, 'wb') as f:
-                    f.write(combined_audio)
-                    try:
-                        await interaction.followup.send(
-                            "✅ Recording finished.",
-                            file=discord.File(combined_file_path)
-                        )
-                        await asyncio.sleep(1.5)
-                        f.close()
-                        os.remove(combined_file_path)
+                # Use a temporary file to save the combined audio
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                    temp_file.write(combined_audio)
+                    temp_file_path = temp_file.name
 
-                    except discord.errors.HTTPException as e:
-                        if e.status == 413 and e.code == 40005:
-                            return await interaction.followup.send("<a:CrossRed:1274034371724312646> Failed to send the recording because the file was too large")
-                        
-                        else:
-                            raise e
-                        
+                try:
+                    # Send the combined audio file to the user
+                    stop_recording_success_embed.add_field(name="", value=":white_check_mark: Recording finished.")
+                    await interaction.followup.send(embed=stop_recording_success_embed, file=discord.File(temp_file_path, filename=f"combined_recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"))
+
+                except discord.errors.HTTPException as e:
+                    if e.status == 413 and e.code == 40005:  # File too large
+                        stop_recording_failure_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Failed to send the recording because the file was too large", inline=False)
+                        return await interaction.followup.send(embed=stop_recording_failure_embed, ephemeral=True)
+                    
+                    else:
+                        raise e
+
+                finally:
+                    # Ensure the temporary file is deleted
+                    os.remove(temp_file_path)
+
         else:
-            record_result_embed.add_field(name="", value="<a:CrossRed:1274034371724312646> Recording **failed** or the file is **empty**.", inline=False)
-            return await interaction.followup.send(embed=record_result_embed)
+            stop_recording_failure_embed.add_field(name="", value=f"<a:CrossRed:1274034371724312646> Recording **failed** or the file is **empty**.", inline=False)
+            return await interaction.followup.send(embed=stop_recording_failure_embed, ephemeral=True)
+        
 
 # ---------- </Voice Recorder>----------
+
 
 async def setup(bot):
     await bot.add_cog(VoiceRecorder(bot))
