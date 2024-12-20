@@ -1,24 +1,23 @@
 import discord
 import asyncio
-import netifaces
 import nest_asyncio
+import psutil
+import netifaces
 import os
 import sys
 import logging
-import psutil
-import signal
 import socket
 import subprocess
-import time
-import multiprocessing
 import motor.motor_asyncio as motor
-from multiprocessing import Process, Queue
+from asyncio import sleep, Queue
 from GetDetailIPv4Info import *
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
-from datetime import datetime
-from quart import Quart
 from dotenv import load_dotenv
+from datetime import datetime
+from hypercorn.asyncio import serve
+from hypercorn.config import Config
+from quart import Quart
 from configs.Logging import setup_logger
 from errorhandling.ErrorHandling import *
 
@@ -28,33 +27,32 @@ nest_asyncio.apply()
 app = Quart("DiscordBot")
 extensions = []
 extensions_folders = ['general', 'moderation', 'errorhandling', 'configs']
-
 logger = setup_logger('discord_bot', 'bot.log', logging.INFO)
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+instruction_queue = None    # IMPORTANT 
 
 
-instruction_queue = None    # IMPORTANT for multiprocessing
-
-
-# Default configuration
 class Bot(commands.Bot):
+    """
+    Default configuration
+    """
     def __init__(self):
         super().__init__(
             intents=intents,
-            command_prefix="!",
-            self_bot=False,  # This is IMPORTANT!
+            command_prefix="?",
+            self_bot=False,  # IMPORTANT!
             strip_after_prefix=True
         )
         self.mongo_client = None  # Initialize later in setup_hook
 
 
     async def setup_hook(self):
-        # Initialize the motor client here to ensure it's tied to the correct event loop
-        self.mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_DATABASE_URL"))
+        self.mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_DATABASE_URL"))   # Initialize the motor client here to ensure it's tied to the correct event loop
 
         try:
+            # Self MongoDB connedction test
             await self.mongo_client.admin.command('ping')
             print("Pinged your deployment. You successfully connected to MongoDB!")
 
@@ -65,20 +63,28 @@ class Bot(commands.Bot):
         await load_extensions()
 
 
-    # Retrive mongo database for all cogs
     def get_cluster(self):
+        """
+        Retrive mongo database for all cogs
+        """
         return self.mongo_client
 
 
-    # Ensure the motor client is properly closed
-    async def close(self):
+    async def close_db(self):
+        """
+        This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+        Ensure the motor client is properly closed
+        """
         if self.mongo_client:
             self.mongo_client.close()
         await super().close()
 
 
-# Custom Help UI (Pending to rewritessss)
 class MyNewHelp(commands.MinimalHelpCommand):
+    """
+    Custom Help UI (Pending to rewrite)
+    """
     async def send_pages(self):
         destination = self.get_destination()
         for page in self.paginator.pages:
@@ -90,8 +96,12 @@ bot = Bot()
 bot.help_command = MyNewHelp()
 
 
-# Load extensions
 async def load_extensions():
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+    
+    Load extensions upon startup
+    """
     logger.info("\nGetting extensions...\n")
     initial_extensions = await get_extensions()
     logger.info("\nLoading extensions...\n")
@@ -101,8 +111,12 @@ async def load_extensions():
         logger.info(extension)
 
 
-# Async non-blocking function to get all extensions
 async def get_extensions():
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Getting all extensions
+    """
     global extensions_folders
     extensions = []
 
@@ -129,9 +143,13 @@ async def get_extensions():
     return extensions
 
 
-# Startup info
 @bot.event
 async def on_ready():
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Displaying startup info
+    """
     logger.info(
 f'''
 
@@ -150,10 +168,13 @@ The application is now initialized and waiting on your demands!
         )
 
 
-# Sync all cogs for latest changes
 @bot.command()
 async def sync(ctx):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
+    Sync all cogs for latest changes
+    """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
     
@@ -165,16 +186,18 @@ async def sync(ctx):
     await ctx.message.delete()
 
 
-# Load cogs manually
 @bot.command()
 async def load(ctx, cog_name):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
+    Load cogs manually
+    """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
     
-    # Front check if the cog was in the valid cog list or not
     extensions = get_extensions()
-    if cog_name not in extensions:
+    if cog_name not in extensions:  # Front check if the cog was in the valid cog list or not
         return await ctx.reply(ExtensionNotFoundError(cog=cog_name))
     
     try:
@@ -195,17 +218,19 @@ async def load(ctx, cog_name):
         return await ctx.reply(ExtensionFailedError(cog=cog_name))
     
 
-# Unload cogs manually
 @bot.command()
 async def unload(ctx, cog_name):
-
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+    
+    Unload cogs manually
+    """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
     
     extensions = get_extensions()
 
-    if cog_name not in extensions:
-        # Front check if the cog was in the valid cog list or not
+    if cog_name not in extensions:  # Front check if the cog was in the valid cog list or not
         return await ctx.reply(ExtensionNotFoundError(cog=cog_name))
     
     try:
@@ -226,10 +251,14 @@ async def unload(ctx, cog_name):
         return await ctx.reply(ExtensionFailedError(cog=cog_name))
     
 
-# Reload cogs manually
+
 @bot.command()
 async def reload(ctx, cog_name):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
+    Reload cogs manually
+    """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
     
@@ -256,10 +285,13 @@ async def reload(ctx, cog_name):
         return await ctx.reply(ExtensionFailedError(cog=cog_name))
 
 
-# Retrieving system info from the bot
 @bot.command()
 async def systeminfo(ctx):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
+    Retrieving system info from the bot
+    """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
     
@@ -322,9 +354,13 @@ async def systeminfo(ctx):
     await ctx.reply(embed=hardware_info_embed)
 
 
-# Restart the bot (Use it only as a LAST RESORT)
 @bot.command()
 async def restart(ctx):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Restart the bot (Use it only as a LAST RESORT)
+    """
     global is_restarting
     is_restarting = True
     
@@ -336,9 +372,13 @@ async def restart(ctx):
     await self_restart()
 
 
-# Shut down the bot and the server (SELF DESTRUCT)
 @bot.command()
 async def shutdown(ctx):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Shut down the bot and the server (SELF DESTRUCT)
+    """
     global is_shutdown
     is_shutdown = True
     
@@ -350,9 +390,12 @@ async def shutdown(ctx):
     await app.shutdown()
 
 
-
-# Start the bot application
 async def start_bot():
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Start the bot application
+    """
     try:
         token = os.getenv("DISCORD_BOT_TOKEN") or ""
         
@@ -377,13 +420,20 @@ async def start_bot():
         exit(1)
 
 
-# ----------<Quart app>----------
+"""
+The following code is the primary operational logic of the application.  
+To optimize resource usage, multiprocessing has been replaced with asynchronous operations, which are more lightweight and efficient.  
+However, as a trade-off, the shutdown process may take slightly longer due to the need for graceful task cancellation and cleanup.
+"""
 
 
-# Coroutine called when the web server starts
 @app.before_serving
 async def before_serving():
-    # Rewrite for database connection in the future
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Called when the web server starts
+    """
     app.add_background_task(start_bot)
 
 
@@ -392,9 +442,11 @@ def hello_world():
     return "Hello, World!"
 
 
-# Returning the status of the Quart app
 @app.get("/status")
 def status():
+    """
+    Returning the status of the Quart app
+    """
     if len(app.background_tasks) == 0:
         return "No applications were hosting now."
     
@@ -404,60 +456,154 @@ def status():
 @app.get('/restart')
 async def self_restart():
     await bot.close()
-    bot.mongo_client.close()
-    instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
+    await bot.close_db()
+    await instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
     return "Please Wait. Your server is now restarting..."
 
 
-# Actions after shutting down the Quart app (Ctrl + C)
 @app.after_serving
 async def self_shutdown():
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Actions after shutting down the Quart app (Ctrl + C or by command)
+    """
     await bot.close()
-    bot.mongo_client.close()
-    instruction_queue.put("shutdown")   # Put "shutdown" to the queue to terminate the web server
+    await bot.close_db()
+    await instruction_queue.put("shutdown")   # Put "shutdown" to the queue to terminate the web server
 
 
-# ----------</Quart app>----------
+async def run_server():
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Runs the Quart application using Hypercorn.
+    """
+    config = Config()
+    config.bind = ["0.0.0.0:3000"]  # Custom PORT: 3000 for Azure and Docker
+    config.debug = False
+
+    try:
+        # Run Hypercorn for the Quart app
+        await serve(app, config)
+
+    except asyncio.CancelledError:
+        print("Server task cancelled. Shutting down Hypercorn...")
+
+    except Exception as e:
+        print(f"Error in server: {e}")
+
+    finally:
+        print("Hypercorn server has stopped.")
 
 
-# Runs the whole application (Bot + Quart)
-def startup(queue):
+async def startup(queue):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Starts the Quart server.
+
+    Parameters
+    ----------
+    queue : `asyncio.Queue`
+        The instruction queue
+
+    """
     global instruction_queue
     instruction_queue = queue
-    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 3000)))  # Custom PORT: 3000 for Azure and Docker
+    server_task = asyncio.create_task(run_server())
+    print("Hypercorn server started.")
+    return server_task
 
+
+async def cancel_server_task(server_task):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Cancel the server task
+
+    Parameters
+    ----------
+    server_task: `Task[None]`
+        The task from `startup()`
+
+    """
+    server_task.cancel()    # Cancel the server task
+
+    try:
+        await server_task    # Wait for the server task to finish
+
+    except asyncio.CancelledError:
+        print("Server task cancelled successfully.")
+
+
+async def monitor_queue(queue, server_task):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Monitors the queue for instructions such as 'shutdown' or 'restart' in coroutine.
+
+    Parameters
+    ----------
+    queue : `asyncio.Queue`
+        The queue to monitor
+
+    server_task: `Task[None]`
+        The task from `startup()`
+
+    """
+    while True:
+        instruction = await queue.get()
+        match instruction:
+            case "shutdown":
+                await cancel_server_task(server_task)
+                return   # Exit the main process gracefully
+
+            case "restart" | "reboot":
+                await cancel_server_task(server_task)
+                print("Restarting application...")
+                await asyncio.sleep(7)    # Time delay before restarting
+                args = [sys.executable] + [sys.argv[0]]
+                subprocess.call(args)    # Restart the script
+                os._exit(0)  # Ensure exit the current subprocess after restart
+
+            case _:
+                raise ValueError(f"Unknown instruction for asyncio.Queue: {instruction}, must be either 'shutdown', 'reboot', or 'restart'.")
+            
+        await sleep(0.001)  # Minimal time delay to avoid busy-checking
+
+
+async def main():
+    """
+    Main program execution logic.
+
+    Rewrited with asynchronous approach.
+    """
+    queue = Queue()
+
+    # Start the Quart server as an asyncio task
+    server_task = await startup(queue)
+
+    try:
+        await monitor_queue(queue, server_task)    # Start monitoring the queue
+
+    except asyncio.CancelledError:
+        print("Main task cancelled. Cleaning up...")
+
+    finally:
+        print("Terminating server task...")
+        server_task.cancel()
+
+        try:
+            await server_task
+
+        except asyncio.CancelledError:
+            print("Server task terminated.")
+
+    print("Application halted.")
 
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method('spawn')
-    try:
-        q = Queue() # IMPORTANT
-        p = Process(target=startup, args=[q,])
-        p.start()
-        while q.empty():    # Waiting queue, sleep if there is no call
-            time.sleep(0.001)   # Using minimal time delay to make it neglectable
-        p.terminate()
-        # Get instruction from the queue
+    asyncio.run(main())
 
-        match q.get():
-            case "shutdown":
-                # Terminate the program
-                print("Shutting down...")
-                os.kill(os.getpid(), signal.SIGINT)
-
-            case "restart" | "reboot":
-                pass
-
-            case _:
-                raise ValueError("Invaild input for Queue, must be either 'shutdown', 'reboot' or 'restart'.")
-            
-        # Restart the program
-        print("Please Wait. Your server is now restarting...")
-        time.sleep(7)
-        args = [sys.executable] + [sys.argv[0]]
-        subprocess.call(args)
-
-    except KeyboardInterrupt:
-        print("Shutting down by Keyboard Interruption...")
-        p.terminate()
 

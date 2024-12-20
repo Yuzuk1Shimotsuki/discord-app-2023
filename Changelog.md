@@ -1061,3 +1061,11 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (-) Removed all plugins directory due to no longer use
 
+#
+
+# 20241220 (night) v2.0.2
+
+(-/+) Rewrite the startup script with full asynchronous approach for maximum resource optimization
+
+(-) Removed multiprocessing
+
