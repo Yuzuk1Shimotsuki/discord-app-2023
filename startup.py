@@ -41,7 +41,7 @@ class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
             intents=intents,
-            command_prefix="?",
+            command_prefix="!",
             self_bot=False,  # IMPORTANT!
             strip_after_prefix=True
         )
@@ -549,7 +549,7 @@ async def monitor_queue(queue, server_task):
         The queue to monitor
 
     server_task: `Task[None]`
-        The task from `startup()`
+        The task returned from `startup()`
 
     """
     while True:
