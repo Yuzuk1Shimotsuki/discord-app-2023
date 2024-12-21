@@ -1077,6 +1077,10 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 **"./general/ChatGPT.py"**
 
+(-/+) Replaced Microsoft Azure OpenAI with OpenAI serivce
+
+(-/+) Refactor error handling for OpenAI API
+
 (-/+) Replaced **"openai.chat.completions"** with **"openai.beta.assistants"** for better integration
 
 (+) Add support for file uploading.
@@ -1084,5 +1088,3 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Files uploaded will be stored on OpenAI server side, with the file id stored on database
 
 (-) Remove support for custom prompting due to some predictable issues may occurs
-
-(+)
