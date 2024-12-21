@@ -31,7 +31,7 @@ plugins:
       # skipInitialization: true
 lavalink:
   plugins:
-    - dependency: "dev.lavalink.youtube:youtube-plugin:1.8.3"
+    - dependency: "dev.lavalink.youtube:youtube-plugin:1.11.2"
       snapshot: false
   pluginsDir: "./plugins" # optional, defaults to "./plugins"
   server:
