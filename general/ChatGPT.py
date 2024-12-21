@@ -32,7 +32,7 @@ async def initialize_assistants(db_cluster):
     Parameters
     ----------
     db_cluster: `motor.AsyncIOMotorClient`
-        The cluster object from MongoDB
+        The cluster object from MongoDB.
     
     Returns
     ----------
@@ -102,7 +102,7 @@ async def get_access_level(db_cluster, interaction: Interaction, user_id: int, g
     Parameters
     ----------
     db_cluster: `motor.AsyncIOMotorClient`
-        The cluster object from MongoDB
+        The cluster object from MongoDB.
 
     user_id: int
         The user's ID.
@@ -180,7 +180,7 @@ async def get_assistant_by_access_level(db_cluster, access_level: int):
     Parameters
     ----------
     db_cluster: `motor.AsyncIOMotorClient`
-        The cluster object from MongoDB
+        The cluster object from MongoDB.
         
     access_level: int
         The level returned from `access_level_priority()`.
@@ -205,8 +205,33 @@ async def get_assistant_by_access_level(db_cluster, access_level: int):
         raise ValueError(f"No assistant found for access level: {access_level}")
 
 
-# Helper: Get or create a MongoDB entry for a channel or thread
 async def get_or_create_channel_entry(db_cluster, channel_id, guild_id, assistant_id, is_thread=False):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Get or create a MongoDB entry for a channel or thread
+
+    Parameters
+    ----------
+    db_cluster: `motor.AsyncIOMotorClient`
+        The cluster object from MongoDB.
+        
+    channel_id: int
+        The channel ID.
+
+    guild_id: int
+        The guild ID.
+    
+    is_thread: bool
+        Checks if the channel is a thread or not.
+
+    
+    Returns
+    ----------
+    dict:
+        The entry dictionary of a channel.
+
+    """
     database = db_cluster["chatgpt"]
     channels_collection = database["discord_channels"]
     entry = await channels_collection.find_one({"channel_id": channel_id})
@@ -225,8 +250,58 @@ async def get_or_create_channel_entry(db_cluster, channel_id, guild_id, assistan
     return entry
 
 
-# Utility to upload a file to OpenAI
+async def save_attachment_temporarily(attachment):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Save the attachment to a temporary file with a proper extension.
+    
+    Parameters
+    ----------
+    attachment: discord.Attachment
+        The file attachment to be saved.
+
+    extension: str
+        The extension for the temporary file (e.g., '.txt', '.pdf').
+
+    Returns
+    ----------
+    str:
+        The path to the saved temporary file.
+
+    Raises:
+    ----------
+    ValueError:
+        The file extension was not supported.
+
+    """
+    extension = f".{attachment.filename.split('.')[-1]}" if '.' in attachment.filename else ''
+    if extension not in ['.txt', '.pdf', '.csv', '.json', '.png', '.jpg', '.mp4']:  # Add other supported extensions
+        raise ValueError(f"Unsupported file extension: {extension}")
+
+    # Create a temporary file with the correct extension
+    with tempfile.NamedTemporaryFile(delete=False, suffix=extension) as temp_file:
+        await attachment.save(temp_file.name)
+        return temp_file.name
+
+
 async def upload_file_to_openai(local_path):
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Upload a file to OpenAI.
+
+    Parameters
+    ----------
+    local_path: str
+        The file path from local device.
+    
+    Returns
+    ----------
+    `Files`:
+        An uploaded OpenAI file object.
+
+    """
     with open(local_path, "rb") as file:
         return openai_client.files.create(file=file, purpose="assistants")
 
@@ -409,10 +484,15 @@ class ChatGPTModal(Modal):
             openai_client.beta.threads.runs.create_and_poll(
                 thread_id=openai_thread_id, assistant_id=assistant_id
             )
+
             all_messages = openai_client.beta.threads.messages.list(
                 thread_id=openai_thread_id
             )
-            assistant_reply = all_messages.data[0].content[0].text.value
+
+            # Combine all parts of the assistant's reply
+            assistant_reply = "".join(
+                message.text.value for message in all_messages.data[0].content
+            )
 
             reply_message = {"role": "assistant", "content": assistant_reply}
             await channels_collection.update_one(
@@ -512,37 +592,43 @@ class ChatGPT(commands.Cog):
         database = self.db_cluster["chatgpt"]
         channels_collection = database["discord_channels"]
         files_collection = database["files"]
+        await interaction.response.send_modal(ChatGPTModal(db_cluster=self.db_cluster))
         if attachment:
             channel_id = interaction.channel.id
-            # Create a temporary file
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                # Save the attachment content to the temporary file
-                await attachment.save(temp_file.name)
-                temp_file_path = temp_file.name
+            user_id = interaction.user.id
+            guild_id = interaction.guild.id if interaction.guild else None
+            is_thread = isinstance(interaction.channel, discord.Thread)
 
+            # Determine access level
+            access_level = await get_access_level(self.db_cluster, interaction, user_id, guild_id)
+            assistant_id = await get_assistant_by_access_level(self.db_cluster, access_level)
+            await get_or_create_channel_entry(self.db_cluster, channel_id, guild_id, assistant_id, is_thread)
+
+            # Create a temporary file
+            local_path = await save_attachment_temporarily(attachment)
             try:
                 # Upload file to OpenAI
-                openai_file = await upload_file_to_openai(temp_file_path)
+                openai_file = await upload_file_to_openai(local_path)
+
+                # Record file in MongoDB
+                file_data = {
+                    "channel_id": channel_id,
+                    "filename": attachment.filename,
+                    "local_path": local_path,
+                    "file_id": openai_file.id
+                }
+                await files_collection.insert_one(file_data)
+
+                # Update channel entry in MongoDB
+                await channels_collection.update_one(
+                    {"channel_id": channel_id},
+                    {"$push": {"attachments": file_data}}
+                )
+
             finally:
                 # Ensure the temporary file is deleted after use
-                if os.path.exists(temp_file_path):
-                    os.remove(temp_file_path)
-
-            # Record file in MongoDB
-            file_data = {
-                "channel_id": channel_id,
-                "filename": attachment.filename,
-                "local_path": temp_file_path,
-                "file_id": openai_file.id
-            }
-            await files_collection.insert_one(file_data)
-
-            # Update channel entry in MongoDB
-            await channels_collection.update_one(
-                {"channel_id": channel_id},
-                {"$push": {"attachments": file_data}}
-            )
-        await interaction.response.send_modal(ChatGPTModal(db_cluster=self.db_cluster))
+                if os.path.exists(local_path):
+                    os.remove(local_path)
 
 
     async def reset_chat(self, interaction: Interaction, type: str, channel_id: str, guild_id: str = None, is_thread = False):
@@ -645,5 +731,4 @@ class ChatGPT(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ChatGPT(bot))
-
 
