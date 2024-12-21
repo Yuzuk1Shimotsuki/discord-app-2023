@@ -1069,3 +1069,20 @@ A blank line will now shown and deletes immediately when the command are all fin
 
 (-) Removed multiprocessing
 
+#
+
+# 20241220 (night) v2.0.3 (*)
+
+(+) Fix some minior issues in **"./startup.py"**
+
+**"./general/ChatGPT.py"**
+
+(-/+) Replaced **"openai.chat.completions"** with **"openai.beta.assistants"** for better integration
+
+(+) Add support for file uploading.
+
+(+) Files uploaded will be stored on OpenAI server side, with the file id stored on database
+
+(-) Remove support for custom prompting due to some predictable issues may occurs
+
+(+)

@@ -10,7 +10,6 @@ import socket
 import subprocess
 import motor.motor_asyncio as motor
 from asyncio import sleep, Queue
-from GetDetailIPv4Info import *
 from discord.ext import commands
 from discord.ext.commands import ExtensionAlreadyLoaded, ExtensionNotLoaded, NoEntryPointError, ExtensionFailed
 from dotenv import load_dotenv
@@ -20,7 +19,7 @@ from hypercorn.config import Config
 from quart import Quart
 from configs.Logging import setup_logger
 from errorhandling.ErrorHandling import *
-
+from GetDetailIPv4Info import *
 
 load_dotenv()
 nest_asyncio.apply()
@@ -49,7 +48,7 @@ class Bot(commands.Bot):
 
 
     async def setup_hook(self):
-        self.mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_DATABASE_URL"))   # Initialize the motor client here to ensure it's tied to the correct event loop
+        self.mongo_client = motor.AsyncIOMotorClient(os.getenv("MONGO_DATABASE_URI"))   # Initialize the motor client here to ensure it's tied to the correct event loop
 
         try:
             # Self MongoDB connedction test
@@ -192,6 +191,12 @@ async def load(ctx, cog_name):
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
     Load cogs manually
+
+    Parameters
+    ----------
+    cog_name: str
+        The name to load.
+
     """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
@@ -224,6 +229,12 @@ async def unload(ctx, cog_name):
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
     
     Unload cogs manually
+
+    Parameters
+    ----------
+    cog_name: str
+        The name to unload.
+    
     """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
@@ -251,13 +262,18 @@ async def unload(ctx, cog_name):
         return await ctx.reply(ExtensionFailedError(cog=cog_name))
     
 
-
 @bot.command()
 async def reload(ctx, cog_name):
     """
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
     Reload cogs manually
+
+    Parameters
+    ----------
+    cog_name: str
+        The name to reload.
+    
     """
     if not await bot.is_owner(ctx.author):
         return await ctx.reply(NotBotOwnerError())
@@ -369,7 +385,7 @@ async def restart(ctx):
     
     bot.clear()
     await bot.close()
-    await self_restart()
+    await restart_()
 
 
 @bot.command()
@@ -390,11 +406,34 @@ async def shutdown(ctx):
     await app.shutdown()
 
 
+"""
+The following code is the primary operational logic of the application with proper documentation.  
+To optimize resource usage, multiprocessing has been replaced with asynchronous operations, which are more lightweight and efficient.  
+However, as a trade-off, the shutdown process may take slightly longer due to the need for graceful task cancellation and cleanup.
+"""
+
+
 async def start_bot():
     """
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
-    Start the bot application
+    Starts the bot application.
+
+    The function is designed to initialize and start the Discord bot using the provided bot token.
+    It ensures that the bot connects to Discord's API and begins processing events.
+
+    Raises:
+    ----------
+    `discord.HTTPException`:
+        - Raised when the bot faces a rate-limit (HTTP 429) error from Discord's server.
+        - This can occur if the bot sends too many requests in a short amount of time.
+        - Developers should handle this by ensuring their code respects Discord's rate limits.
+
+    `discord.errors.LoginFailure`:
+        - Raised when the provided bot token is invalid or incorrect.
+        - This error indicates that the bot could not authenticate with Discord's servers.
+        - Ensure the token is valid, correctly formatted, and has the appropriate permissions.
+
     """
     try:
         token = os.getenv("DISCORD_BOT_TOKEN") or ""
@@ -410,7 +449,7 @@ async def start_bot():
             logger.error("\nThe Discord servers denied the connection for making too many requests, restarting in 7 seconds...")
             logger.error("\nIf the restart fails, get help from 'https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests'")
             
-            instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
+            await instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
         
         else:
             raise http_error
@@ -420,25 +459,34 @@ async def start_bot():
         exit(1)
 
 
-"""
-The following code is the primary operational logic of the application.  
-To optimize resource usage, multiprocessing has been replaced with asynchronous operations, which are more lightweight and efficient.  
-However, as a trade-off, the shutdown process may take slightly longer due to the need for graceful task cancellation and cleanup.
-"""
-
-
 @app.before_serving
 async def before_serving():
     """
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
     Called when the web server starts
+
+    Adding discord bot to the background task
+
+    Returns
+    ----------
+    None
+
     """
     app.add_background_task(start_bot)
 
 
 @app.route("/")
 def hello_world():
+    """
+    Returning the home page of the Quart app
+
+    Returns
+    ----------
+    `Literal['str']`
+        The message from home page.
+
+    """
     return "Hello, World!"
 
 
@@ -446,6 +494,12 @@ def hello_world():
 def status():
     """
     Returning the status of the Quart app
+
+    Returns
+    ----------
+    `Literal['str']`
+        The application status.
+
     """
     if len(app.background_tasks) == 0:
         return "No applications were hosting now."
@@ -454,7 +508,18 @@ def status():
 
 
 @app.get('/restart')
-async def self_restart():
+async def restart_():
+    """
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
+
+    Restart the Quart app from HTTP Get Request.
+
+    Returns
+    ----------
+    `Literal['str']`
+        The restart message to client devices.
+    
+    """
     await bot.close()
     await bot.close_db()
     await instruction_queue.put("restart")    # Put "restart" to the queue to restart the web server
@@ -462,11 +527,16 @@ async def self_restart():
 
 
 @app.after_serving
-async def self_shutdown():
+async def shutdown_():
     """
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
     Actions after shutting down the Quart app (Ctrl + C or by command)
+
+    Returns
+    ----------
+    None
+
     """
     await bot.close()
     await bot.close_db()
@@ -478,6 +548,11 @@ async def run_server():
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
     Runs the Quart application using Hypercorn.
+
+    Returns
+    ----------
+    None
+
     """
     config = Config()
     config.bind = ["0.0.0.0:3000"]  # Custom PORT: 3000 for Azure and Docker
@@ -488,13 +563,13 @@ async def run_server():
         await serve(app, config)
 
     except asyncio.CancelledError:
-        print("Server task cancelled. Shutting down Hypercorn...")
+        logger.info("Server task cancelled. Shutting down Hypercorn...")
 
     except Exception as e:
-        print(f"Error in server: {e}")
+        logger.info(f"Error in server: {e}")
 
     finally:
-        print("Hypercorn server has stopped.")
+        logger.info("Hypercorn server has stopped.")
 
 
 async def startup(queue):
@@ -506,13 +581,18 @@ async def startup(queue):
     Parameters
     ----------
     queue : `asyncio.Queue`
-        The instruction queue
+        The asynchronous instruction queue.
+
+    Returns
+    ----------
+    `Task[None]`:
+        The server task.
 
     """
     global instruction_queue
     instruction_queue = queue
     server_task = asyncio.create_task(run_server())
-    print("Hypercorn server started.")
+    logger.info("Hypercorn server started.")
     return server_task
 
 
@@ -527,6 +607,10 @@ async def cancel_server_task(server_task):
     server_task: `Task[None]`
         The task from `startup()`
 
+    Returns
+    ----------
+    None
+
     """
     server_task.cancel()    # Cancel the server task
 
@@ -534,14 +618,14 @@ async def cancel_server_task(server_task):
         await server_task    # Wait for the server task to finish
 
     except asyncio.CancelledError:
-        print("Server task cancelled successfully.")
+        logger.info("Server task cancelled successfully.")
 
 
 async def monitor_queue(queue, server_task):
     """
     This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
-    Monitors the queue for instructions such as 'shutdown' or 'restart' in coroutine.
+    Monitors the queue for instructions such as 'shutdown' or 'restart'.
 
     Parameters
     ----------
@@ -551,13 +635,16 @@ async def monitor_queue(queue, server_task):
     server_task: `Task[None]`
         The task returned from `startup()`
 
+    Returns
+    ----------
+    None
+
     """
     while True:
         instruction = await queue.get()
         match instruction:
             case "shutdown":
-                await cancel_server_task(server_task)
-                return   # Exit the main process gracefully
+                return await cancel_server_task(server_task)    # Exit the main process gracefully
 
             case "restart" | "reboot":
                 await cancel_server_task(server_task)
@@ -575,9 +662,14 @@ async def monitor_queue(queue, server_task):
 
 async def main():
     """
-    Main program execution logic.
+    This function is a [coroutine](https://docs.python.org/3/library/asyncio-task.html#coroutine).
 
-    Rewrited with asynchronous approach.
+    Main program execution logic rewrited with asynchronous approach.
+
+    Returns
+    ----------
+    None
+
     """
     queue = Queue()
 
@@ -588,19 +680,22 @@ async def main():
         await monitor_queue(queue, server_task)    # Start monitoring the queue
 
     except asyncio.CancelledError:
-        print("Main task cancelled. Cleaning up...")
+        logger.info("Main task cancelled. Cleaning up...")
 
     finally:
-        print("Terminating server task...")
+        logger.info("Terminating server task...")
         server_task.cancel()
 
         try:
             await server_task
 
         except asyncio.CancelledError:
-            print("Server task terminated.")
+            logger.info("Server task terminated.")
 
-    print("Application halted.")
+    logger.info("Application halted.")    # The application terminated
+
+
+
 
 
 if __name__ == "__main__":
