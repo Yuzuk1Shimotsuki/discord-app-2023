@@ -3,7 +3,7 @@ name: Build and push the image to GitHub Container registry (GHCR)
 on:
   push:
     branches:
-      - stable  # The current branch (hardcoded)
+      - development-v2.1.0-beta  # The current branch (hardcoded)
 
 jobs:
   build_and_push:
