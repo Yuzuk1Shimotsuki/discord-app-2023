@@ -701,11 +701,11 @@ class VoiceChannel(commands.Cog):
                     return await interaction.response.send_message(embed=vkick_error_embed)
                 
             if reason is not None:
-                await member.kick(reason=reason)
+                await member.move_to(None, reason=reason)
                 vkick_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **kicked from voice**.\nReason: **{reason}**")
 
             else:
-                await member.kick()
+                await member.move_to(None)
                 vkick_embed.add_field(name="", value=f":white_check_mark: {member.mention} has been **kicked from voice**.")
 
             return await interaction.response.send_message(embed=vkick_embed)
@@ -744,3 +744,4 @@ class VoiceChannel(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(VoiceChannel(bot))
+
