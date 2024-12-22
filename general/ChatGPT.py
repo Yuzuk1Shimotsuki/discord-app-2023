@@ -397,7 +397,7 @@ def discord_message_formatter(content: str, limit: Optional[int] = 2000) -> List
                 final_chunks.append(temp_chunk)
         else:
             final_chunks.append(chunk)
-
+    
     return final_chunks
 
 
@@ -565,9 +565,11 @@ class ChatGPTModal(Modal):
             edited_response = f"{quote}\n{discord.utils.escape_markdown(' ')}\n{assistant_reply}"
             
             formatted_responses = discord_message_formatter(edited_response)
+            print(formatted_responses)
 
             for msg in formatted_responses:
-                await interaction.followup.send(msg)
+                if msg != "":
+                    await interaction.followup.send(msg)
 
             await wait_message.delete()
         
