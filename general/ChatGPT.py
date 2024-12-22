@@ -565,7 +565,6 @@ class ChatGPTModal(Modal):
             edited_response = f"{quote}\n{discord.utils.escape_markdown(' ')}\n{assistant_reply}"
             
             formatted_responses = discord_message_formatter(edited_response)
-            print(formatted_responses)
 
             for msg in formatted_responses:
                 if msg != "":
@@ -794,7 +793,6 @@ class ChatGPT(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ChatGPT(bot))
-
 
 
 
