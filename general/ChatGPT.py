@@ -1,14 +1,13 @@
 import discord
 import os
-import math
 import tempfile
 import openai
 import ast
+import re
 from datetime import datetime
 from discord import app_commands, Embed, Interaction
 from discord.ext import commands
 from discord.ui import Modal, TextInput
-from langdetect import detect, DetectorFactory
 from openai import OpenAI
 from dotenv import load_dotenv
 from typing import Optional, List
@@ -306,40 +305,100 @@ async def upload_file_to_openai(local_path):
         return openai_client.files.create(file=file, purpose="assistants")
 
 
-def format_message(message: str) -> List[str]:
+def discord_message_formatter(content: str, limit: Optional[int] = 2000) -> List[str]:
     """
     Format and split a message into chunks that adhere Discord's 2000 characters and markdown limitation.
 
+    Note that this is a rewrite and hopefully will support all languages. The function attempts to split
+    at natural boundaries (newlines, spaces) first, before falling back to character-level splits if necessary.
+
     Parameters
     ----------
-    message: str
-        The message to be formated.
-    
+    content : str
+        The message to be formatted and split. Can contain any language, including mixed content
+        and markdown formatting.
+
+    limit : `Optional[int]`
+        Maximum number of characters per chunk (default is 2000, Discord's message limit)
+
     Returns
-    ----------
-    `List[str]`:
-        A list of formated strings from the message.
+    -------
+    `List[str]`
+        A list of formatted strings from the message, each no longer than the specified limit.
+
+    Examples
+    --------
+    >>> text = "This is a long message" * 1000
+    >>> chunks = discord_message_formatter(text)
+    >>> all(len(chunk) <= 2000 for chunk in chunks)
+    True
+
+    >>> # Works with Chinese, Japanese and other languages
+    >>> text = "這是一個很長的訊息" * 1000
+    >>> chunks = discord_message_formatter(text)
+    >>> all(len(chunk) <= 2000 for chunk in chunks)
+    True
+
+    >>> text = "これは長いメッセージです。" * 1000
+    >>> chunks = discord_message_formatter(text)
+    >>> all(len(chunk) <= 2000 for chunk in chunks)
+    True
 
     """
-    message = message.replace("######", "###").replace("#####", "###").replace("####", "###")
-    parts = []
-    min_limit = 0
-    max_limit = 2000
 
-    for i in range(math.ceil(len(message) / max_limit)):
-        offset = 0
-        if i < len(message) // max_limit:
-            DetectorFactory.seed = 0
-            
-            if detect(message) not in ["ko", "ja", "zh-tw", "zh-cn", "th"]:
-                while max_limit - offset > 0 and message[max_limit - offset - 1] != " ":
-                    offset += 1
+    content = content.replace("######", "###").replace("#####", "###").replace("####", "###")   # Adjust Markdown headers
 
-        parts.append(message[min_limit:max_limit - offset].strip())
-        min_limit += 2000 - offset
-        max_limit += 2000 - offset
-    
-    return parts
+    def has_unclosed_markdown(text):
+        patterns = [r'\*', r'\_', r'\`', r'\~\~', r'\|\|']
+        return any(len(re.findall(p, text)) % 2 != 0 for p in patterns)
+
+    def find_last_markdown(text):
+        markdown = re.findall(r'(\*+|\_+|\`+|\~\~|\|\|)', text)
+        return markdown[-1] if markdown else ''
+
+    def split_cjk(text):
+        return [x for x in re.findall(r'[\u4e00-\u9fff]|[^\u4e00-\u9fff]+', text) if x.strip()]    # Split text while preserving both words and CJK characters
+
+    chunks = []
+    current_chunk = ''
+
+    segments = split_cjk(content)    # Use CJK-aware splitting
+
+    for segment in segments:
+        test_chunk = current_chunk + ('' if not current_chunk else ' ' if segment.isspace() or not any('\u4e00' <= c <= '\u9fff' for c in segment) else '') + segment
+        
+        if len(test_chunk) <= limit:
+            current_chunk = test_chunk
+        else:
+            if has_unclosed_markdown(current_chunk):
+                markdown = find_last_markdown(current_chunk)
+                if len(current_chunk + markdown) <= limit:
+                    current_chunk += markdown
+
+            chunks.append(current_chunk)
+            current_chunk = segment
+
+    if current_chunk:
+        chunks.append(current_chunk)
+
+    # Final verification and splitting of any oversized chunks
+    final_chunks = []
+    for chunk in chunks:
+        if len(chunk) > limit:
+            # If still too long, split by character while preserving markdown
+            temp_chunk = ''
+            for char in chunk:
+                if len(temp_chunk + char) > limit:
+                    final_chunks.append(temp_chunk)
+                    temp_chunk = char
+                else:
+                    temp_chunk += char
+            if temp_chunk:
+                final_chunks.append(temp_chunk)
+        else:
+            final_chunks.append(chunk)
+
+    return final_chunks
 
 
 async def openai_error_embed_handler(interaction, e, title):
@@ -409,7 +468,9 @@ async def openai_error_embed_handler(interaction, e, title):
 
     await interaction.followup.send(embed=error_embed)
 
+
 # ----------<ChatGPT>----------
+
 
 class ChatGPTModal(Modal):
     """
@@ -503,7 +564,7 @@ class ChatGPTModal(Modal):
             quote = f"> {interaction.user.mention}: **{content}**{discord.utils.escape_markdown(' ')}"
             edited_response = f"{quote}\n{discord.utils.escape_markdown(' ')}\n{assistant_reply}"
             
-            formatted_responses = format_message(edited_response)
+            formatted_responses = discord_message_formatter(edited_response)
 
             for msg in formatted_responses:
                 await interaction.followup.send(msg)
@@ -731,4 +792,8 @@ class ChatGPT(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ChatGPT(bot))
+
+
+
+
 

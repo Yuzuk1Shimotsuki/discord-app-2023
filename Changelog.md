@@ -1088,3 +1088,12 @@ A blank line will now shown and deletes immediately when the command are all fin
 (+) Files uploaded will be stored on OpenAI server side, with the file id stored on database
 
 (-) Remove support for custom prompting due to some predictable issues may occurs
+
+# 20241222 (night) v2.0.6 (*)
+
+**"./general/ChatGPT.py"**
+
+(-/+) Rewrited the message formatter for universal languages support
+
+(-/+) Fix some minior issues in **"./general/ChatGPT.py"**
+
