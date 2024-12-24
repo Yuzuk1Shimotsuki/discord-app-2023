@@ -283,14 +283,18 @@ class MusicPlayer(commands.Cog):
                     embed.add_field(name="Album", value=custom_audio["album"], inline=False)
 
                 if custom_audio["year"]:
-                    embed.add_field(name="Year", value=custom_audio["year"], inline=False)
+                    embed.add_field(name="Year / Date (Album)", value=custom_audio["year"], inline=False)
 
                 if custom_audio["duration"]:
-                    embed.add_field(
+                    try:
+                        embed.add_field(
                         name="Duration",
                         value=f"{timedelta(seconds=math.floor(custom_audio['duration']))}",
                         inline=False,
-                    )
+                        )
+                    
+                    except OverflowError:
+                        pass
 
                 embed.add_field(name="Source", value=f"[Custom audio]({custom_audio['audio_url']})", inline=False)
 
@@ -305,7 +309,11 @@ class MusicPlayer(commands.Cog):
                     embed.add_field(name="Album", value=track.album.name, inline=False)
 
                 if track.length:
-                    embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+                    try:
+                        embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+                    
+                    except OverflowError:
+                        pass
 
                 embed.add_field(name="Source", value=track_source, inline=False)
 
@@ -325,7 +333,11 @@ class MusicPlayer(commands.Cog):
                     embed.add_field(name="Album", value=track.album.name, inline=False)
 
                 if track.length:
-                    embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+                    try:
+                        embed.add_field(name="Duration", value=f"{timedelta(milliseconds=track.length)}", inline=False)
+
+                    except OverflowError:
+                        pass
 
                 embed.add_field(name="Source", value=track_source, inline=False)
 
@@ -838,14 +850,19 @@ class MusicPlayer(commands.Cog):
                 nowplaying_embed.add_field(name="Album", value=custom_audio["album"], inline=False)
                 
             if custom_audio["year"]:
-                nowplaying_embed.add_field(name="Year", value=custom_audio["year"], inline=False)
+                nowplaying_embed.add_field(name="Year / Date (Album)", value=custom_audio["year"], inline=False)
 
             if custom_audio["duration"]:
-                nowplaying_embed.add_field(
-                    name="Duration",
-                    value=f"{timedelta(seconds=math.floor(custom_audio['duration']))}",
-                    inline=False,
-                )
+                try:
+                    nowplaying_embed.add_field(
+                        name="Duration",
+                        value=f"{timedelta(seconds=math.floor(custom_audio['duration']))}",
+                        inline=False,
+                    )
+                
+                except OverflowError:
+                    pass
+                
             nowplaying_embed.add_field(name="Source", value=f"[Custom audio]({custom_audio['audio_url']})", inline=False)
 
         elif player.current:
@@ -858,7 +875,12 @@ class MusicPlayer(commands.Cog):
                 nowplaying_embed.add_field(name="Album", value=player.current.album.name, inline=False)
 
             if player.current.length:
-                nowplaying_embed.add_field(name="Duration", value=f"{timedelta(milliseconds=player.current.length)}", inline=False)
+                try:
+                    nowplaying_embed.add_field(name="Duration", value=f"{timedelta(milliseconds=player.current.length)}", inline=False)
+
+                except OverflowError:
+                    pass
+            
             nowplaying_embed.add_field(name="Source", value=track_source, inline=False)
 
         else:
@@ -896,8 +918,8 @@ class MusicPlayer(commands.Cog):
     @app_commands.describe(type="The type to repeat (Can be the current track or all tracks)")
     @app_commands.describe(option="Enable or disable?")
     @app_commands.choices(type=[app_commands.Choice(name="Repeat one", value="loop"),
-                                 app_commands.Choice(name="Repeat all", value="loop_all")
-                                 ])
+                                app_commands.Choice(name="Repeat all", value="loop_all")
+                                ])
     async def repeat(self, interaction: Interaction, type: app_commands.Choice[str], option: bool):
         repeat_embed = discord.Embed(title="", color=interaction.user.colour)
         player: wavelink.player = cast(wavelink.Player, interaction.guild.voice_client)
