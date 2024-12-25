@@ -67,12 +67,8 @@ There are two ways to use the application:
         - Visit the generated URL and follow the instructions from the website.
 
    2. **Create a .env file and store your bot token**:
-      - Create .env file in your root directory and copy the below template:
-      
-      ```bash
-      DISCORD_BOT_TOKEN="YOUR_BOT_TOKEN_HERE"
-      ```
-      and replace `YOUR_BOT_TOKEN_HERE` with your bot token.
+      - Rename the `example.env` file as `.env`. Then, replace the empty string of `DISCORD_BOT_TOKEN` with your bot token.
+
 
    3. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more insturctions.
 
