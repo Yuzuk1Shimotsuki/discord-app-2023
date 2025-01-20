@@ -98,7 +98,7 @@ There are two ways to use the application:
 <br>
 <details>
 <summary>Or, if you just want to try our features...</summary>
-Head over to <a href="https://discord.com/oauth2/authorize?client_id=1158632119552196628">the link</a> and <b>invite the bot to your server</b>, or install it as an <b>user-installed application</b> as you like.
+Head over to <a href="https://discord.com/oauth2/authorize?client_id=1158632119552196628">here</a> and <b>invite the bot to your server</b>, or install it as a <b>user-installed application</b> as you prefer.
 </details>
 
 ---
