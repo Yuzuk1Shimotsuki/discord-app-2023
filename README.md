@@ -37,6 +37,7 @@ and so much more...
 - **[Python][Python] 3.10 or later**
 -  **[discord.py][discord.py_GitHub] v2.4.0 or later**
 -  **[Docker][Docker]** for hosting the bot.
+-  **[MongoDB][MongoDB]** for storing custom configuration.
 -  **[Wavelink][Wavelink_GitHub] v3.4.1 or later** for the bot to play music in voice channels.
 
 ---
@@ -66,11 +67,32 @@ There are two ways to use the application:
         - In the same Developer Portal, go to the **"OAuth2"** tab, generate an **OAuth2 URL** with the **`bot`** scope, and give your bot necessary permissions (such as `Send Messages` and `Read Messages`).
         - Visit the generated URL and follow the instructions from the website.
 
-   2. **Create a .env file and store your bot token**:
-      - Rename the `example.env` file as `.env`. Then, replace the empty string of `DISCORD_BOT_TOKEN` with your bot token.
+   2. **Configure MongoDB Atlas for data stroage**:
+   
+      1. **Create a MongoDB Atlas Account**
+         - Go to the [MongoDB Atlas website](https://www.mongodb.com/docs/atlas/getting-started/) and sign up for an account if you haven't.
+         - Follow the prompts to create a new account.
+      
+      2. **Create a Cluster**
+         - Once you're logged in, click on **"Create Cluster"**.
+         - Choose a name for your cluster and select a region closest to you.
+         - Select the **"Free Tier"** to start with a small-scale development environment.
+         - Click **"Create Cluster"**.
+      
+      3. **Configure Cluster Security**
+         - Go to the **"Security"** tab and click on **"IP Access List"**.
+         - Add your IP address to the list to ensure only your IP can access the cluster.
+         - Alternatively, you can set up user authentication for login.
+      
+      4. **Connect to Your Cluster**
+         - Go to the **"Connect"** tab and select **"Connect your application"**.
+         - Choose the appropriate driver and connection string for your application.
+         - Copy the connection string (URI) for later use and proceed to the next step.
+   
+   3. **Create a .env file and store your bot token**:
+      - Rename the `example.env` file as `.env`. Then, replace the empty string of `DISCORD_BOT_TOKEN` and `MONGO_DATABASE_URI` with your bot token and URI from MongoDB Atlas respectively.
 
-
-   3. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more insturctions.
+   4. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more insturctions.
 
 </details>
 <br>
@@ -136,10 +158,8 @@ docker compose up
 
 5. If nothing goes wrong, congratulations :tada:! You're now all set up!
 
-<details>
-<summary>Docker Run</summary>
-*Not Implemented yet*
-</details>
+> [!NOTE]
+> Support of using docker run has been removed since version 2.0
 
 ---
 
@@ -160,8 +180,12 @@ The bot is still working in progress. More functionality will be added in the fu
 
 [Discord-DeveloperPortal]: https://discord.com/developers/applications
 
+[MongoDB]: https://www.mongodb.com/
+
 [Python]: https://www.python.org/downloads/
 
 [Docker]: https://www.docker.com/
+
+[MongoDB]: https://www.mongodb.com/
 
 [Wavelink_GitHub]: https://github.com/PythonistaGuild/Wavelink
