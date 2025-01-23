@@ -169,7 +169,7 @@ docker compose up
 The bot is still working in progress. More functionality will be added in the future such as:
 
 - **Role Management**: Allow the bot to assign or remove roles from users.
-- **Database Integration**: Store user data or server configurations using a simple file system, SQLite, or an external database.
+- **Third-party database integration**: Store user data or server configurations using a simple file system, SQLite, or an external database besides [MongoDB][MongoDB].
 
 ---
 
