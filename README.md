@@ -19,8 +19,8 @@ The application contains some core functions already but can be extended as need
 
 ## What this bot can do right now?
 
-The bot has been already equipped with these functions:
-- ChatGPT with gpt4o
+The bot has already been equipped with these functions:
+- ChatGPT AI chatbot
 - Music player
 - Getting a discord user information or avatar
 - Banning users
@@ -32,33 +32,29 @@ and so much more...
 
 ---
 
-## Prerequisites
+## How can I use the bot?
 
-- **[Python][Python] 3.10 or later**
--  **[discord.py][discord.py_GitHub] v2.4.0 or later**
--  **[Docker][Docker]** for hosting the bot.
--  **[MongoDB][MongoDB]** for storing custom configuration.
--  **[Wavelink][Wavelink_GitHub] v3.4.1 or later** for the bot to play music in voice channels.
+If you want to self-host your own instance:
 
----
+**Prerequisites**
 
-## Installation
+   - **[Python][Python] 3.10 or later**
+   -  **[discord.py][discord.py_GitHub] v2.4.0 or later**
+   -  **[Docker][Docker]** for hosting the bot.
+   -  **[MongoDB][MongoDB]** for storing custom configuration.
+   -  **[Wavelink][Wavelink_GitHub] v3.4.1 or later** for the bot to play music in voice channels.
 
-You can simply run the following command in your terminal:
-```bash
-pip install -r requirements.txt
-```
-which will automatically install all required dependencies to your environment (except **docker** and **python3** that need to be installed manually)
+<br>
 
----
+1. **Initialization**
 
-## Before you use the bot
+   You can simply run the following command in your terminal (given that **[Docker][Docker]** and **[Python][Python]** have already been installed):
+   ```bash
+   pip install -r requirements.txt
+   ```
+   which will automatically install all required dependencies to your environment
 
-There are two ways to use the application:
-
-If you want to self-host your own bot manually (Provided that Python and Docker have already been installed):
-
-1. **Create a Discord Bot**:
+2. **Create a Discord Bot**:
    1. Go to the [Discord Developer Portal](https://discord.com/developers/applications).
    2. Create a new **application**.
    3. Inside your application, go to the **"Bot"** tab and click **"Add Bot"**.
@@ -68,7 +64,7 @@ If you want to self-host your own bot manually (Provided that Python and Docker 
      - In the same Developer Portal, go to the **"OAuth2"** tab, generate an **OAuth2 URL** with the **`bot`** scope, and give your bot necessary permissions (such as `Send Messages` and `Read Messages`).
      - Visit the generated URL and follow the instructions from the website.
 
-2. **Configure MongoDB Atlas for data stroage**:
+3. **Configure MongoDB Atlas for data stroage**:
 
    1. **Create a MongoDB Atlas Account**
       1. Go to the [MongoDB Atlas website](https://www.mongodb.com/docs/atlas/getting-started/) and sign up for an account if you haven't.
@@ -90,19 +86,23 @@ If you want to self-host your own bot manually (Provided that Python and Docker 
       2. Choose the appropriate driver and connection string for your application.
       3. Copy the connection string (URI) for later use and proceed to the next step.
 
-3. **Create a .env file and store your bot token**:
+4. **Create a .env file and store your bot token**:
    - Rename the `example.env` file as `.env`. Then, replace the empty string of `DISCORD_BOT_TOKEN` and `MONGO_DATABASE_URI` with your bot token and URI from MongoDB Atlas respectively.
 
-4. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more insturctions.
+5. Great! Now move on to <a href="#how-to-start-up-and-host-your-bot">How to start up and host your bot</a> for more instructions.
 
+<br>
+
+<details>
+   <summary>
+      Or, if you just want to try our features...
+   </summary>
+   &emsp;Head over to <a href="https://discord.com/oauth2/authorize?client_id=1158632119552196628">here</a> and <b>invite the bot to your server</b>, or install it as a <b>user-installed application</b> as you prefer.
 </details>
 <br>
-<details>
-<summary>Or, if you just want to try our features...</summary>
-Head over to <a href="https://discord.com/oauth2/authorize?client_id=1158632119552196628">here</a> and <b>invite the bot to your server</b>, or install it as a <b>user-installed application</b> as you prefer.
-</details>
 
 ---
+
 
 ## How to start up and host your bot
 
